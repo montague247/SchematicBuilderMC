@@ -1,0 +1,6 @@
+[submodule "SchematicBuilderMC"]
+	path = SchematicBuilderMC
+	url = git@github.com:montague247/SchematicBuilderMC.git
+[submodule "Charon"]
+	path = Charon
+	url = git@github.com:montague247/Charon.git
