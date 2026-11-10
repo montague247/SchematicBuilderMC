@@ -183,6 +183,7 @@ static int RunGenerateCode(string[] args)
         {
             options.UseStronglyTypedBlocks = false;
             options.UseStronglyTypedEntities = false;
+            options.UseStronglyTypedItems = false;
         }
         else if (arg is "--raw-properties")
         {

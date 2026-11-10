@@ -128,6 +128,24 @@ public sealed class SchematicBuilder
     }
 
     /// <summary>
+    /// Sets a chest block and adds inventory items to its block entity at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetChest(int x, int y, int z, IEnumerable<ItemStack> items)
+    {
+        _schematic.SetChest(x, y, z, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a chest block and adds inventory items to its block entity at the specified position.
+    /// </summary>
+    public SchematicBuilder SetChest(BlockPosition position, IEnumerable<ItemStack> items)
+    {
+        _schematic.SetChest(position, items);
+        return this;
+    }
+
+    /// <summary>
     /// Sets a container block and adds inventory items to its block entity at (x, y, z).
     /// </summary>
     public SchematicBuilder SetContainer(string blockId, string blockEntityId, int x, int y, int z, params ItemStack[] items)

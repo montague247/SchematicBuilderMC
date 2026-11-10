@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using fNbt;
 using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.IO;
@@ -67,19 +68,35 @@ public static class FluentBuilderCodeGenerator
         }
 
         // Block operations
-        GenerateBlockCalls(schematic, options, calls);
+        var handledBlockEntities = new HashSet<BlockPosition>();
+        GenerateBlockCalls(schematic, options, calls, handledBlockEntities, ref needsFNbt);
 
         // Block entities (ordered by position for deterministic output)
-        foreach (var be in schematic.BlockEntities.OrderBy(b => b.Position.Y).ThenBy(b => b.Position.Z).ThenBy(b => b.Position.X))
+        foreach (var be in schematic.BlockEntities
+            .Where(b => !handledBlockEntities.Contains(b.Position))
+            .OrderBy(b => b.Position.Y).ThenBy(b => b.Position.Z).ThenBy(b => b.Position.X))
         {
-            bool hasCustomData = HasCustomPayloadData(be);
-            if (hasCustomData)
+            if (IsChest(be.Id) && be.HasItems)
             {
-                needsFNbt = true;
+                calls.Add(FormatChestCall(be.Position.X, be.Position.Y, be.Position.Z, be.GetItems(), options, ref needsFNbt));
             }
+            else if (be.HasItems)
+            {
+                var block = schematic[be.Position.X, be.Position.Y, be.Position.Z];
+                string blockId = block.IsAir ? be.Id : block.Identifier;
+                calls.Add(FormatContainerCall(blockId, be.Id, be.Position.X, be.Position.Y, be.Position.Z, be.GetItems(), options, ref needsFNbt));
+            }
+            else
+            {
+                bool hasCustomData = HasCustomPayloadData(be);
+                if (hasCustomData)
+                {
+                    needsFNbt = true;
+                }
 
-            string beCode = FormatBlockEntity(be, options, hasCustomData, indentStep);
-            calls.Add($".AddBlockEntity({beCode})");
+                string beCode = FormatBlockEntity(be, options, hasCustomData, indentStep);
+                calls.Add($".AddBlockEntity({beCode})");
+            }
         }
 
         // Entities (ordered by position for deterministic output)
@@ -169,7 +186,12 @@ public static class FluentBuilderCodeGenerator
         GenerateToFile(schematic, outputFilePath, options);
     }
 
-    private static void GenerateBlockCalls(Schematic schematic, FluentCodeGeneratorOptions options, List<string> calls)
+    private static void GenerateBlockCalls(
+        Schematic schematic,
+        FluentCodeGeneratorOptions options,
+        List<string> calls,
+        HashSet<BlockPosition> handledBlockEntities,
+        ref bool needsFNbt)
     {
         int w = schematic.Width;
         int h = schematic.Height;
@@ -217,7 +239,30 @@ public static class FluentBuilderCodeGenerator
                         var block = schematic[x, y, z];
                         if (options.OmitAir && block.IsAir) continue;
 
-                        calls.Add($".SetBlock({x}, {y}, {z}, {FormatBlockState(block, options)})");
+                        string blockCode = FormatBlockState(block, options);
+                        var be = schematic.GetBlockEntity(x, y, z);
+                        if (be != null && IsChest(be.Id) && be.HasItems)
+                        {
+                            if (block.Properties.Count > 0)
+                            {
+                                calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+                            }
+                            calls.Add(FormatChestCall(x, y, z, be.GetItems(), options, ref needsFNbt));
+                            handledBlockEntities.Add(be.Position);
+                        }
+                        else if (be != null && be.HasItems)
+                        {
+                            if (block.Properties.Count > 0)
+                            {
+                                calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+                            }
+                            calls.Add(FormatContainerCall(block.Identifier, be.Id, x, y, z, be.GetItems(), options, ref needsFNbt));
+                            handledBlockEntities.Add(be.Position);
+                        }
+                        else
+                        {
+                            calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+                        }
                     }
                 }
             }
@@ -300,7 +345,29 @@ public static class FluentBuilderCodeGenerator
                     }
                     else
                     {
-                        calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+                        var be = schematic.GetBlockEntity(x, y, z);
+                        if (be != null && IsChest(be.Id) && be.HasItems)
+                        {
+                            if (target.Properties.Count > 0)
+                            {
+                                calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+                            }
+                            calls.Add(FormatChestCall(x, y, z, be.GetItems(), options, ref needsFNbt));
+                            handledBlockEntities.Add(be.Position);
+                        }
+                        else if (be != null && be.HasItems)
+                        {
+                            if (target.Properties.Count > 0)
+                            {
+                                calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+                            }
+                            calls.Add(FormatContainerCall(target.Identifier, be.Id, x, y, z, be.GetItems(), options, ref needsFNbt));
+                            handledBlockEntities.Add(be.Position);
+                        }
+                        else
+                        {
+                            calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+                        }
                     }
                 }
             }
@@ -531,6 +598,254 @@ public static class FluentBuilderCodeGenerator
         }
 
         return $".WithProperty(\"{EscapeString(key)}\", \"{EscapeString(value)}\")";
+    }
+
+    private static bool IsChest(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return false;
+        return id.Equals("minecraft:chest", StringComparison.OrdinalIgnoreCase) ||
+               id.Equals("chest", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FormatChestCall(
+        int x, int y, int z,
+        IReadOnlyList<ItemStack> items,
+        FluentCodeGeneratorOptions options,
+        ref bool needsFNbt)
+    {
+        if (items == null || items.Count == 0)
+        {
+            return $".SetChest({x}, {y}, {z})";
+        }
+
+        var lines = new List<string>(items.Count + 1)
+        {
+            $".SetChest({x}, {y}, {z},"
+        };
+
+        var sortedItems = items.OrderBy(i => i.Slot).ToList();
+
+        for (int i = 0; i < sortedItems.Count; i++)
+        {
+            string itemStr = FormatItemStack(sortedItems[i], options, ref needsFNbt);
+            bool isLast = i == sortedItems.Count - 1;
+            lines.Add(isLast ? $"{itemStr})" : $"{itemStr},");
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    private static string FormatContainerCall(
+        string blockId,
+        string blockEntityId,
+        int x, int y, int z,
+        IReadOnlyList<ItemStack> items,
+        FluentCodeGeneratorOptions options,
+        ref bool needsFNbt)
+    {
+        string blockIdStr = options.UseStronglyTypedBlocks && Minecraft.Blocks.IsValid(blockId)
+            ? $"Minecraft.Blocks.{MinecraftRegistryGenerator.ToPascalCase(blockId)}"
+            : $"\"{EscapeString(blockId)}\"";
+
+        string beIdStr = options.UseStronglyTypedEntities && Minecraft.BlockEntities.IsValid(blockEntityId)
+            ? $"Minecraft.BlockEntities.{MinecraftRegistryGenerator.ToPascalCase(blockEntityId)}"
+            : $"\"{EscapeString(blockEntityId)}\"";
+
+        if (items == null || items.Count == 0)
+        {
+            return $".SetContainer({blockIdStr}, {beIdStr}, {x}, {y}, {z})";
+        }
+
+        var lines = new List<string>(items.Count + 1)
+        {
+            $".SetContainer({blockIdStr}, {beIdStr}, {x}, {y}, {z},"
+        };
+
+        var sortedItems = items.OrderBy(i => i.Slot).ToList();
+
+        for (int i = 0; i < sortedItems.Count; i++)
+        {
+            string itemStr = FormatItemStack(sortedItems[i], options, ref needsFNbt);
+            bool isLast = i == sortedItems.Count - 1;
+            lines.Add(isLast ? $"{itemStr})" : $"{itemStr},");
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    private static string FormatItemStack(ItemStack item, FluentCodeGeneratorOptions options, ref bool needsFNbt)
+    {
+        string itemIdCode;
+        if (options.UseStronglyTypedItems && Minecraft.Items.IsValid(item.Id))
+        {
+            itemIdCode = $"Minecraft.Items.{MinecraftRegistryGenerator.ToPascalCase(item.Id)}";
+        }
+        else
+        {
+            itemIdCode = $"\"{EscapeString(item.Id)}\"";
+        }
+
+        var sb = new StringBuilder();
+        sb.Append($"new ItemStack({itemIdCode}, count: {item.Count}, slot: {item.Slot})");
+
+        if (item.CustomData == null || item.CustomData.Count == 0)
+        {
+            return sb.ToString();
+        }
+
+        var custom = (NbtCompound)item.CustomData.Clone();
+
+        // 1. Display Name & Lore
+        if (custom["display"] is NbtCompound display)
+        {
+            if (display["Name"] is NbtString nameTag)
+            {
+                string rawName = nameTag.StringValue;
+                string displayName = ExtractTextFromTextComponent(rawName);
+                sb.Append($".WithDisplayName(\"{EscapeString(displayName)}\")");
+                display.Remove("Name");
+            }
+
+            if (display["Lore"] is NbtList loreList && loreList.ListType == NbtTagType.String && loreList.Count > 0)
+            {
+                var loreLines = new List<string>();
+                foreach (var tag in loreList)
+                {
+                    if (tag is NbtString lineTag)
+                    {
+                        loreLines.Add(ExtractTextFromTextComponent(lineTag.StringValue));
+                    }
+                }
+                if (loreLines.Count > 0)
+                {
+                    string loreArgs = string.Join(", ", loreLines.Select(l => $"\"{EscapeString(l)}\""));
+                    sb.Append($".WithLore({loreArgs})");
+                }
+                display.Remove("Lore");
+            }
+
+            if (display.Count == 0)
+            {
+                custom.Remove("display");
+            }
+        }
+
+        // Modern 1.20.5+ / 26.3 components support
+        if (custom["minecraft:custom_name"] is NbtString compNameTag)
+        {
+            string displayName = ExtractTextFromTextComponent(compNameTag.StringValue);
+            sb.Append($".WithDisplayName(\"{EscapeString(displayName)}\")");
+            custom.Remove("minecraft:custom_name");
+        }
+
+        if (custom["minecraft:lore"] is NbtList compLoreList && compLoreList.Count > 0)
+        {
+            var loreLines = new List<string>();
+            foreach (var tag in compLoreList)
+            {
+                if (tag is NbtString lineTag)
+                {
+                    loreLines.Add(ExtractTextFromTextComponent(lineTag.StringValue));
+                }
+            }
+            if (loreLines.Count > 0)
+            {
+                string loreArgs = string.Join(", ", loreLines.Select(l => $"\"{EscapeString(l)}\""));
+                sb.Append($".WithLore({loreArgs})");
+            }
+            custom.Remove("minecraft:lore");
+        }
+
+        // 2. Enchantments
+        if (custom["Enchantments"] is NbtList enchList && enchList.ListType == NbtTagType.Compound)
+        {
+            foreach (var tag in enchList)
+            {
+                if (tag is NbtCompound enchComp)
+                {
+                    string? enchId = enchComp["id"]?.StringValue;
+                    short lvl = enchComp["lvl"]?.ShortValue ?? 1;
+                    if (!string.IsNullOrEmpty(enchId))
+                    {
+                        sb.Append($".WithEnchantment(\"{EscapeString(enchId)}\", {lvl})");
+                    }
+                }
+            }
+            custom.Remove("Enchantments");
+        }
+        else if (custom["StoredEnchantments"] is NbtList storedList && storedList.ListType == NbtTagType.Compound)
+        {
+            foreach (var tag in storedList)
+            {
+                if (tag is NbtCompound enchComp)
+                {
+                    string? enchId = enchComp["id"]?.StringValue;
+                    short lvl = enchComp["lvl"]?.ShortValue ?? 1;
+                    if (!string.IsNullOrEmpty(enchId))
+                    {
+                        sb.Append($".WithEnchantment(\"{EscapeString(enchId)}\", {lvl})");
+                    }
+                }
+            }
+            custom.Remove("StoredEnchantments");
+        }
+
+        // 3. Durability Damage
+        if (custom["Damage"] is NbtInt dmgInt)
+        {
+            sb.Append($".WithDamage({dmgInt.Value})");
+            custom.Remove("Damage");
+        }
+        else if (custom["Damage"] is NbtShort dmgShort)
+        {
+            sb.Append($".WithDamage({dmgShort.Value})");
+            custom.Remove("Damage");
+        }
+        else if (custom["minecraft:damage"] is NbtInt compDmgInt)
+        {
+            sb.Append($".WithDamage({compDmgInt.Value})");
+            custom.Remove("minecraft:damage");
+        }
+
+        // 4. Remaining unhandled custom data
+        if (custom.Count > 0)
+        {
+            needsFNbt = true;
+            sb.Append($".WithCustomData({FormatNbtCompound(custom, options.IndentString)})");
+        }
+
+        return sb.ToString();
+    }
+
+    private static string ExtractTextFromTextComponent(string jsonOrText)
+    {
+        if (string.IsNullOrWhiteSpace(jsonOrText)) return "";
+
+        if (!jsonOrText.StartsWith('{') || !jsonOrText.EndsWith('}'))
+        {
+            return jsonOrText;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonOrText);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                doc.RootElement.TryGetProperty("text", out var textProp))
+            {
+                int count = 0;
+                foreach (var _ in doc.RootElement.EnumerateObject()) count++;
+                if (count == 1)
+                {
+                    return textProp.GetString() ?? jsonOrText;
+                }
+            }
+        }
+        catch
+        {
+            // Fallback to raw string if parsing fails
+        }
+
+        return jsonOrText;
     }
 
     private static string FormatBlockEntity(BlockEntity be, FluentCodeGeneratorOptions options, bool hasCustomData, string indentStep)
@@ -788,12 +1103,37 @@ public static class FluentBuilderCodeGenerator
             }
             else
             {
-                sb.Append($"{baseIndent}{indentStep}{calls[i]}");
-                if (i == calls.Count - 1 && isStatement)
+                string call = calls[i];
+                if (call.Contains('\n'))
                 {
-                    sb.Append(';');
+                    string[] lines = call.Split('\n');
+                    for (int l = 0; l < lines.Length; l++)
+                    {
+                        if (l == 0)
+                        {
+                            sb.Append($"{baseIndent}{indentStep}{lines[l].TrimEnd()}");
+                        }
+                        else
+                        {
+                            sb.Append($"{baseIndent}{indentStep}{indentStep}{lines[l].TrimEnd()}");
+                        }
+
+                        if (l == lines.Length - 1 && i == calls.Count - 1 && isStatement)
+                        {
+                            sb.Append(';');
+                        }
+                        sb.AppendLine();
+                    }
                 }
-                sb.AppendLine();
+                else
+                {
+                    sb.Append($"{baseIndent}{indentStep}{call}");
+                    if (i == calls.Count - 1 && isStatement)
+                    {
+                        sb.Append(';');
+                    }
+                    sb.AppendLine();
+                }
             }
         }
     }

@@ -69,6 +69,12 @@ public sealed class FluentCodeGeneratorOptions
     public bool UseStronglyTypedEntities { get; set; } = true;
 
     /// <summary>
+    /// Whether to refer to items using strongly-typed <c>Minecraft.Items</c> constants where available. Default is true.
+    /// When false, item identifier strings are emitted as string literals.
+    /// </summary>
+    public bool UseStronglyTypedItems { get; set; } = true;
+
+    /// <summary>
     /// Whether to optimize contiguous 3D regions of identical blocks using <c>.Fill(...)</c> calls. Default is true.
     /// When false, every block is set individually with <c>.SetBlock(...)</c>.
     /// </summary>

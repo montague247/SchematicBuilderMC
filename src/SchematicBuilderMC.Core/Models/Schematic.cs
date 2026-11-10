@@ -216,6 +216,18 @@ public sealed class Schematic
         SetChest(position.X, position.Y, position.Z, items);
 
     /// <summary>
+    /// Sets a chest block and its associated block entity with inventory items at (x, y, z).
+    /// </summary>
+    public BlockEntity SetChest(int x, int y, int z, IEnumerable<ItemStack> items) =>
+        SetChest(x, y, z, items?.ToArray() ?? Array.Empty<ItemStack>());
+
+    /// <summary>
+    /// Sets a chest block and its associated block entity with inventory items at the specified position.
+    /// </summary>
+    public BlockEntity SetChest(BlockPosition position, IEnumerable<ItemStack> items) =>
+        SetChest(position.X, position.Y, position.Z, items);
+
+    /// <summary>
     /// Sets a container block and its block entity with optional inventory items.
     /// </summary>
     public BlockEntity SetContainer(string blockId, string blockEntityId, int x, int y, int z, params ItemStack[] items)

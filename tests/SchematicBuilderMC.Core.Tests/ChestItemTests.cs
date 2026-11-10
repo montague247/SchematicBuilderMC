@@ -281,18 +281,35 @@ public class ChestItemTests
     }
 
     [Fact]
-    public void FluentBuilderCodeGenerator_FormatsBlockEntityWithItemsNbtList()
+    public void FluentBuilderCodeGenerator_FormatsChestWithItemsFluently()
+    {
+        var schematic = SchematicBuilder.Create(5, 4, 5)
+            .SetBlock(2, 1, 3, Minecraft.Blocks.Chest.WithFacing("north"))
+            .SetChest(2, 1, 3,
+                new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),
+                new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 1),
+                new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName("Watchtower Blade"))
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+        Assert.Contains(".SetBlock(2, 1, 3, Minecraft.Blocks.Chest.WithFacing(\"north\"))", code);
+        Assert.Contains(".SetChest(2, 1, 3,", code);
+        Assert.Contains("new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),", code);
+        Assert.Contains("new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 1),", code);
+        Assert.Contains("new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName(\"Watchtower Blade\"))", code);
+        Assert.DoesNotContain(".AddBlockEntity(", code);
+    }
+
+    [Fact]
+    public void FluentBuilderCodeGenerator_RawStringsOption_EmitsRawItemStrings()
     {
         var schematic = SchematicBuilder.Create(2, 2, 2)
             .SetChest(0, 0, 0,
                 new ItemStack(Minecraft.Items.Diamond, 64, slot: 0))
             .Build();
 
-        string code = FluentBuilderCodeGenerator.Generate(schematic);
-        Assert.Contains(".AddBlockEntity(", code);
-        Assert.Contains("new NbtList(\"Items\", NbtTagType.Compound)", code);
-        Assert.Contains("new NbtString(\"id\", \"minecraft:diamond\")", code);
-        Assert.Contains("new NbtByte(\"Slot\", 0)", code);
-        Assert.Contains("new NbtByte(\"Count\", 64)", code);
+        var options = new FluentCodeGeneratorOptions { UseStronglyTypedItems = false };
+        string code = FluentBuilderCodeGenerator.Generate(schematic, options);
+        Assert.Contains("new ItemStack(\"minecraft:diamond\", count: 64, slot: 0)", code);
     }
 }
