@@ -45,6 +45,7 @@ Library/
 **/Library/
 **/.local/
 **/.DS_Store
+**/demo_*.schem*
 
 # Others
 ~$*
