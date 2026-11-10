@@ -1,9 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/SchematicBuilderMC.Core/SchematicBuilderMC.Core.csproj" />
-    <Project Path="src/SchematicBuilderMC/SchematicBuilderMC.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/SchematicBuilderMC.Core.Tests/SchematicBuilderMC.Core.Tests.csproj" />
-  </Folder>
-</Solution>
