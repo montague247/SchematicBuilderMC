@@ -1,3 +1,5 @@
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Extensions;
 using SchematicBuilderMC.Generators;
 using SchematicBuilderMC.Registries;
 
@@ -280,6 +282,145 @@ public sealed class Schematic
     /// </summary>
     public IReadOnlyList<ItemStack> GetItems(BlockPosition position) =>
         GetItems(position.X, position.Y, position.Z);
+
+    /// <summary>
+    /// Sets a redstone repeater block at (x, y, z) with specified facing, delay (1-4), locked, and powered states.
+    /// </summary>
+    public BlockState SetRepeater(int x, int y, int z, string facing = "north", int delay = 1, bool locked = false, bool powered = false)
+    {
+        var state = Minecraft.Blocks.Repeater
+            .WithFacing(facing)
+            .WithDelay(delay)
+            .WithLocked(locked)
+            .WithPowered(powered);
+        SetBlock(x, y, z, state);
+        return state;
+    }
+
+    /// <summary>
+    /// Sets a redstone repeater block at the specified position.
+    /// </summary>
+    public BlockState SetRepeater(BlockPosition position, string facing = "north", int delay = 1, bool locked = false, bool powered = false) =>
+        SetRepeater(position.X, position.Y, position.Z, facing, delay, locked, powered);
+
+    /// <summary>
+    /// Sets a redstone repeater block at (x, y, z) with strongly-typed facing, delay level (1 to 4), locked, and powered states.
+    /// </summary>
+    public BlockState SetRepeater(int x, int y, int z, Direction facing, int delay = 1, bool locked = false, bool powered = false) =>
+        SetRepeater(x, y, z, facing.ToStateString(), delay, locked, powered);
+
+    /// <summary>
+    /// Sets a redstone repeater block at the specified position with strongly-typed facing.
+    /// </summary>
+    public BlockState SetRepeater(BlockPosition position, Direction facing, int delay = 1, bool locked = false, bool powered = false) =>
+        SetRepeater(position.X, position.Y, position.Z, facing.ToStateString(), delay, locked, powered);
+
+    /// <summary>
+    /// Sets a redstone comparator block at (x, y, z) with specified facing, subtraction mode, and powered states.
+    /// </summary>
+    public BlockState SetComparator(int x, int y, int z, string facing = "north", bool subtractMode = false, bool powered = false)
+    {
+        var state = Minecraft.Blocks.Comparator
+            .WithFacing(facing)
+            .WithSubtractMode(subtractMode)
+            .WithPowered(powered);
+        SetBlock(x, y, z, state);
+        return state;
+    }
+
+    /// <summary>
+    /// Sets a redstone comparator block at the specified position.
+    /// </summary>
+    public BlockState SetComparator(BlockPosition position, string facing = "north", bool subtractMode = false, bool powered = false) =>
+        SetComparator(position.X, position.Y, position.Z, facing, subtractMode, powered);
+
+    /// <summary>
+    /// Sets a redstone comparator block at (x, y, z) with strongly-typed facing, subtraction mode, and powered states.
+    /// </summary>
+    public BlockState SetComparator(int x, int y, int z, Direction facing, bool subtractMode = false, bool powered = false) =>
+        SetComparator(x, y, z, facing.ToStateString(), subtractMode, powered);
+
+    /// <summary>
+    /// Sets a redstone comparator block at the specified position with strongly-typed facing.
+    /// </summary>
+    public BlockState SetComparator(BlockPosition position, Direction facing, bool subtractMode = false, bool powered = false) =>
+        SetComparator(position.X, position.Y, position.Z, facing.ToStateString(), subtractMode, powered);
+
+    /// <summary>
+    /// Sets a lever at (x, y, z) with specified attachment face ("floor", "wall", "ceiling"), facing, and powered states.
+    /// </summary>
+    public BlockState SetLever(int x, int y, int z, string face = "floor", string facing = "north", bool powered = false)
+    {
+        var state = Minecraft.Blocks.Lever
+            .WithFace(face)
+            .WithFacing(facing)
+            .WithPowered(powered);
+        SetBlock(x, y, z, state);
+        return state;
+    }
+
+    /// <summary>
+    /// Sets a lever at the specified position.
+    /// </summary>
+    public BlockState SetLever(BlockPosition position, string face = "floor", string facing = "north", bool powered = false) =>
+        SetLever(position.X, position.Y, position.Z, face, facing, powered);
+
+    /// <summary>
+    /// Sets a lever at (x, y, z) with strongly-typed face attachment, facing direction, and powered state.
+    /// </summary>
+    public BlockState SetLever(int x, int y, int z, BlockFace face, Direction facing = Direction.North, bool powered = false) =>
+        SetLever(x, y, z, face.ToStateString(), facing.ToStateString(), powered);
+
+    /// <summary>
+    /// Sets a lever at the specified position with strongly-typed face attachment, facing direction, and powered state.
+    /// </summary>
+    public BlockState SetLever(BlockPosition position, BlockFace face, Direction facing = Direction.North, bool powered = false) =>
+        SetLever(position.X, position.Y, position.Z, face.ToStateString(), facing.ToStateString(), powered);
+
+    /// <summary>
+    /// Sets redstone wire at (x, y, z) with signal power (0 to 15).
+    /// </summary>
+    public BlockState SetRedstoneWire(int x, int y, int z, int power = 0)
+    {
+        var state = Minecraft.Blocks.RedstoneWire.WithPower(power);
+        SetBlock(x, y, z, state);
+        return state;
+    }
+
+    /// <summary>
+    /// Sets redstone wire at the specified position.
+    /// </summary>
+    public BlockState SetRedstoneWire(BlockPosition position, int power = 0) =>
+        SetRedstoneWire(position.X, position.Y, position.Z, power);
+
+    /// <summary>
+    /// Sets a piston block at (x, y, z) with specified facing, sticky, and extended states.
+    /// </summary>
+    public BlockState SetPiston(int x, int y, int z, string facing = "up", bool sticky = false, bool extended = false)
+    {
+        string blockId = sticky ? Minecraft.Blocks.StickyPiston : Minecraft.Blocks.Piston;
+        var state = blockId.WithFacing(facing).WithExtended(extended);
+        SetBlock(x, y, z, state);
+        return state;
+    }
+
+    /// <summary>
+    /// Sets a piston block at the specified position.
+    /// </summary>
+    public BlockState SetPiston(BlockPosition position, string facing = "up", bool sticky = false, bool extended = false) =>
+        SetPiston(position.X, position.Y, position.Z, facing, sticky, extended);
+
+    /// <summary>
+    /// Sets a piston block at (x, y, z) with strongly-typed facing direction, sticky, and extended states.
+    /// </summary>
+    public BlockState SetPiston(int x, int y, int z, Direction facing, bool sticky = false, bool extended = false) =>
+        SetPiston(x, y, z, facing.ToStateString(), sticky, extended);
+
+    /// <summary>
+    /// Sets a piston block at the specified position with strongly-typed facing direction.
+    /// </summary>
+    public BlockState SetPiston(BlockPosition position, Direction facing, bool sticky = false, bool extended = false) =>
+        SetPiston(position.X, position.Y, position.Z, facing.ToStateString(), sticky, extended);
 
     /// <summary>
     /// Adds an entity to the schematic.

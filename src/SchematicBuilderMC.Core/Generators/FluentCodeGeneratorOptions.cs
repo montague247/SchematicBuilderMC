@@ -85,6 +85,12 @@ public sealed class FluentCodeGeneratorOptions
     public bool AlwaysIncludeOffset { get; set; } = false;
 
     /// <summary>
+    /// Whether to generate semantic property helper methods (e.g., <c>.WithDelay(3)</c>, <c>.WithSubtractMode()</c>, <c>.WithFacing("north")</c>, <c>.WithPowered(true)</c>)
+    /// instead of generic <c>.WithProperty("key", "value")</c> calls. Default is true.
+    /// </summary>
+    public bool UseSemanticPropertyMethods { get; set; } = true;
+
+    /// <summary>
     /// Number of spaces per indentation level. Default is 4.
     /// </summary>
     public int IndentSpaces { get; set; } = 4;

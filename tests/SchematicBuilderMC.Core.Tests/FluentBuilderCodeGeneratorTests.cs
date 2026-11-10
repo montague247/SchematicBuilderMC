@@ -155,10 +155,15 @@ public class FluentBuilderCodeGeneratorTests : IDisposable
             .SetBlock(1, 0, 0, Minecraft.Blocks.OakStairs.WithProperty("facing", "north").WithProperty("half", "bottom"))
             .Build();
 
+        // 1. Semantic property methods (default)
         string code = FluentBuilderCodeGenerator.Generate(schematic);
+        Assert.Contains("Minecraft.Blocks.Chest.WithFacing(\"south\")", code);
+        Assert.Contains("Minecraft.Blocks.OakStairs.WithFacing(\"north\").WithHalf(\"bottom\")", code);
 
-        Assert.Contains("Minecraft.Blocks.Chest.WithProperty(\"facing\", \"south\")", code);
-        Assert.Contains("Minecraft.Blocks.OakStairs.WithProperty(\"facing\", \"north\").WithProperty(\"half\", \"bottom\")", code);
+        // 2. Generic WithProperty fallback option
+        string rawCode = FluentBuilderCodeGenerator.Generate(schematic, new FluentCodeGeneratorOptions { UseSemanticPropertyMethods = false });
+        Assert.Contains("Minecraft.Blocks.Chest.WithProperty(\"facing\", \"south\")", rawCode);
+        Assert.Contains("Minecraft.Blocks.OakStairs.WithProperty(\"facing\", \"north\").WithProperty(\"half\", \"bottom\")", rawCode);
     }
 
     [Fact]
@@ -171,7 +176,7 @@ public class FluentBuilderCodeGeneratorTests : IDisposable
 
         string code = FluentBuilderCodeGenerator.Generate(schematic);
 
-        Assert.Contains("\"create:gearbox\".WithProperty(\"axis\", \"x\")", code);
+        Assert.Contains("\"create:gearbox\".WithAxis(\"x\")", code);
         Assert.Contains("\"create:cogwheel\"", code);
     }
 
@@ -291,7 +296,7 @@ public class FluentBuilderCodeGeneratorTests : IDisposable
         string code = SchematicFile.ToFluentBuilderCode(schemPath);
         Assert.Contains("SchematicBuilder.Create(4, 3, 4)", code);
         Assert.Contains("Minecraft.Blocks.StoneBricks", code);
-        Assert.Contains("Minecraft.Blocks.Chest.WithProperty(\"facing\", \"north\")", code);
+        Assert.Contains("Minecraft.Blocks.Chest.WithFacing(\"north\")", code);
 
         // 2. Generate code to file
         string csPath = GetTempFilePath(".cs");

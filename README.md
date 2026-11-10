@@ -18,8 +18,12 @@ A modern .NET 10 library and CLI for creating, manipulating, reading, and writin
   - `BlockEntity`: Tile entities with position and custom NBT data.
   - `Entity`: Non-block entities with double coordinates and custom NBT data.
   - `Schematic`: 3D block container with bounds checking, cuboid fill, and metadata.
+- **Redstone & Additional Block States**:
+  - Strongly-typed enums: `Direction`, `BlockFace`, `ComparatorMode`, `BlockHalf`, `DoorHinge`, `SlabType`, `ChestType`, `StairsShape`, `Axis`.
+  - Semantic fluent block state extensions: `.WithDelay(4)`, `.WithSubtractMode()`, `.WithFace(BlockFace.Floor)`, `.Powered()`, `.WithPower(15)`, `.WithHalf(BlockHalf.Top)`, `.WithOpen(true)`, `.WithHinge(DoorHinge.Left)`, etc.
+  - Dedicated builder methods on `Schematic` and `SchematicBuilder`: `SetRepeater`, `SetComparator`, `SetLever`, `SetRedstoneWire`, `SetPiston`, `SetChest`.
 - **Fluent Builder**: `SchematicBuilder` for quick programmatic structure generation.
-- **Fluent Builder Code Generation**: Automatically generate C# source code using `SchematicBuilder` from any schematic file (`.schem`, `.schematic`) with greedy 3D cuboid fill optimization, strongly-typed block constants, and multiple output modes (`Statement`, `File`, `Method`, `Expression`).
+- **Fluent Builder Code Generation**: Automatically generate C# source code using `SchematicBuilder` from any schematic file (`.schem`, `.schematic`) with greedy 3D cuboid fill optimization, strongly-typed block constants, semantic property call emission (`WithDelay`, `WithFacing`, `WithSubtractMode`), and multiple output modes (`Statement`, `File`, `Method`, `Expression`).
 - **Async I/O**: Sync and async `Read`/`Write` methods for files, streams, and byte arrays.
 
 ## Quick Start
@@ -47,9 +51,16 @@ var schematic = SchematicBuilder.Create(width: 5, height: 4, length: 5)
     .Fill(4, 1, 4, 4, 3, 4, Minecraft.Blocks.Cobblestone)
     // Walls
     .Fill(1, 1, 0, 3, 3, 4, Minecraft.Blocks.OakPlanks)
+    // Roof stairs using semantic fluent extensions
+    .Fill(0, 3, 0, 4, 3, 4, Minecraft.Blocks.OakStairs.WithFacing(Direction.North).BottomHalf())
+    // Redstone wiring & mechanisms
+    .SetLever(1, 1, 1, powered: true, face: BlockFace.Floor, facing: Direction.South)
+    .SetRepeater(2, 1, 1, delay: 2, facing: Direction.South)
+    .SetComparator(3, 1, 1, subtractMode: true, facing: Direction.South)
+    .SetRedstoneWire(1, 1, 2, power: 15)
     // Chest with inventory items
-    .SetBlock(2, 1, 2, Minecraft.Blocks.Chest.WithProperty("facing", "south"))
-    .SetChest(2, 1, 2,
+    .SetBlock(2, 1, 3, Minecraft.Blocks.Chest.WithFacing(Direction.North))
+    .SetChest(2, 1, 3,
         new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),
         new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 1),
         new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName("Watchtower Blade"))
@@ -102,7 +113,9 @@ var options = new FluentCodeGeneratorOptions
     Mode = CodeGenerationMode.File,
     ClassName = "MyTower",
     MethodName = "CreateTower",
-    OptimizeFills = true // Smart 3D greedy cuboid optimization using .Fill(...)
+    OptimizeFills = true,               // Smart 3D greedy cuboid optimization using .Fill(...)
+    UseSemanticPropertyMethods = true,  // Emits .WithFacing(...), .WithDelay(...) instead of raw .WithProperty(...)
+    UseStronglyTypedBlocks = true       // Emits Minecraft.Blocks constants
 };
 string fileCode = schematic.ToFluentBuilderCode(options);
 ```
@@ -115,8 +128,8 @@ dotnet run --project src/SchematicBuilderMC -- generate-code tower.schem
 # Export to a C# source file
 dotnet run --project src/SchematicBuilderMC -- generate-code tower.schem -o TowerStructure.cs
 
-# Generate factory method
-dotnet run --project src/SchematicBuilderMC -- generate-code tower.schem -m method --method CreateTower
+# Generate factory method with raw property strings
+dotnet run --project src/SchematicBuilderMC -- generate-code tower.schem -m method --method CreateTower --raw-properties
 ```
 
 ## Running Tests

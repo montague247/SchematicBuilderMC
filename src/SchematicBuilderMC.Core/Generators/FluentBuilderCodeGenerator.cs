@@ -417,7 +417,7 @@ public static class FluentBuilderCodeGenerator
             var sb = new StringBuilder(baseCode);
             foreach (var kvp in blockState.Properties.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
             {
-                sb.Append($".WithProperty(\"{EscapeString(kvp.Key)}\", \"{EscapeString(kvp.Value)}\")");
+                sb.Append(FormatPropertyCall(blockState.Identifier, kvp.Key, kvp.Value, options.UseSemanticPropertyMethods));
             }
             return sb.ToString();
         }
@@ -433,13 +433,104 @@ public static class FluentBuilderCodeGenerator
             var sb = new StringBuilder($"\"{EscapeString(blockState.Identifier)}\"");
             foreach (var kvp in blockState.Properties.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
             {
-                sb.Append($".WithProperty(\"{EscapeString(kvp.Key)}\", \"{EscapeString(kvp.Value)}\")");
+                sb.Append(FormatPropertyCall(blockState.Identifier, kvp.Key, kvp.Value, options.UseSemanticPropertyMethods));
             }
             return sb.ToString();
         }
 
         // Canonical string literal
         return $"\"{EscapeString(blockState.ToString())}\"";
+    }
+
+    private static string FormatPropertyCall(string identifier, string key, string value, bool useSemantic)
+    {
+        if (!useSemantic)
+        {
+            return $".WithProperty(\"{EscapeString(key)}\", \"{EscapeString(value)}\")";
+        }
+
+        switch (key.ToLowerInvariant())
+        {
+            case "delay":
+                if (int.TryParse(value, out int delay))
+                    return $".WithDelay({delay})";
+                break;
+
+            case "mode":
+                if (value.Equals("subtract", StringComparison.OrdinalIgnoreCase))
+                    return ".WithSubtractMode()";
+                if (value.Equals("compare", StringComparison.OrdinalIgnoreCase))
+                    return ".WithMode(\"compare\")";
+                return $".WithMode(\"{EscapeString(value)}\")";
+
+            case "face":
+                return $".WithFace(\"{EscapeString(value)}\")";
+
+            case "facing":
+                return $".WithFacing(\"{EscapeString(value)}\")";
+
+            case "powered":
+                if (bool.TryParse(value, out bool pow))
+                    return $".WithPowered({(pow ? "true" : "false")})";
+                break;
+
+            case "power":
+                if (int.TryParse(value, out int power))
+                    return $".WithPower({power})";
+                break;
+
+            case "waterlogged":
+                if (bool.TryParse(value, out bool wl))
+                    return $".WithWaterlogged({(wl ? "true" : "false")})";
+                break;
+
+            case "open":
+                if (bool.TryParse(value, out bool op))
+                    return $".WithOpen({(op ? "true" : "false")})";
+                break;
+
+            case "lit":
+                if (bool.TryParse(value, out bool lit))
+                    return $".WithLit({(lit ? "true" : "false")})";
+                break;
+
+            case "half":
+                return $".WithHalf(\"{EscapeString(value)}\")";
+
+            case "axis":
+                return $".WithAxis(\"{EscapeString(value)}\")";
+
+            case "locked":
+                if (bool.TryParse(value, out bool locked))
+                    return $".WithLocked({(locked ? "true" : "false")})";
+                break;
+
+            case "extended":
+                if (bool.TryParse(value, out bool ext))
+                    return $".WithExtended({(ext ? "true" : "false")})";
+                break;
+
+            case "hinge":
+                return $".WithHinge(\"{EscapeString(value)}\")";
+
+            case "in_wall":
+                if (bool.TryParse(value, out bool inWall))
+                    return $".WithInWall({(inWall ? "true" : "false")})";
+                break;
+
+            case "level":
+                if (int.TryParse(value, out int level))
+                    return $".WithLevel({level})";
+                break;
+
+            case "shape":
+                return $".WithShape(\"{EscapeString(value)}\")";
+
+            case "type":
+                return $".WithType(\"{EscapeString(value)}\")";
+        }
+
+        return $".WithProperty(\"{EscapeString(key)}\", \"{EscapeString(value)}\")";
     }
 
     private static string FormatBlockEntity(BlockEntity be, FluentCodeGeneratorOptions options, bool hasCustomData, string indentStep)
@@ -638,6 +729,7 @@ public static class FluentBuilderCodeGenerator
                 sb.AppendLine();
                 sb.AppendLine("using SchematicBuilderMC;");
                 sb.AppendLine("using SchematicBuilderMC.Builder;");
+                sb.AppendLine("using SchematicBuilderMC.Enums;");
                 sb.AppendLine("using SchematicBuilderMC.Extensions;");
                 sb.AppendLine("using SchematicBuilderMC.Models;");
                 sb.AppendLine("using SchematicBuilderMC.Registries;");
