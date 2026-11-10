@@ -11,6 +11,8 @@ A modern .NET 10 library and CLI for creating, manipulating, reading, and writin
 - **Format Auto-Detection**: Automatically detects format from file extension or by inspecting NBT structure.
 - **Compression**: Transparent handling of GZip, ZLib, or uncompressed NBT streams.
 - **Domain Model**:
+  - `Minecraft`: Strongly-typed registry constants for Minecraft 26.3 (Blocks, Items, BlockEntities, Entities, Biomes, Fluids) with compile-time safety (e.g. `Minecraft.Blocks.Cobblestone` replacing hardcoded `"minecraft:cobblestone"`).
+  - `MinecraftRegistryGenerator`: Built-in code generator for creating or updating strongly-typed registry constants from Minecraft registry JSON data or mcmeta dumps.
   - `BlockState`: Namespaced block identifier (e.g. `minecraft:oak_stairs`) with canonical, sorted properties (e.g. `facing=north,half=bottom,waterlogged=false`).
   - `BlockPosition`: 3D integer coordinate record.
   - `BlockEntity`: Tile entities with position and custom NBT data.
@@ -30,13 +32,18 @@ var schematic = SchematicBuilder.Create(width: 5, height: 4, length: 5)
     .WithOffset(0, 0, 0)
     .WithName("Watchtower")
     .WithAuthor("Builder")
-    // Foundation
-    .Fill(0, 0, 0, 4, 0, 4, "minecraft:stone_bricks")
+    // Foundation using strongly-typed blocks
+    .Fill(0, 0, 0, 4, 0, 4, Minecraft.Blocks.StoneBricks)
+    // Corners
+    .Fill(0, 1, 0, 0, 3, 0, Minecraft.Blocks.Cobblestone)
+    .Fill(4, 1, 0, 4, 3, 0, Minecraft.Blocks.Cobblestone)
+    .Fill(0, 1, 4, 0, 3, 4, Minecraft.Blocks.Cobblestone)
+    .Fill(4, 1, 4, 4, 3, 4, Minecraft.Blocks.Cobblestone)
     // Walls
-    .Fill(0, 1, 0, 4, 3, 4, "minecraft:oak_planks")
+    .Fill(1, 1, 0, 3, 3, 4, Minecraft.Blocks.OakPlanks)
     // Chest with Block Entity
-    .SetBlock(2, 1, 2, "minecraft:chest[facing=south]")
-    .AddBlockEntity(new BlockEntity("minecraft:chest", new BlockPosition(2, 1, 2)))
+    .SetBlock(2, 1, 2, Minecraft.Blocks.Chest.WithProperty("facing", "south"))
+    .AddBlockEntity(new BlockEntity(Minecraft.BlockEntities.Chest, new BlockPosition(2, 1, 2)))
     .Build();
 ```
 

@@ -201,5 +201,23 @@ public sealed class BlockState : IEquatable<BlockState>
 
     public static bool operator !=(BlockState? left, BlockState? right) => !(left == right);
 
+    public static bool operator ==(BlockState? left, string? right)
+    {
+        if (left is null) return right is null;
+        if (right is null) return false;
+        if (!right.Contains('['))
+        {
+            return left.Properties.Count == 0 &&
+                   string.Equals(left.Identifier, NormalizeIdentifier(right), StringComparison.OrdinalIgnoreCase);
+        }
+        return left.Equals(Parse(right));
+    }
+
+    public static bool operator !=(BlockState? left, string? right) => !(left == right);
+
+    public static bool operator ==(string? left, BlockState? right) => right == left;
+
+    public static bool operator !=(string? left, BlockState? right) => !(right == left);
+
     public static implicit operator BlockState(string text) => Parse(text);
 }

@@ -44,6 +44,7 @@ ScaffoldingReadMe.txt
 Library/
 **/Library/
 **/.local/
+**/.DS_Store
 
 # Others
 ~$*
