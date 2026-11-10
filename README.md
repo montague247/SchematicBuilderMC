@@ -47,9 +47,12 @@ var schematic = SchematicBuilder.Create(width: 5, height: 4, length: 5)
     .Fill(4, 1, 4, 4, 3, 4, Minecraft.Blocks.Cobblestone)
     // Walls
     .Fill(1, 1, 0, 3, 3, 4, Minecraft.Blocks.OakPlanks)
-    // Chest with Block Entity
+    // Chest with inventory items
     .SetBlock(2, 1, 2, Minecraft.Blocks.Chest.WithProperty("facing", "south"))
-    .AddBlockEntity(new BlockEntity(Minecraft.BlockEntities.Chest, new BlockPosition(2, 1, 2)))
+    .SetChest(2, 1, 2,
+        new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),
+        new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 1),
+        new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName("Watchtower Blade"))
     .Build();
 ```
 

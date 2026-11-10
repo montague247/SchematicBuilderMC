@@ -1,4 +1,5 @@
 using SchematicBuilderMC.Generators;
+using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Models;
 
@@ -174,6 +175,111 @@ public sealed class Schematic
     {
         return _blockEntities.Remove(new BlockPosition(x, y, z));
     }
+
+    /// <summary>
+    /// Sets a chest block and its associated block entity with optional inventory items at (x, y, z).
+    /// If the block at the position is Air, it is set to a standard Chest block.
+    /// </summary>
+    public BlockEntity SetChest(int x, int y, int z, params ItemStack[] items)
+    {
+        EnsureInBounds(x, y, z);
+        var currentBlock = GetBlock(x, y, z);
+        if (currentBlock.IsAir || !currentBlock.Identifier.EndsWith("chest", StringComparison.OrdinalIgnoreCase))
+        {
+            SetBlock(x, y, z, Minecraft.Blocks.Chest);
+        }
+
+        var pos = new BlockPosition(x, y, z);
+        var be = GetBlockEntity(pos);
+        if (be == null || !be.Id.EndsWith("chest", StringComparison.OrdinalIgnoreCase))
+        {
+            be = BlockEntity.CreateChest(pos, items);
+            SetBlockEntity(be);
+        }
+        else if (items != null)
+        {
+            foreach (var item in items)
+            {
+                be.AddItem(item);
+            }
+        }
+
+        return be;
+    }
+
+    /// <summary>
+    /// Sets a chest block and its associated block entity with optional inventory items at the specified position.
+    /// </summary>
+    public BlockEntity SetChest(BlockPosition position, params ItemStack[] items) =>
+        SetChest(position.X, position.Y, position.Z, items);
+
+    /// <summary>
+    /// Sets a container block and its block entity with optional inventory items.
+    /// </summary>
+    public BlockEntity SetContainer(string blockId, string blockEntityId, int x, int y, int z, params ItemStack[] items)
+    {
+        EnsureInBounds(x, y, z);
+        var currentBlock = GetBlock(x, y, z);
+        if (currentBlock.IsAir)
+        {
+            SetBlock(x, y, z, blockId);
+        }
+
+        var pos = new BlockPosition(x, y, z);
+        var be = BlockEntity.CreateContainer(blockEntityId, pos, items);
+        SetBlockEntity(be);
+        return be;
+    }
+
+    /// <summary>
+    /// Sets a container block and its block entity with optional inventory items.
+    /// </summary>
+    public BlockEntity SetContainer(string blockId, string blockEntityId, BlockPosition position, params ItemStack[] items) =>
+        SetContainer(blockId, blockEntityId, position.X, position.Y, position.Z, items);
+
+    /// <summary>
+    /// Adds an item to a container block entity at the specified coordinates.
+    /// If no block entity exists at the position, creates a chest block entity.
+    /// </summary>
+    public BlockEntity AddItem(int x, int y, int z, string itemId, int count = 1, byte? slot = null, fNbt.NbtCompound? customData = null)
+    {
+        EnsureInBounds(x, y, z);
+        var pos = new BlockPosition(x, y, z);
+        var be = GetBlockEntity(pos);
+        if (be == null)
+        {
+            if (GetBlock(x, y, z).IsAir)
+            {
+                SetBlock(x, y, z, Minecraft.Blocks.Chest);
+            }
+            be = new BlockEntity(Minecraft.BlockEntities.Chest, pos);
+            SetBlockEntity(be);
+        }
+
+        be.AddItem(itemId, count, slot, customData);
+        return be;
+    }
+
+    /// <summary>
+    /// Adds an item to a container block entity at the specified position.
+    /// </summary>
+    public BlockEntity AddItem(BlockPosition position, ItemStack item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return AddItem(position.X, position.Y, position.Z, item.Id, item.Count, item.Slot, item.CustomData);
+    }
+
+    /// <summary>
+    /// Gets all inventory items from the block entity at (x, y, z), or empty if none.
+    /// </summary>
+    public IReadOnlyList<ItemStack> GetItems(int x, int y, int z) =>
+        GetBlockEntity(x, y, z)?.GetItems() ?? Array.Empty<ItemStack>();
+
+    /// <summary>
+    /// Gets all inventory items from the block entity at the specified position, or empty if none.
+    /// </summary>
+    public IReadOnlyList<ItemStack> GetItems(BlockPosition position) =>
+        GetItems(position.X, position.Y, position.Z);
 
     /// <summary>
     /// Adds an entity to the schematic.

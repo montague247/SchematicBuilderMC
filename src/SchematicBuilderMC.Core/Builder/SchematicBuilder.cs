@@ -108,6 +108,69 @@ public sealed class SchematicBuilder
         return this;
     }
 
+    /// <summary>
+    /// Sets a chest block and adds inventory items to its block entity at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetChest(int x, int y, int z, params ItemStack[] items)
+    {
+        _schematic.SetChest(x, y, z, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a chest block and adds inventory items to its block entity at the specified position.
+    /// </summary>
+    public SchematicBuilder SetChest(BlockPosition position, params ItemStack[] items)
+    {
+        _schematic.SetChest(position, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a container block and adds inventory items to its block entity at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetContainer(string blockId, string blockEntityId, int x, int y, int z, params ItemStack[] items)
+    {
+        _schematic.SetContainer(blockId, blockEntityId, x, y, z, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a container block and adds inventory items to its block entity at the specified position.
+    /// </summary>
+    public SchematicBuilder SetContainer(string blockId, string blockEntityId, BlockPosition position, params ItemStack[] items)
+    {
+        _schematic.SetContainer(blockId, blockEntityId, position, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an item to the container block entity at (x, y, z).
+    /// </summary>
+    public SchematicBuilder AddItem(int x, int y, int z, string itemId, int count = 1, byte? slot = null, fNbt.NbtCompound? customData = null)
+    {
+        _schematic.AddItem(x, y, z, itemId, count, slot, customData);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an item to the container block entity at the specified position.
+    /// </summary>
+    public SchematicBuilder AddItem(BlockPosition position, ItemStack item)
+    {
+        _schematic.AddItem(position, item);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an item to the container block entity at (x, y, z).
+    /// </summary>
+    public SchematicBuilder AddItem(int x, int y, int z, ItemStack item)
+    {
+        _schematic.AddItem(new BlockPosition(x, y, z), item);
+        return this;
+    }
+
     public SchematicBuilder AddEntity(Entity entity)
     {
         _schematic.AddEntity(entity);

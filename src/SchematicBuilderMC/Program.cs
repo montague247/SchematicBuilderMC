@@ -62,9 +62,12 @@ var schematic = SchematicBuilder.Create(width: 5, height: 4, length: 5)
     .SetBlock(2, 2, 0, Minecraft.Blocks.Air)
     // Roof using WithProperty fluent extensions
     .Fill(0, 3, 0, 4, 3, 4, Minecraft.Blocks.OakStairs.WithProperty("facing", "north").WithProperty("half", "bottom"))
-    // Chest with block entity using strongly-typed identifiers
+    // Chest with items using strongly-typed identifiers
     .SetBlock(2, 1, 2, Minecraft.Blocks.Chest.WithProperty("facing", "south"))
-    .AddBlockEntity(new BlockEntity(Minecraft.BlockEntities.Chest, new BlockPosition(2, 1, 2)))
+    .SetChest(2, 1, 2,
+        new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),
+        new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 1),
+        new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName("Watchtower Blade"))
     .Build();
 
 Console.WriteLine($"Constructed schematic: {schematic.Metadata.Name}");
@@ -81,7 +84,7 @@ Console.WriteLine($"Wrote Sponge schematic to {spongePath} ({new FileInfo(sponge
 var readSponge = SchematicFile.Read(spongePath);
 Console.WriteLine($"Read Sponge schematic: {readSponge.Width}x{readSponge.Height}x{readSponge.Length}");
 Console.WriteLine($"Block at (2, 1, 2): {readSponge[2, 1, 2]}");
-Console.WriteLine($"Block Entity at (2, 1, 2): {readSponge.GetBlockEntity(2, 1, 2)?.Id}");
+Console.WriteLine($"Block Entity at (2, 1, 2): {readSponge.GetBlockEntity(2, 1, 2)?.Id}, Items: {readSponge.GetItems(2, 1, 2).Count}");
 
 // 3. Write and Read Classic Schematic (.schematic)
 string classicPath = Path.Combine(Path.GetFullPath("."), "demo_structure.schematic");
@@ -91,7 +94,7 @@ Console.WriteLine($"Wrote Classic schematic to {classicPath} ({new FileInfo(clas
 var readClassic = SchematicFile.Read(classicPath);
 Console.WriteLine($"Read Classic schematic: {readClassic.Width}x{readClassic.Height}x{readClassic.Length}");
 Console.WriteLine($"Block at (2, 1, 2): {readClassic[2, 1, 2]}");
-Console.WriteLine($"Block Entity at (2, 1, 2): {readClassic.GetBlockEntity(2, 1, 2)?.Id}");
+Console.WriteLine($"Block Entity at (2, 1, 2): {readClassic.GetBlockEntity(2, 1, 2)?.Id}, Items: {readClassic.GetItems(2, 1, 2).Count}");
 
 // 4. Generate fluent builder source code from the schematic
 Console.WriteLine("\n--- Fluent Builder Source Code Generation Demo ---");

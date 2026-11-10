@@ -584,6 +584,25 @@ public static class FluentBuilderCodeGenerator
                 }
                 innerSb.Append(" }");
                 return innerSb.ToString();
+            case NbtTagType.List:
+                var list = (NbtList)tag;
+                if (list.Count == 0)
+                {
+                    return tag.Name != null
+                        ? $"new NbtList(\"{EscapeString(tag.Name)}\", NbtTagType.{list.ListType})"
+                        : $"new NbtList(NbtTagType.{list.ListType})";
+                }
+                var listSb = new StringBuilder();
+                if (tag.Name != null) listSb.Append($"new NbtList(\"{EscapeString(tag.Name)}\", NbtTagType.{list.ListType}) {{ ");
+                else listSb.Append($"new NbtList(NbtTagType.{list.ListType}) {{ ");
+                int lc = 0;
+                foreach (var child in list)
+                {
+                    listSb.Append(FormatNbtTag(child));
+                    if (++lc < list.Count) listSb.Append(", ");
+                }
+                listSb.Append(" }");
+                return listSb.ToString();
             default:
                 return $"new NbtCompound() /* {tag.TagType} */";
         }
