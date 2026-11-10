@@ -19,6 +19,7 @@ A modern .NET 10 library and CLI for creating, manipulating, reading, and writin
   - `Entity`: Non-block entities with double coordinates and custom NBT data.
   - `Schematic`: 3D block container with bounds checking, cuboid fill, and metadata.
 - **Fluent Builder**: `SchematicBuilder` for quick programmatic structure generation.
+- **Fluent Builder Code Generation**: Automatically generate C# source code using `SchematicBuilder` from any schematic file (`.schem`, `.schematic`) with greedy 3D cuboid fill optimization, strongly-typed block constants, and multiple output modes (`Statement`, `File`, `Method`, `Expression`).
 - **Async I/O**: Sync and async `Read`/`Write` methods for files, streams, and byte arrays.
 
 ## Quick Start
@@ -73,6 +74,41 @@ Console.WriteLine($"Block at (2, 1, 2): {block}");
 ```csharp
 Schematic loaded = await SchematicFile.ReadAsync("tower.schem");
 await SchematicFile.WriteAsync(loaded, "tower_copy.schem");
+```
+
+### 5. Generating Fluent Builder Source Code from a Schematic
+
+Convert any `.schem` or `.schematic` file into clean, strongly-typed C# fluent builder code:
+
+#### Programmatic Usage
+```csharp
+// Generate fluent builder C# code string
+string code = SchematicFile.ToFluentBuilderCode("tower.schem");
+
+// Save directly to a standalone .cs file
+SchematicFile.GenerateFluentCode("tower.schem", "TowerStructure.cs");
+
+// Or customize options (e.g. Statement, File, Method, Expression modes)
+var options = new FluentCodeGeneratorOptions
+{
+    Mode = CodeGenerationMode.File,
+    ClassName = "MyTower",
+    MethodName = "CreateTower",
+    OptimizeFills = true // Smart 3D greedy cuboid optimization using .Fill(...)
+};
+string fileCode = schematic.ToFluentBuilderCode(options);
+```
+
+#### CLI Usage
+```bash
+# Print generated code to stdout
+dotnet run --project src/SchematicBuilderMC -- generate-code tower.schem
+
+# Export to a C# source file
+dotnet run --project src/SchematicBuilderMC -- generate-code tower.schem -o TowerStructure.cs
+
+# Generate factory method
+dotnet run --project src/SchematicBuilderMC -- generate-code tower.schem -m method --method CreateTower
 ```
 
 ## Running Tests

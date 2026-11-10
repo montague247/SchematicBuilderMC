@@ -1,3 +1,5 @@
+using SchematicBuilderMC.Core.Generators;
+
 namespace SchematicBuilderMC.Core;
 
 /// <summary>
@@ -115,4 +117,10 @@ public sealed class SchematicBuilder
     /// Builds and returns the finished schematic.
     /// </summary>
     public Schematic Build() => _schematic;
+
+    /// <summary>
+    /// Generates C# fluent builder source code that reconstructs the schematic currently configured.
+    /// </summary>
+    public string ToFluentBuilderCode(FluentCodeGeneratorOptions? options = null) =>
+        _schematic.ToFluentBuilderCode(options);
 }

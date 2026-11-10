@@ -1,3 +1,5 @@
+using SchematicBuilderMC.Core.Generators;
+
 namespace SchematicBuilderMC.Core;
 
 /// <summary>
@@ -67,4 +69,24 @@ public static class SchematicFile
     /// </summary>
     public static Task WriteAsync(Schematic schematic, Stream stream, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip, CancellationToken cancellationToken = default) =>
         Writer.WriteAsync(schematic, stream, format, compression, cancellationToken);
+
+    /// <summary>
+    /// Reads a schematic from a file and generates C# fluent builder source code that reconstructs it.
+    /// </summary>
+    /// <param name="filePath">Path to the schematic file (.schem, .schematic).</param>
+    /// <param name="options">Generator configuration options.</param>
+    /// <param name="format">Schematic format (default: <see cref="SchematicFormat.Auto"/>).</param>
+    /// <returns>A string of C# fluent builder code.</returns>
+    public static string ToFluentBuilderCode(string filePath, FluentCodeGeneratorOptions? options = null, SchematicFormat format = SchematicFormat.Auto) =>
+        FluentBuilderCodeGenerator.GenerateFromFile(filePath, options, format);
+
+    /// <summary>
+    /// Reads a schematic from a file and writes generated C# fluent builder source code to an output file.
+    /// </summary>
+    /// <param name="inputFilePath">Path to the input schematic file.</param>
+    /// <param name="outputFilePath">Path where the generated C# code will be saved.</param>
+    /// <param name="options">Generator configuration options.</param>
+    /// <param name="format">Schematic format (default: <see cref="SchematicFormat.Auto"/>).</param>
+    public static void GenerateFluentCode(string inputFilePath, string outputFilePath, FluentCodeGeneratorOptions? options = null, SchematicFormat format = SchematicFormat.Auto) =>
+        FluentBuilderCodeGenerator.GenerateFromFileToFile(inputFilePath, outputFilePath, options, format);
 }

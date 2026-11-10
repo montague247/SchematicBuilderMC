@@ -1,3 +1,5 @@
+using SchematicBuilderMC.Core.Generators;
+
 namespace SchematicBuilderMC.Core;
 
 /// <summary>
@@ -295,6 +297,22 @@ public sealed class Schematic
     /// Sponge &amp; Classic indexing convention: (y * Length + z) * Width + x.
     /// </summary>
     public int GetIndex(int x, int y, int z) => (y * Length + z) * Width + x;
+
+    /// <summary>
+    /// Generates C# source code using <see cref="SchematicBuilder"/> to construct this schematic.
+    /// </summary>
+    /// <param name="options">Generator configuration options.</param>
+    /// <returns>A string of C# fluent builder code.</returns>
+    public string ToFluentBuilderCode(FluentCodeGeneratorOptions? options = null) =>
+        FluentBuilderCodeGenerator.Generate(this, options);
+
+    /// <summary>
+    /// Generates C# fluent builder source code for this schematic and writes it to disk.
+    /// </summary>
+    /// <param name="filePath">Target destination path.</param>
+    /// <param name="options">Generator configuration options.</param>
+    public void SaveFluentBuilderCode(string filePath, FluentCodeGeneratorOptions? options = null) =>
+        FluentBuilderCodeGenerator.GenerateToFile(this, filePath, options);
 
     private void EnsureInBounds(int x, int y, int z)
     {
