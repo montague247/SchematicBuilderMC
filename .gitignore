@@ -39,6 +39,12 @@ ScaffoldingReadMe.txt
 # dotenv environment variables file
 .env
 
+# Dotnet CLI / OS generated
+.local/
+Library/
+**/Library/
+**/.local/
+
 # Others
 ~$*
 *~
