@@ -1,5 +1,8 @@
-using SchematicBuilderMC.Core;
-using SchematicBuilderMC.Core.Generators;
+using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Extensions;
+using SchematicBuilderMC.Generators;
+using SchematicBuilderMC.Models;
+using SchematicBuilderMC.Registries;
 using Xunit;
 
 namespace SchematicBuilderMC.Core.Tests;

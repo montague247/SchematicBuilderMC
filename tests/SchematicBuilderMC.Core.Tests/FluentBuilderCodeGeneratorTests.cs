@@ -1,6 +1,11 @@
 using fNbt;
-using SchematicBuilderMC.Core;
-using SchematicBuilderMC.Core.Generators;
+using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Extensions;
+using SchematicBuilderMC.Generators;
+using SchematicBuilderMC.IO;
+using SchematicBuilderMC.Models;
+using SchematicBuilderMC.Registries;
 using Xunit;
 
 namespace SchematicBuilderMC.Core.Tests;
@@ -263,7 +268,7 @@ public class FluentBuilderCodeGeneratorTests : IDisposable
                 Assert.Contains("namespace MyProject.Schematics;", code);
                 Assert.Contains("public static class CustomSchematic", code);
                 Assert.Contains("public static Schematic CreateCustom()", code);
-                Assert.Contains("using SchematicBuilderMC.Core;", code);
+                Assert.Contains("using SchematicBuilderMC;", code);
                 break;
         }
     }

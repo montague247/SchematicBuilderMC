@@ -1,5 +1,8 @@
 using fNbt;
-using SchematicBuilderMC.Core.Exceptions;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Exceptions;
+using SchematicBuilderMC.IO;
+using SchematicBuilderMC.Models;
 
 namespace SchematicBuilderMC.Core.Tests;
 

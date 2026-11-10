@@ -1,4 +1,4 @@
-namespace SchematicBuilderMC.Core.Generators;
+namespace SchematicBuilderMC.Generators;
 
 /// <summary>
 /// Specifies the code structure format to generate for fluent builder code.

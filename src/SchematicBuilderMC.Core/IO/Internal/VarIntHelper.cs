@@ -1,6 +1,6 @@
-using SchematicBuilderMC.Core.Exceptions;
+using SchematicBuilderMC.Exceptions;
 
-namespace SchematicBuilderMC.Core.IO.Internal;
+namespace SchematicBuilderMC.IO.Internal;
 
 /// <summary>
 /// Helper for encoding and decoding Minecraft variable-length integers (VarInt).

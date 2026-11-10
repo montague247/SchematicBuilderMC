@@ -1,4 +1,4 @@
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.Models;
 
 /// <summary>
 /// Represents a 3D block coordinate in schematic space.

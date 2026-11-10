@@ -1,4 +1,4 @@
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.Enums;
 
 /// <summary>
 /// Compression methods for schematic files.

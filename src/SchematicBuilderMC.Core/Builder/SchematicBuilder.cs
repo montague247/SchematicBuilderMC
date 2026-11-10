@@ -1,6 +1,7 @@
-using SchematicBuilderMC.Core.Generators;
+using SchematicBuilderMC.Generators;
+using SchematicBuilderMC.Models;
 
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.Builder;
 
 /// <summary>
 /// Fluent builder for constructing Minecraft schematics programmatically.

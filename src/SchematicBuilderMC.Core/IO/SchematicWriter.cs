@@ -1,7 +1,9 @@
 using fNbt;
-using SchematicBuilderMC.Core.IO.Internal;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.IO.Internal;
+using SchematicBuilderMC.Models;
 
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.IO;
 
 /// <summary>
 /// Default implementation of <see cref="ISchematicWriter"/> supporting Sponge (.schem) and Classic (.schematic) formats.

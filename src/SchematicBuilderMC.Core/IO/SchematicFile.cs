@@ -1,6 +1,8 @@
-using SchematicBuilderMC.Core.Generators;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Generators;
+using SchematicBuilderMC.Models;
 
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.IO;
 
 /// <summary>
 /// Convenient static facade for reading and writing Minecraft schematic files.

@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
-namespace SchematicBuilderMC.Core.Generators;
+namespace SchematicBuilderMC.Generators;
 
 /// <summary>
 /// Options for configuring the Minecraft registry code generator.
@@ -10,9 +10,9 @@ namespace SchematicBuilderMC.Core.Generators;
 public sealed class GeneratorOptions
 {
     /// <summary>
-    /// The target C# namespace for the generated classes. Default is "SchematicBuilderMC.Core".
+    /// The target C# namespace for the generated classes. Default is "SchematicBuilderMC.Registries".
     /// </summary>
-    public string TargetNamespace { get; set; } = "SchematicBuilderMC.Core";
+    public string TargetNamespace { get; set; } = "SchematicBuilderMC.Registries";
 
     /// <summary>
     /// The root static class name. Default is "Minecraft".
@@ -221,13 +221,28 @@ public static class MinecraftRegistryGenerator
     public static string GetBundledRegistryJson()
     {
         var assembly = typeof(MinecraftRegistryGenerator).Assembly;
-        const string resourceName = "SchematicBuilderMC.Core.Resources.registries_26_3.json";
+        const string resourceName = "SchematicBuilderMC.Resources.registries_26_3.json";
 
-        using var stream = assembly.GetManifestResourceStream(resourceName);
+        var stream = assembly.GetManifestResourceStream(resourceName)
+            ?? assembly.GetManifestResourceStream("SchematicBuilderMC.Core.Resources.registries_26_3.json");
+
+        if (stream == null)
+        {
+            var matching = assembly.GetManifestResourceNames()
+                .FirstOrDefault(n => n.EndsWith("registries_26_3.json", StringComparison.OrdinalIgnoreCase));
+            if (matching != null)
+            {
+                stream = assembly.GetManifestResourceStream(matching);
+            }
+        }
+
         if (stream != null)
         {
-            using var reader = new StreamReader(stream);
-            return reader.ReadToEnd();
+            using (stream)
+            using (var reader = new StreamReader(stream))
+            {
+                return reader.ReadToEnd();
+            }
         }
 
         // Fallback: search relative to AppContext.BaseDirectory

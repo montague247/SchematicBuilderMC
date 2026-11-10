@@ -1,7 +1,9 @@
 using fNbt;
-using SchematicBuilderMC.Core.Exceptions;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Exceptions;
+using SchematicBuilderMC.Models;
 
-namespace SchematicBuilderMC.Core.IO.Internal;
+namespace SchematicBuilderMC.IO.Internal;
 
 /// <summary>
 /// Handles reading and writing of Sponge schematics (.schem) versions 1, 2, and 3.

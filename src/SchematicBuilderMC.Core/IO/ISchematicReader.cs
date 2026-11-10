@@ -1,4 +1,7 @@
-namespace SchematicBuilderMC.Core;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Models;
+
+namespace SchematicBuilderMC.IO;
 
 /// <summary>
 /// Interface for reading Minecraft schematic files.

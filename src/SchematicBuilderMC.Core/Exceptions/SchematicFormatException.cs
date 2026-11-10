@@ -1,4 +1,4 @@
-namespace SchematicBuilderMC.Core.Exceptions;
+namespace SchematicBuilderMC.Exceptions;
 
 /// <summary>
 /// Exception thrown when schematic data or file format is invalid or unsupported.

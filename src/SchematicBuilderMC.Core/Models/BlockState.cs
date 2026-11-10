@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text;
 
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.Models;
 
 /// <summary>
 /// Represents a Minecraft block state, consisting of a namespaced identifier and optional properties.

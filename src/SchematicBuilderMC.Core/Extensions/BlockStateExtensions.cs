@@ -1,4 +1,6 @@
-namespace SchematicBuilderMC.Core;
+using SchematicBuilderMC.Models;
+
+namespace SchematicBuilderMC.Extensions;
 
 /// <summary>
 /// Extension methods for convenient conversion and property configuration from block identifier strings.

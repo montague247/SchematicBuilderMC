@@ -1,4 +1,4 @@
-namespace SchematicBuilderMC.Core.Exceptions;
+namespace SchematicBuilderMC.Exceptions;
 
 /// <summary>
 /// Base exception for schematic errors.

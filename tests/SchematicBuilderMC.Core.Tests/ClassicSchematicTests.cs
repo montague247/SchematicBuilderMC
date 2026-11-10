@@ -1,4 +1,7 @@
 using fNbt;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.IO;
+using SchematicBuilderMC.Models;
 
 namespace SchematicBuilderMC.Core.Tests;
 

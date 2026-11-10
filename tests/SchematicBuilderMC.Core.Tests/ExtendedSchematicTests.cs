@@ -1,4 +1,7 @@
-using SchematicBuilderMC.Core.IO.Internal;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.IO;
+using SchematicBuilderMC.IO.Internal;
+using SchematicBuilderMC.Models;
 
 namespace SchematicBuilderMC.Core.Tests;
 

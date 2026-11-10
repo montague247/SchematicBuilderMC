@@ -1,5 +1,10 @@
-using SchematicBuilderMC.Core;
-using SchematicBuilderMC.Core.Generators;
+using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Extensions;
+using SchematicBuilderMC.Generators;
+using SchematicBuilderMC.IO;
+using SchematicBuilderMC.Models;
+using SchematicBuilderMC.Registries;
 
 if (args.Length > 0)
 {

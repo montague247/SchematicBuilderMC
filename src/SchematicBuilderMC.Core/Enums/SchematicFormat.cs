@@ -1,4 +1,4 @@
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.Enums;
 
 /// <summary>
 /// Supported Minecraft schematic file formats.

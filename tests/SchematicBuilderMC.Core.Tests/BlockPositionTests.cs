@@ -1,3 +1,5 @@
+using SchematicBuilderMC.Models;
+
 namespace SchematicBuilderMC.Core.Tests;
 
 public class BlockPositionTests

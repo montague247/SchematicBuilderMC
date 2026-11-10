@@ -1,5 +1,5 @@
-using SchematicBuilderMC.Core.Exceptions;
-using SchematicBuilderMC.Core.IO.Internal;
+using SchematicBuilderMC.Exceptions;
+using SchematicBuilderMC.IO.Internal;
 
 namespace SchematicBuilderMC.Core.Tests;
 

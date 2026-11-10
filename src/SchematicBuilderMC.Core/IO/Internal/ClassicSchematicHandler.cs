@@ -1,7 +1,8 @@
 using fNbt;
-using SchematicBuilderMC.Core.Exceptions;
+using SchematicBuilderMC.Exceptions;
+using SchematicBuilderMC.Models;
 
-namespace SchematicBuilderMC.Core.IO.Internal;
+namespace SchematicBuilderMC.IO.Internal;
 
 /// <summary>
 /// Handles reading and writing of classic MCEdit .schematic files.

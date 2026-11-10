@@ -1,3 +1,6 @@
+using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Models;
+
 namespace SchematicBuilderMC.Core.Tests;
 
 public class SchematicBuilderTests

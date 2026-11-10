@@ -1,6 +1,6 @@
 using fNbt;
 
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.Models;
 
 /// <summary>
 /// Represents a tile/block entity attached to a block in the schematic (e.g. chest, sign, beacon).

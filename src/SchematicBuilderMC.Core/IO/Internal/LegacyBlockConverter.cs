@@ -1,4 +1,6 @@
-namespace SchematicBuilderMC.Core.IO.Internal;
+using SchematicBuilderMC.Models;
+
+namespace SchematicBuilderMC.IO.Internal;
 
 /// <summary>
 /// Converts between legacy Minecraft block IDs / data values and modern BlockState identifiers.

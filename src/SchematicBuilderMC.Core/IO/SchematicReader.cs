@@ -1,8 +1,10 @@
 using fNbt;
-using SchematicBuilderMC.Core.Exceptions;
-using SchematicBuilderMC.Core.IO.Internal;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Exceptions;
+using SchematicBuilderMC.IO.Internal;
+using SchematicBuilderMC.Models;
 
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.IO;
 
 /// <summary>
 /// Default implementation of <see cref="ISchematicReader"/> supporting Sponge (.schem) and Classic (.schematic) formats.

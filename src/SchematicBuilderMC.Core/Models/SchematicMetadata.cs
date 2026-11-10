@@ -1,6 +1,6 @@
 using fNbt;
 
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.Models;
 
 /// <summary>
 /// Metadata describing a schematic.

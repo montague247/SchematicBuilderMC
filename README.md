@@ -27,7 +27,12 @@ A modern .NET 10 library and CLI for creating, manipulating, reading, and writin
 ### 1. Building a Schematic
 
 ```csharp
-using SchematicBuilderMC.Core;
+using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Extensions;
+using SchematicBuilderMC.IO;
+using SchematicBuilderMC.Models;
+using SchematicBuilderMC.Registries;
 
 var schematic = SchematicBuilder.Create(width: 5, height: 4, length: 5)
     .WithOffset(0, 0, 0)

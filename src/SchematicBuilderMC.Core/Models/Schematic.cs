@@ -1,6 +1,6 @@
-using SchematicBuilderMC.Core.Generators;
+using SchematicBuilderMC.Generators;
 
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.Models;
 
 /// <summary>
 /// Represents a Minecraft schematic in memory, with 3D block data, block entities, entities, and metadata.

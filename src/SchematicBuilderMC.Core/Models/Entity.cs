@@ -1,6 +1,6 @@
 using fNbt;
 
-namespace SchematicBuilderMC.Core;
+namespace SchematicBuilderMC.Models;
 
 /// <summary>
 /// Represents a Minecraft entity inside the schematic (e.g. armor stand, item frame, painting).
