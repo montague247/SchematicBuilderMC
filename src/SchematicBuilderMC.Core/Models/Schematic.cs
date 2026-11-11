@@ -702,6 +702,36 @@ public sealed class Schematic
     }
 
     /// <summary>
+    /// Adds a minecart entity to the schematic with an optional passenger.
+    /// </summary>
+    public Entity AddMinecart(
+        double x, double y, double z,
+        Entity? passenger = null,
+        double motionX = 0, double motionY = 0, double motionZ = 0,
+        bool isFlipped = false,
+        string minecartType = Minecraft.Entities.Minecart)
+    {
+        var entity = Entity.CreateMinecart(x, y, z, passenger, motionX, motionY, motionZ, isFlipped, minecartType);
+        AddEntity(entity);
+        return entity;
+    }
+
+    /// <summary>
+    /// Adds a minecart entity with multiple passengers to the schematic.
+    /// </summary>
+    public Entity AddMinecart(
+        double x, double y, double z,
+        IEnumerable<Entity> passengers,
+        double motionX = 0, double motionY = 0, double motionZ = 0,
+        bool isFlipped = false,
+        string minecartType = Minecraft.Entities.Minecart)
+    {
+        var entity = Entity.CreateMinecart(x, y, z, passengers, motionX, motionY, motionZ, isFlipped, minecartType);
+        AddEntity(entity);
+        return entity;
+    }
+
+    /// <summary>
     /// Adds an item frame entity (or glow item frame) to the schematic.
     /// </summary>
     public Entity AddItemFrame(

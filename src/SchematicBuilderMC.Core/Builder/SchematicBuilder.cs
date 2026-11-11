@@ -1,6 +1,7 @@
 using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.Generators;
 using SchematicBuilderMC.Models;
+using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Builder;
 
@@ -557,6 +558,45 @@ public sealed class SchematicBuilder
         _schematic.AddEntity(entityId, x, y, z, customName, customNameVisible, persistenceRequired);
         return this;
     }
+
+    /// <summary>
+    /// Adds a minecart entity to the schematic with an optional passenger.
+    /// </summary>
+    public SchematicBuilder AddMinecart(
+        double x, double y, double z,
+        Entity? passenger = null,
+        double motionX = 0, double motionY = 0, double motionZ = 0,
+        bool isFlipped = false,
+        string minecartType = Minecraft.Entities.Minecart)
+    {
+        _schematic.AddMinecart(x, y, z, passenger, motionX, motionY, motionZ, isFlipped, minecartType);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a minecart entity with multiple passengers to the schematic.
+    /// </summary>
+    public SchematicBuilder AddMinecart(
+        double x, double y, double z,
+        IEnumerable<Entity> passengers,
+        double motionX = 0, double motionY = 0, double motionZ = 0,
+        bool isFlipped = false,
+        string minecartType = Minecraft.Entities.Minecart)
+    {
+        _schematic.AddMinecart(x, y, z, passengers, motionX, motionY, motionZ, isFlipped, minecartType);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a minecart entity positioned relative to a block position (centered horizontally at y + 0.0625).
+    /// </summary>
+    public SchematicBuilder AddMinecart(
+        BlockPosition position,
+        Entity? passenger = null,
+        double motionX = 0, double motionY = 0, double motionZ = 0,
+        bool isFlipped = false,
+        string minecartType = Minecraft.Entities.Minecart) =>
+        AddMinecart(position.X + 0.5, position.Y + 0.0625, position.Z + 0.5, passenger, motionX, motionY, motionZ, isFlipped, minecartType);
 
     /// <summary>
     /// Adds an item frame entity (or glow item frame) to the schematic.

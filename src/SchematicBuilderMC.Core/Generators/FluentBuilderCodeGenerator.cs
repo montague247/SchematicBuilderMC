@@ -135,6 +135,10 @@ public static class FluentBuilderCodeGenerator
                 var (facing, item, rotation, invisible, fixedTag, isGlow) = ent.GetItemFrameData();
                 calls.Add(FormatItemFrameCall(ent.X, ent.Y, ent.Z, facing, item, rotation, isGlow, invisible, fixedTag, options, ref needsFNbt));
             }
+            else if (ent.IsMinecart && !HasCustomNonMinecartData(ent))
+            {
+                calls.Add(FormatMinecartCall(ent, options, ref needsFNbt, indentStep));
+            }
             else
             {
                 string entCode = FormatEntity(ent, options, ref needsFNbt, indentStep);
@@ -851,6 +855,79 @@ public static class FluentBuilderCodeGenerator
         return $".AddItemFrame({string.Join(", ", args)})";
     }
 
+    private static string FormatMinecartCall(
+        Entity ent,
+        FluentCodeGeneratorOptions options,
+        ref bool needsFNbt,
+        string indentStep)
+    {
+        var (passengers, motionX, motionY, motionZ, isFlipped, minecartType) = ent.GetMinecartData();
+
+        string xStr = FormatDouble(ent.X);
+        string yStr = FormatDouble(ent.Y);
+        string zStr = FormatDouble(ent.Z);
+
+        var args = new List<string> { xStr, yStr, zStr };
+
+        if (passengers.Count == 1)
+        {
+            string pCode = FormatEntity(passengers[0], options, ref needsFNbt, indentStep, level: 1, isPassenger: true);
+            args.Add(pCode);
+        }
+        else if (passengers.Count > 1)
+        {
+            var pLines = new List<string>();
+            foreach (var p in passengers)
+            {
+                pLines.Add(FormatEntity(p, options, ref needsFNbt, indentStep, level: 2, isPassenger: true));
+            }
+            string passengerArray = $"new[]\n{indentStep}{{\n{string.Join(",\n", pLines.Select(l => $"{indentStep}{l}"))}\n{indentStep}}}";
+            args.Add(passengerArray);
+        }
+
+        if (motionX != 0)
+        {
+            args.Add($"motionX: {FormatDouble(motionX)}");
+        }
+        if (motionY != 0)
+        {
+            args.Add($"motionY: {FormatDouble(motionY)}");
+        }
+        if (motionZ != 0)
+        {
+            args.Add($"motionZ: {FormatDouble(motionZ)}");
+        }
+
+        if (isFlipped)
+        {
+            args.Add("isFlipped: true");
+        }
+
+        if (!minecartType.Equals("minecraft:minecart", StringComparison.OrdinalIgnoreCase))
+        {
+            string typeStr = options.UseStronglyTypedEntities && Minecraft.Entities.IsValid(minecartType)
+                ? $"Minecraft.Entities.{MinecraftRegistryGenerator.ToPascalCase(minecartType)}"
+                : $"\"{EscapeString(minecartType)}\"";
+            args.Add($"minecartType: {typeStr}");
+        }
+
+        if (passengers.Count > 0)
+        {
+            string firstLine = $".AddMinecart({xStr}, {yStr}, {zStr},";
+            var remainingArgs = args.Skip(3).ToList();
+            var lines = new List<string> { firstLine };
+            for (int i = 0; i < remainingArgs.Count; i++)
+            {
+                string arg = remainingArgs[i];
+                bool isLast = i == remainingArgs.Count - 1;
+                lines.Add(isLast ? $"{arg})" : $"{arg},");
+            }
+            return string.Join("\n", lines);
+        }
+
+        return $".AddMinecart({string.Join(", ", args)})";
+    }
+
     private static string FormatChestCall(
         int x, int y, int z,
         IReadOnlyList<ItemStack> items,
@@ -1159,7 +1236,13 @@ public static class FluentBuilderCodeGenerator
         return $"new BlockEntity({idStr}, {posStr}, {dataCode})";
     }
 
-    private static string FormatEntity(Entity ent, FluentCodeGeneratorOptions options, ref bool needsFNbt, string indentStep)
+    private static string FormatEntity(
+        Entity ent,
+        FluentCodeGeneratorOptions options,
+        ref bool needsFNbt,
+        string indentStep,
+        int level = 1,
+        bool isPassenger = false)
     {
         string idStr = options.UseStronglyTypedEntities && Minecraft.Entities.IsValid(ent.Id)
             ? $"Minecraft.Entities.{MinecraftRegistryGenerator.ToPascalCase(ent.Id)}"
@@ -1181,25 +1264,44 @@ public static class FluentBuilderCodeGenerator
             dataClone.Remove("persistence_required");
         }
 
-        var remainingTags = GetMeaningfulTags(dataClone, isRoot: true);
+        if (isPassenger)
+        {
+            dataClone.Remove("Pos");
+            dataClone.Remove("pos");
+            dataClone.Remove("Motion");
+            dataClone.Remove("motion");
+            dataClone.Remove("UUID");
+            dataClone.Remove("uuid");
+        }
+
+        var remainingTags = GetMeaningfulTags(dataClone, entityOrBlockEntityId: ent.Id, isRoot: true);
         bool hasCustomData = remainingTags.Count > 0;
+
+        string childIndent = string.Concat(Enumerable.Repeat(indentStep, level));
 
         string entityInit;
         if (!hasCustomData)
         {
-            entityInit = $"new Entity({idStr}, {coords})";
+            entityInit = isPassenger ? $"new Entity({idStr})" : $"new Entity({idStr}, {coords})";
         }
         else
         {
             needsFNbt = true;
-            string dataCode = FormatNbtCompound(dataClone, indentStep, level: 1);
+            string dataCode = FormatNbtCompound(dataClone, indentStep, level: level, entityOrBlockEntityId: ent.Id);
             if (dataCode.Contains('\n'))
             {
-                entityInit = $"new Entity(\n{indentStep}{idStr},\n{indentStep}{coords},\n{indentStep}{dataCode})";
+                if (isPassenger)
+                {
+                    entityInit = $"new Entity(\n{childIndent}{idStr},\n{childIndent}{dataCode})";
+                }
+                else
+                {
+                    entityInit = $"new Entity(\n{childIndent}{idStr},\n{childIndent}{coords},\n{childIndent}{dataCode})";
+                }
             }
             else
             {
-                entityInit = $"new Entity({idStr}, {coords}, {dataCode})";
+                entityInit = isPassenger ? $"new Entity({idStr}, {dataCode})" : $"new Entity({idStr}, {coords}, {dataCode})";
             }
         }
 
@@ -1327,14 +1429,81 @@ public static class FluentBuilderCodeGenerator
         return false;
     }
 
+    private static bool HasCustomNonMinecartData(Entity ent)
+    {
+        if (ent.Data == null || ent.Data.Count == 0) return false;
+        foreach (var tag in ent.Data)
+        {
+            string name = tag.Name ?? "";
+            // Identity and Position
+            if (name.Equals("id", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("Pos", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("x", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("y", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("z", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("block_pos", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("TileX", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("TileY", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("TileZ", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("UUID", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("LastEntityID", StringComparison.OrdinalIgnoreCase)) continue;
+
+            // Minecart specific fields handled by AddMinecart
+            if (name.Equals("Passengers", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("Motion", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("FlippedRotation", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("HasTicked", StringComparison.OrdinalIgnoreCase)) continue;
+
+            // Vanilla defaults
+            if (name.Equals("Air", StringComparison.OrdinalIgnoreCase) && tag is NbtShort { Value: 300 }) continue;
+            if (name.Equals("Fire", StringComparison.OrdinalIgnoreCase) && tag is NbtShort { Value: <= 0 }) continue;
+            if (name.Equals("Invulnerable", StringComparison.OrdinalIgnoreCase) && tag is NbtByte { Value: 0 }) continue;
+            if (name.Equals("PortalCooldown", StringComparison.OrdinalIgnoreCase) && tag is NbtInt { Value: 0 }) continue;
+            if (name.Equals("OnGround", StringComparison.OrdinalIgnoreCase) && tag is NbtByte { Value: 0 or 1 }) continue;
+            if (name.Equals("fall_distance", StringComparison.OrdinalIgnoreCase) && (tag is NbtFloat { Value: 0f } || tag is NbtDouble { Value: 0d })) continue;
+            if (name.Equals("Rotation", StringComparison.OrdinalIgnoreCase) && tag is NbtList rList && rList.All(r => (r is NbtFloat f && f.Value == 0f) || (r is NbtDouble d && d.Value == 0d))) continue;
+
+            return true;
+        }
+        return false;
+    }
+
     private static bool HasCustomPayloadData(Entity ent)
     {
         if (ent.Data == null || ent.Data.Count == 0) return false;
-        var tags = GetMeaningfulTags(ent.Data, isRoot: true);
+        var tags = GetMeaningfulTags(ent.Data, entityOrBlockEntityId: ent.Id, isRoot: true);
         return tags.Count > 0;
     }
 
-    private static List<NbtTag> GetMeaningfulTags(NbtCompound compound, string? blockEntityId = null, bool isRoot = true)
+    private static bool IsDefaultAttribute(NbtCompound attrComp, string? entityId)
+    {
+        if (attrComp.Contains("modifiers") && attrComp["modifiers"] is NbtList { Count: > 0 })
+            return false;
+
+        string id = attrComp["id"]?.StringValue ?? "";
+        double baseVal = attrComp["base"]?.DoubleValue ?? 0d;
+
+        return id switch
+        {
+            "minecraft:armor_toughness" or "generic.armor_toughness" => Math.Abs(baseVal - 0.0) < 0.0001,
+            "minecraft:knockback_resistance" or "generic.knockback_resistance" => Math.Abs(baseVal - 0.0) < 0.0001,
+            "minecraft:luck" or "generic.luck" => Math.Abs(baseVal - 0.0) < 0.0001,
+            "minecraft:max_health" or "generic.max_health" => Math.Abs(baseVal - 20.0) < 0.0001,
+            "minecraft:armor" or "generic.armor" =>
+                Math.Abs(baseVal - 0.0) < 0.0001 ||
+                (string.Equals(entityId, "minecraft:zombified_piglin", StringComparison.OrdinalIgnoreCase) && Math.Abs(baseVal - 2.0) < 0.0001),
+            "minecraft:attack_damage" or "generic.attack_damage" =>
+                Math.Abs(baseVal - 1.0) < 0.0001 || Math.Abs(baseVal - 2.0) < 0.0001 ||
+                (string.Equals(entityId, "minecraft:zombified_piglin", StringComparison.OrdinalIgnoreCase) && Math.Abs(baseVal - 5.0) < 0.0001),
+            "minecraft:movement_speed" or "generic.movement_speed" =>
+                Math.Abs(baseVal - 0.23) < 0.01 || Math.Abs(baseVal - 0.25) < 0.01 || Math.Abs(baseVal - 0.7) < 0.01 || Math.Abs(baseVal - 0.1) < 0.01 || Math.Abs(baseVal - 0.2) < 0.01 || Math.Abs(baseVal - 0.3) < 0.01,
+            "minecraft:follow_range" or "generic.follow_range" =>
+                Math.Abs(baseVal - 16.0) < 0.0001 || Math.Abs(baseVal - 35.0) < 0.0001,
+            _ => false
+        };
+    }
+
+    private static List<NbtTag> GetMeaningfulTags(NbtCompound compound, string? entityOrBlockEntityId = null, bool isRoot = true)
     {
         return compound
             .Where(t =>
@@ -1377,6 +1546,44 @@ public static class FluentBuilderCodeGenerator
                         if (rList.All(r => (r is NbtFloat f && f.Value == 0f) || (r is NbtDouble d && d.Value == 0d)))
                             return false;
                     }
+
+                    // Living entity / mob defaults
+                    if (n.Equals("HasTicked", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("DeathTime", StringComparison.OrdinalIgnoreCase) && t is NbtShort { Value: 0 }) return false;
+                    if (n.Equals("HurtTime", StringComparison.OrdinalIgnoreCase) && t is NbtShort { Value: 0 }) return false;
+                    if (n.Equals("HurtByTimestamp", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: 0 }) return false;
+                    if (n.Equals("IsBaby", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("is_baby", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("FallFlying", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("Sleeping", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("LeftHanded", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("CanBreakDoors", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("AbsorptionAmount", StringComparison.OrdinalIgnoreCase) && (t is NbtFloat { Value: 0f } || t is NbtDouble { Value: 0d })) return false;
+                    if (n.Equals("InWaterTime", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: -1 }) return false;
+                    if (n.Equals("DrownedConversionTime", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: -1 }) return false;
+                    if (n.Equals("current_impulse_context_reset_grace_time", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: 0 }) return false;
+                    if (n.Equals("Health", StringComparison.OrdinalIgnoreCase) && t is NbtFloat { Value: 20f }) return false;
+                    if (n.Equals("FlippedRotation", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+
+                    // Transient combat state
+                    if (n.Equals("last_hurt_by_mob", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("ticks_since_last_hurt_by_mob", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("angry_at", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("anger_end_time", StringComparison.OrdinalIgnoreCase)) return false;
+
+                    // Empty Brain compound
+                    if (n.Equals("Brain", StringComparison.OrdinalIgnoreCase) && t is NbtCompound brainComp)
+                    {
+                        if (brainComp.Count == 0) return false;
+                        if (brainComp.Count == 1 && brainComp["memories"] is NbtCompound { Count: 0 }) return false;
+                    }
+
+                    // Default attributes
+                    if (n.Equals("attributes", StringComparison.OrdinalIgnoreCase) && t is NbtList attrList)
+                    {
+                        if (attrList.All(a => a is NbtCompound aComp && IsDefaultAttribute(aComp, entityOrBlockEntityId)))
+                            return false;
+                    }
                 }
 
                 if (n.Equals("components", StringComparison.OrdinalIgnoreCase) && t is NbtCompound { Count: 0 })
@@ -1389,7 +1596,7 @@ public static class FluentBuilderCodeGenerator
                     return false;
 
                 if (n.Equals("OutputSignal", StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(blockEntityId, "minecraft:comparator", StringComparison.OrdinalIgnoreCase))
+                    string.Equals(entityOrBlockEntityId, "minecraft:comparator", StringComparison.OrdinalIgnoreCase))
                     return false;
 
                 return true;
@@ -1397,9 +1604,9 @@ public static class FluentBuilderCodeGenerator
             .ToList();
     }
 
-    private static string FormatNbtCompound(NbtCompound compound, string indentStep, int level = 0, string? blockEntityId = null, bool isRoot = true)
+    private static string FormatNbtCompound(NbtCompound compound, string indentStep, int level = 0, string? entityOrBlockEntityId = null, bool isRoot = true)
     {
-        var tags = GetMeaningfulTags(compound, blockEntityId, isRoot);
+        var tags = GetMeaningfulTags(compound, entityOrBlockEntityId, isRoot);
 
         if (tags.Count == 0)
         {
