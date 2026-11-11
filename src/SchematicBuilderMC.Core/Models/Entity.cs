@@ -97,6 +97,12 @@ public sealed class Entity
         Id.EndsWith("_minecart", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Gets whether this entity is a dropped item entity ("minecraft:item").
+    /// </summary>
+    public bool IsItemEntity =>
+        Id.Equals("minecraft:item", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Initializes a new instance of <see cref="Entity"/> with an entity ID and optional custom NBT data.
     /// Position defaults to (0, 0, 0), suitable for passengers riding vehicles.
     /// </summary>
@@ -140,6 +146,40 @@ public sealed class Entity
     {
         PersistenceRequired = required;
         return this;
+    }
+
+    /// <summary>
+    /// Sets the health of this entity and returns this instance.
+    /// </summary>
+    public Entity WithHealth(float health)
+    {
+        Data["Health"] = new NbtFloat("Health", health);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the rotation (yaw and pitch) of this entity and returns this instance.
+    /// </summary>
+    public Entity WithRotation(float yaw, float pitch = 0f)
+    {
+        Data["Rotation"] = new NbtList("Rotation", NbtTagType.Float)
+        {
+            new NbtFloat(yaw),
+            new NbtFloat(pitch)
+        };
+        return this;
+    }
+
+    /// <summary>
+    /// Retrieves rotation (yaw, pitch) stored in this entity's "Rotation" tag.
+    /// </summary>
+    public (float Yaw, float Pitch) GetRotation()
+    {
+        if (Data["Rotation"] is NbtList rList && rList.Count >= 2)
+        {
+            return (rList[0].FloatValue, rList[1].FloatValue);
+        }
+        return (0f, 0f);
     }
 
     /// <summary>
@@ -427,6 +467,57 @@ public sealed class Entity
         {
             entity.Data["FlippedRotation"] = new NbtByte("FlippedRotation", 1);
         }
+        return entity;
+    }
+
+    /// <summary>
+    /// Retrieves dropped item data: ItemStack, Age, and PickupDelay.
+    /// </summary>
+    public (ItemStack? Item, short Age, short PickupDelay) GetItemEntityData()
+    {
+        ItemStack? item = null;
+        if (Data["Item"] is NbtCompound itemComp)
+        {
+            item = ItemStack.FromNbt(itemComp);
+        }
+        else if (Data["item"] is NbtCompound itemCompLower)
+        {
+            item = ItemStack.FromNbt(itemCompLower);
+        }
+
+        short age = (short)(Data["Age"]?.IntValue ?? Data["age"]?.IntValue ?? 0);
+        short pickupDelay = (short)(Data["PickupDelay"]?.IntValue ?? Data["pickup_delay"]?.IntValue ?? 0);
+
+        return (item, age, pickupDelay);
+    }
+
+    /// <summary>
+    /// Creates a dropped item entity ("minecraft:item").
+    /// </summary>
+    public static Entity CreateItemEntity(
+        double x, double y, double z,
+        ItemStack item,
+        short age = 0,
+        short pickupDelay = 0)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        var entity = new Entity("minecraft:item", x, y, z);
+        var itemNbt = item.ToNbt();
+        itemNbt.Name = "Item";
+        itemNbt.Remove("Slot");
+        entity.Data.Add(itemNbt);
+
+        if (age != 0)
+        {
+            entity.Data["Age"] = new NbtShort("Age", age);
+        }
+
+        if (pickupDelay != 0)
+        {
+            entity.Data["PickupDelay"] = new NbtShort("PickupDelay", pickupDelay);
+        }
+
         return entity;
     }
 

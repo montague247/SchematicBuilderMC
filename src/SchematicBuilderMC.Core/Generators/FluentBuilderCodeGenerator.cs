@@ -139,6 +139,10 @@ public static class FluentBuilderCodeGenerator
             {
                 calls.Add(FormatMinecartCall(ent, options, ref needsFNbt, indentStep));
             }
+            else if (ent.IsItemEntity && !HasCustomNonItemEntityData(ent))
+            {
+                calls.Add(FormatDroppedItemCall(ent, options, ref needsFNbt));
+            }
             else
             {
                 string entCode = FormatEntity(ent, options, ref needsFNbt, indentStep);
@@ -855,6 +859,66 @@ public static class FluentBuilderCodeGenerator
         return $".AddItemFrame({string.Join(", ", args)})";
     }
 
+    private static string FormatDroppedItemCall(
+        Entity ent,
+        FluentCodeGeneratorOptions options,
+        ref bool needsFNbt)
+    {
+        var (item, age, pickupDelay) = ent.GetItemEntityData();
+        string xStr = FormatDouble(ent.X);
+        string yStr = FormatDouble(ent.Y);
+        string zStr = FormatDouble(ent.Z);
+
+        string? itemStr = item != null ? FormatItemStack(item, options, ref needsFNbt, includeSlot: false) : null;
+        if (itemStr == null)
+        {
+            itemStr = options.UseStronglyTypedItems
+                ? $"new ItemStack({Minecraft.Items.Air})"
+                : "new ItemStack(\"minecraft:air\")";
+        }
+
+        var args = new List<string> { xStr, yStr, zStr, itemStr };
+        if (age < 0)
+        {
+            args.Add($"age: {age}");
+        }
+        if (pickupDelay > 0)
+        {
+            args.Add($"pickupDelay: {pickupDelay}");
+        }
+
+        return $".AddDroppedItem({string.Join(", ", args)})";
+    }
+
+    private static bool HasCustomNonItemEntityData(Entity ent)
+    {
+        var dataClone = (NbtCompound)ent.Data.Clone();
+        dataClone.Remove("Item");
+        dataClone.Remove("item");
+        dataClone.Remove("Age");
+        dataClone.Remove("age");
+        dataClone.Remove("PickupDelay");
+        dataClone.Remove("pickup_delay");
+        dataClone.Remove("Rotation");
+        dataClone.Remove("rotation");
+        if (dataClone["Health"] is NbtShort { Value: <= 5 })
+        {
+            dataClone.Remove("Health");
+        }
+        if (dataClone["Motion"] is NbtList mList && mList.Count >= 3)
+        {
+            double mx = mList[0].DoubleValue;
+            double my = mList[1].DoubleValue;
+            double mz = mList[2].DoubleValue;
+            if (Math.Abs(mx) < 0.05 && Math.Abs(mz) < 0.05 && my <= 0.001 && my >= -0.2)
+            {
+                dataClone.Remove("Motion");
+            }
+        }
+        var tags = GetMeaningfulTags(dataClone, entityOrBlockEntityId: ent.Id, isRoot: true);
+        return tags.Count > 0;
+    }
+
     private static string FormatMinecartCall(
         Entity ent,
         FluentCodeGeneratorOptions options,
@@ -1151,6 +1215,64 @@ public static class FluentBuilderCodeGenerator
         }
 
         // 2. Enchantments
+        NbtCompound? compEnch = (custom["minecraft:enchantments"] as NbtCompound) ??
+                                (custom["enchantments"] as NbtCompound) ??
+                                (componentsCompound?["minecraft:enchantments"] as NbtCompound) ??
+                                (componentsCompound?["enchantments"] as NbtCompound);
+
+        if (compEnch != null)
+        {
+            foreach (var tag in compEnch)
+            {
+                string? enchId = tag.Name;
+                if (string.IsNullOrEmpty(enchId)) continue;
+                short lvl = (short)(tag is NbtInt i ? i.Value : (tag is NbtShort s ? s.Value : 1));
+                string enchCode = options.UseStronglyTypedEnchantments && Minecraft.Enchantments.IsValid(enchId)
+                    ? $"Minecraft.Enchantments.{MinecraftRegistryGenerator.ToPascalCase(enchId)}"
+                    : $"\"{EscapeString(enchId)}\"";
+                if (lvl == 1)
+                    sb.Append($".WithEnchantment({enchCode})");
+                else
+                    sb.Append($".WithEnchantment({enchCode}, {lvl})");
+            }
+            custom.Remove("minecraft:enchantments");
+            custom.Remove("enchantments");
+            if (componentsCompound != null)
+            {
+                componentsCompound.Remove("minecraft:enchantments");
+                componentsCompound.Remove("enchantments");
+            }
+        }
+
+        NbtCompound? compStoredEnch = (custom["minecraft:stored_enchantments"] as NbtCompound) ??
+                                      (custom["stored_enchantments"] as NbtCompound) ??
+                                      (componentsCompound?["minecraft:stored_enchantments"] as NbtCompound) ??
+                                      (componentsCompound?["stored_enchantments"] as NbtCompound);
+
+        if (compStoredEnch != null)
+        {
+            foreach (var tag in compStoredEnch)
+            {
+                string? enchId = tag.Name;
+                if (string.IsNullOrEmpty(enchId)) continue;
+                short lvl = (short)(tag is NbtInt i ? i.Value : (tag is NbtShort s ? s.Value : 1));
+                string enchCode = options.UseStronglyTypedEnchantments && Minecraft.Enchantments.IsValid(enchId)
+                    ? $"Minecraft.Enchantments.{MinecraftRegistryGenerator.ToPascalCase(enchId)}"
+                    : $"\"{EscapeString(enchId)}\"";
+                if (lvl == 1)
+                    sb.Append($".WithEnchantment({enchCode})");
+                else
+                    sb.Append($".WithEnchantment({enchCode}, {lvl})");
+            }
+            custom.Remove("minecraft:stored_enchantments");
+            custom.Remove("stored_enchantments");
+            if (componentsCompound != null)
+            {
+                componentsCompound.Remove("minecraft:stored_enchantments");
+                componentsCompound.Remove("stored_enchantments");
+            }
+        }
+
         if (custom["Enchantments"] is NbtList enchList && enchList.ListType == NbtTagType.Compound)
         {
             foreach (var tag in enchList)
@@ -1161,7 +1283,13 @@ public static class FluentBuilderCodeGenerator
                     short lvl = enchComp["lvl"]?.ShortValue ?? 1;
                     if (!string.IsNullOrEmpty(enchId))
                     {
-                        sb.Append($".WithEnchantment(\"{EscapeString(enchId)}\", {lvl})");
+                        string enchCode = options.UseStronglyTypedEnchantments && Minecraft.Enchantments.IsValid(enchId)
+                            ? $"Minecraft.Enchantments.{MinecraftRegistryGenerator.ToPascalCase(enchId)}"
+                            : $"\"{EscapeString(enchId)}\"";
+                        if (lvl == 1)
+                            sb.Append($".WithEnchantment({enchCode})");
+                        else
+                            sb.Append($".WithEnchantment({enchCode}, {lvl})");
                     }
                 }
             }
@@ -1177,7 +1305,13 @@ public static class FluentBuilderCodeGenerator
                     short lvl = enchComp["lvl"]?.ShortValue ?? 1;
                     if (!string.IsNullOrEmpty(enchId))
                     {
-                        sb.Append($".WithEnchantment(\"{EscapeString(enchId)}\", {lvl})");
+                        string enchCode = options.UseStronglyTypedEnchantments && Minecraft.Enchantments.IsValid(enchId)
+                            ? $"Minecraft.Enchantments.{MinecraftRegistryGenerator.ToPascalCase(enchId)}"
+                            : $"\"{EscapeString(enchId)}\"";
+                        if (lvl == 1)
+                            sb.Append($".WithEnchantment({enchCode})");
+                        else
+                            sb.Append($".WithEnchantment({enchCode}, {lvl})");
                     }
                 }
             }
@@ -1200,12 +1334,35 @@ public static class FluentBuilderCodeGenerator
             sb.Append($".WithDamage({compDmgInt.Value})");
             custom.Remove("minecraft:damage");
         }
+        else if (componentsCompound?["minecraft:damage"] is NbtInt compDmgInt2)
+        {
+            sb.Append($".WithDamage({compDmgInt2.Value})");
+            componentsCompound.Remove("minecraft:damage");
+        }
 
-        // 4. Remaining unhandled custom data
+        // 4. Repair Cost
+        int? repairCost = null;
+        if (custom["minecraft:repair_cost"] is NbtInt rc1) { repairCost = rc1.Value; custom.Remove("minecraft:repair_cost"); }
+        else if (custom["repair_cost"] is NbtInt rc2) { repairCost = rc2.Value; custom.Remove("repair_cost"); }
+        else if (custom["RepairCost"] is NbtInt rc3) { repairCost = rc3.Value; custom.Remove("RepairCost"); }
+        else if (componentsCompound?["minecraft:repair_cost"] is NbtInt rc4) { repairCost = rc4.Value; componentsCompound.Remove("minecraft:repair_cost"); }
+        else if (componentsCompound?["repair_cost"] is NbtInt rc5) { repairCost = rc5.Value; componentsCompound.Remove("repair_cost"); }
+
+        if (repairCost.HasValue)
+        {
+            sb.Append($".WithRepairCost({repairCost.Value})");
+        }
+
+        if (componentsCompound != null && componentsCompound.Count == 0)
+        {
+            custom.Remove("components");
+        }
+
+        // 5. Remaining unhandled custom data
         if (custom.Count > 0)
         {
             needsFNbt = true;
-            sb.Append($".WithCustomData({FormatNbtCompound(custom, options.IndentString)})");
+            sb.Append($".WithCustomData({FormatNbtCompound(custom, options.IndentString, options: options)})");
         }
 
         return sb.ToString();
@@ -1227,7 +1384,7 @@ public static class FluentBuilderCodeGenerator
             return $"new BlockEntity({idStr}, {posStr})";
         }
 
-        string dataCode = FormatNbtCompound(be.Data, indentStep, level: 1, be.Id);
+        string dataCode = FormatNbtCompound(be.Data, indentStep, level: 1, be.Id, options: options);
         if (dataCode.Contains('\n'))
         {
             return $"new BlockEntity(\n{indentStep}{idStr},\n{indentStep}{posStr},\n{indentStep}{dataCode})";
@@ -1274,6 +1431,59 @@ public static class FluentBuilderCodeGenerator
             dataClone.Remove("uuid");
         }
 
+        // Equipment extraction
+        ItemStack? mainHand = null, offHand = null, head = null, chest = null, legs = null, feet = null;
+        if (dataClone["equipment"] is NbtCompound eqComp)
+        {
+            if (eqComp["mainhand"] is NbtCompound mh) mainHand = ItemStack.FromNbt(mh);
+            if (eqComp["offhand"] is NbtCompound oh) offHand = ItemStack.FromNbt(oh);
+            if (eqComp["head"] is NbtCompound hd) head = ItemStack.FromNbt(hd);
+            if (eqComp["chest"] is NbtCompound ch) chest = ItemStack.FromNbt(ch);
+            if (eqComp["legs"] is NbtCompound lg) legs = ItemStack.FromNbt(lg);
+            if (eqComp["feet"] is NbtCompound ft) feet = ItemStack.FromNbt(ft);
+            dataClone.Remove("equipment");
+        }
+
+        // Drop chances extraction
+        var customDropChances = new List<(string Slot, float Chance)>();
+        if (dataClone["drop_chances"] is NbtCompound dropComp)
+        {
+            foreach (var slotTag in dropComp)
+            {
+                if (slotTag.Name != null && slotTag is NbtFloat f && Math.Abs(f.Value - 0.085f) > 0.001f)
+                {
+                    customDropChances.Add((slotTag.Name, f.Value));
+                }
+            }
+            dataClone.Remove("drop_chances");
+        }
+
+        // Non-default health extraction
+        float? nonDefaultHealth = null;
+        if (dataClone["Health"] is NbtFloat hFloat)
+        {
+            if (!IsDefaultMaxHealth(ent.Id, hFloat.Value))
+            {
+                nonDefaultHealth = hFloat.Value;
+            }
+            dataClone.Remove("Health");
+        }
+
+        // Non-zero rotation extraction
+        float? yaw = null;
+        float? pitch = null;
+        if (dataClone["Rotation"] is NbtList rList && rList.Count >= 2)
+        {
+            float y = rList[0].FloatValue;
+            float p = rList[1].FloatValue;
+            if (y != 0f || p != 0f)
+            {
+                yaw = y;
+                pitch = p;
+            }
+            dataClone.Remove("Rotation");
+        }
+
         var remainingTags = GetMeaningfulTags(dataClone, entityOrBlockEntityId: ent.Id, isRoot: true);
         bool hasCustomData = remainingTags.Count > 0;
 
@@ -1287,7 +1497,7 @@ public static class FluentBuilderCodeGenerator
         else
         {
             needsFNbt = true;
-            string dataCode = FormatNbtCompound(dataClone, indentStep, level: level, entityOrBlockEntityId: ent.Id);
+            string dataCode = FormatNbtCompound(dataClone, indentStep, level: level, entityOrBlockEntityId: ent.Id, options: options);
             if (dataCode.Contains('\n'))
             {
                 if (isPassenger)
@@ -1305,6 +1515,51 @@ public static class FluentBuilderCodeGenerator
             }
         }
 
+        var chainedCalls = new List<string>();
+
+        if (mainHand != null && mainHand.Id != "minecraft:air" && !string.IsNullOrWhiteSpace(mainHand.Id))
+        {
+            chainedCalls.Add($".WithMainHand({FormatItemStack(mainHand, options, ref needsFNbt, includeSlot: false)})");
+        }
+        if (offHand != null && offHand.Id != "minecraft:air" && !string.IsNullOrWhiteSpace(offHand.Id))
+        {
+            chainedCalls.Add($".WithOffHand({FormatItemStack(offHand, options, ref needsFNbt, includeSlot: false)})");
+        }
+        if (head != null && head.Id != "minecraft:air" && !string.IsNullOrWhiteSpace(head.Id))
+        {
+            chainedCalls.Add($".WithHead({FormatItemStack(head, options, ref needsFNbt, includeSlot: false)})");
+        }
+        if (chest != null && chest.Id != "minecraft:air" && !string.IsNullOrWhiteSpace(chest.Id))
+        {
+            chainedCalls.Add($".WithChest({FormatItemStack(chest, options, ref needsFNbt, includeSlot: false)})");
+        }
+        if (legs != null && legs.Id != "minecraft:air" && !string.IsNullOrWhiteSpace(legs.Id))
+        {
+            chainedCalls.Add($".WithLegs({FormatItemStack(legs, options, ref needsFNbt, includeSlot: false)})");
+        }
+        if (feet != null && feet.Id != "minecraft:air" && !string.IsNullOrWhiteSpace(feet.Id))
+        {
+            chainedCalls.Add($".WithFeet({FormatItemStack(feet, options, ref needsFNbt, includeSlot: false)})");
+        }
+        foreach (var (slot, chance) in customDropChances)
+        {
+            chainedCalls.Add($".WithDropChance(\"{EscapeString(slot)}\", {chance.ToString("R", CultureInfo.InvariantCulture)}f)");
+        }
+        if (nonDefaultHealth.HasValue)
+        {
+            chainedCalls.Add($".WithHealth({nonDefaultHealth.Value.ToString("R", CultureInfo.InvariantCulture)}f)");
+        }
+        if (yaw.HasValue)
+        {
+            if (pitch.HasValue && pitch.Value != 0f)
+            {
+                chainedCalls.Add($".WithRotation({yaw.Value.ToString("R", CultureInfo.InvariantCulture)}f, {pitch.Value.ToString("R", CultureInfo.InvariantCulture)}f)");
+            }
+            else
+            {
+                chainedCalls.Add($".WithRotation({yaw.Value.ToString("R", CultureInfo.InvariantCulture)}f)");
+            }
+        }
         if (hasCustomName)
         {
             bool visible = ent.CustomNameVisible;
@@ -1312,20 +1567,34 @@ public static class FluentBuilderCodeGenerator
 
             if (!visible && !persistence)
             {
-                entityInit += $".WithCustomName(\"{EscapeString(customName!)}\", visible: false, persistenceRequired: false)";
+                chainedCalls.Add($".WithCustomName(\"{EscapeString(customName!)}\", visible: false, persistenceRequired: false)");
             }
             else if (!visible)
             {
-                entityInit += $".WithCustomName(\"{EscapeString(customName!)}\", visible: false)";
+                chainedCalls.Add($".WithCustomName(\"{EscapeString(customName!)}\", visible: false)");
             }
             else if (!persistence)
             {
-                entityInit += $".WithCustomName(\"{EscapeString(customName!)}\", persistenceRequired: false)";
+                chainedCalls.Add($".WithCustomName(\"{EscapeString(customName!)}\", persistenceRequired: false)");
             }
             else
             {
-                entityInit += $".WithCustomName(\"{EscapeString(customName!)}\")";
+                chainedCalls.Add($".WithCustomName(\"{EscapeString(customName!)}\")");
             }
+        }
+        else if (ent.PersistenceRequired)
+        {
+            chainedCalls.Add(".WithPersistenceRequired()");
+        }
+
+        if (chainedCalls.Count == 1 && !entityInit.Contains('\n'))
+        {
+            entityInit += chainedCalls[0];
+        }
+        else if (chainedCalls.Count > 0)
+        {
+            string chainedIndent = isPassenger ? indentStep : "";
+            entityInit = entityInit + "\n" + string.Join("\n", chainedCalls.Select(c => chainedIndent + c));
         }
 
         return entityInit;
@@ -1475,10 +1744,46 @@ public static class FluentBuilderCodeGenerator
         return tags.Count > 0;
     }
 
+    private static bool IsDefaultMaxHealth(string? entityId, float health)
+    {
+        if (string.IsNullOrWhiteSpace(entityId)) return Math.Abs(health - 20f) < 0.01f;
+        string id = entityId.Contains(':') ? entityId : "minecraft:" + entityId;
+
+        float expected = id.ToLowerInvariant() switch
+        {
+            "minecraft:cow" or "minecraft:pig" or "minecraft:cat" or "minecraft:ocelot" or
+            "minecraft:fox" or "minecraft:frog" or "minecraft:bee" or "minecraft:goat" or
+            "minecraft:squid" or "minecraft:glow_squid" or "minecraft:dolphin" => 10f,
+            "minecraft:sheep" or "minecraft:wolf" or "minecraft:silverfish" or "minecraft:endermite" => 8f,
+            "minecraft:chicken" or "minecraft:snow_golem" => 4f,
+            "minecraft:bat" or "minecraft:tadpole" or "minecraft:parrot" => 6f,
+            "minecraft:rabbit" => 3f,
+            "minecraft:armadillo" or "minecraft:cave_spider" => 12f,
+            "minecraft:axolotl" or "minecraft:sniffer" => 14f,
+            "minecraft:spider" => 16f,
+            "minecraft:iron_golem" or "minecraft:ravager" => 100f,
+            "minecraft:camel" => 32f,
+            "minecraft:warden" => 500f,
+            "minecraft:wither" => 300f,
+            "minecraft:ender_dragon" => 200f,
+            _ => 20f
+        };
+
+        return Math.Abs(health - expected) < 0.01f;
+    }
+
     private static bool IsDefaultAttribute(NbtCompound attrComp, string? entityId)
     {
-        if (attrComp.Contains("modifiers") && attrComp["modifiers"] is NbtList { Count: > 0 })
-            return false;
+        if (attrComp.Contains("modifiers") && attrComp["modifiers"] is NbtList { Count: > 0 } modList)
+        {
+            bool allSpawnBonus = modList.All(m =>
+                m is NbtCompound mc &&
+                (string.Equals(mc["id"]?.StringValue, "minecraft:random_spawn_bonus", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(mc["id"]?.StringValue, "random_spawn_bonus", StringComparison.OrdinalIgnoreCase)));
+
+            if (!allSpawnBonus)
+                return false;
+        }
 
         string id = attrComp["id"]?.StringValue ?? "";
         double baseVal = attrComp["base"]?.DoubleValue ?? 0d;
@@ -1486,19 +1791,23 @@ public static class FluentBuilderCodeGenerator
         return id switch
         {
             "minecraft:armor_toughness" or "generic.armor_toughness" => Math.Abs(baseVal - 0.0) < 0.0001,
-            "minecraft:knockback_resistance" or "generic.knockback_resistance" => Math.Abs(baseVal - 0.0) < 0.0001,
+            "minecraft:knockback_resistance" or "generic.knockback_resistance" => Math.Abs(baseVal - 0.0) < 0.0001 || Math.Abs(baseVal - 1.0) < 0.0001,
             "minecraft:luck" or "generic.luck" => Math.Abs(baseVal - 0.0) < 0.0001,
-            "minecraft:max_health" or "generic.max_health" => Math.Abs(baseVal - 20.0) < 0.0001,
+            "minecraft:max_health" or "generic.max_health" =>
+                Math.Abs(baseVal - 20.0) < 0.0001 || Math.Abs(baseVal - 100.0) < 0.0001 || Math.Abs(baseVal - 10.0) < 0.0001,
             "minecraft:armor" or "generic.armor" =>
                 Math.Abs(baseVal - 0.0) < 0.0001 ||
                 (string.Equals(entityId, "minecraft:zombified_piglin", StringComparison.OrdinalIgnoreCase) && Math.Abs(baseVal - 2.0) < 0.0001),
             "minecraft:attack_damage" or "generic.attack_damage" =>
-                Math.Abs(baseVal - 1.0) < 0.0001 || Math.Abs(baseVal - 2.0) < 0.0001 ||
+                Math.Abs(baseVal - 1.0) < 0.0001 || Math.Abs(baseVal - 2.0) < 0.0001 || Math.Abs(baseVal - 3.0) < 0.0001 || Math.Abs(baseVal - 15.0) < 0.0001 ||
                 (string.Equals(entityId, "minecraft:zombified_piglin", StringComparison.OrdinalIgnoreCase) && Math.Abs(baseVal - 5.0) < 0.0001),
             "minecraft:movement_speed" or "generic.movement_speed" =>
-                Math.Abs(baseVal - 0.23) < 0.01 || Math.Abs(baseVal - 0.25) < 0.01 || Math.Abs(baseVal - 0.7) < 0.01 || Math.Abs(baseVal - 0.1) < 0.01 || Math.Abs(baseVal - 0.2) < 0.01 || Math.Abs(baseVal - 0.3) < 0.01,
+                Math.Abs(baseVal - 0.23) < 0.01 || Math.Abs(baseVal - 0.25) < 0.01 || Math.Abs(baseVal - 0.7) < 0.01 ||
+                Math.Abs(baseVal - 0.1) < 0.01 || Math.Abs(baseVal - 0.2) < 0.01 || Math.Abs(baseVal - 0.15) < 0.01 || Math.Abs(baseVal - 0.3) < 0.01,
             "minecraft:follow_range" or "generic.follow_range" =>
-                Math.Abs(baseVal - 16.0) < 0.0001 || Math.Abs(baseVal - 35.0) < 0.0001,
+                Math.Abs(baseVal - 16.0) < 0.0001 || Math.Abs(baseVal - 35.0) < 0.0001 || Math.Abs(baseVal - 40.0) < 0.0001,
+            "minecraft:spawn_reinforcements" or "zombie.spawn_reinforcements" =>
+                baseVal >= 0.0 && baseVal <= 0.1,
             _ => false
         };
     }
@@ -1539,6 +1848,20 @@ public static class FluentBuilderCodeGenerator
                     {
                         if (mList.All(m => (m is NbtDouble d && d.Value == 0d) || (m is NbtFloat f && f.Value == 0f)))
                             return false;
+
+                        if (mList.Count >= 3)
+                        {
+                            double mx = mList[0].DoubleValue;
+                            double my = mList[1].DoubleValue;
+                            double mz = mList[2].DoubleValue;
+
+                            bool isResting =
+                                Math.Abs(mx) < 0.05 && Math.Abs(mz) < 0.05 &&
+                                (Math.Abs(my) < 0.001 || Math.Abs(my - (-0.0784000015258789d)) < 0.001);
+
+                            if (isResting)
+                                return false;
+                        }
                     }
 
                     if (n.Equals("Rotation", StringComparison.OrdinalIgnoreCase) && t is NbtList rList)
@@ -1550,7 +1873,7 @@ public static class FluentBuilderCodeGenerator
                     // Living entity / mob defaults
                     if (n.Equals("HasTicked", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
                     if (n.Equals("DeathTime", StringComparison.OrdinalIgnoreCase) && t is NbtShort { Value: 0 }) return false;
-                    if (n.Equals("HurtTime", StringComparison.OrdinalIgnoreCase) && t is NbtShort { Value: 0 }) return false;
+                    if (n.Equals("HurtTime", StringComparison.OrdinalIgnoreCase) || n.Equals("hurt_time", StringComparison.OrdinalIgnoreCase)) return false;
                     if (n.Equals("HurtByTimestamp", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: 0 }) return false;
                     if (n.Equals("IsBaby", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
                     if (n.Equals("is_baby", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
@@ -1558,11 +1881,24 @@ public static class FluentBuilderCodeGenerator
                     if (n.Equals("Sleeping", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
                     if (n.Equals("LeftHanded", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
                     if (n.Equals("CanBreakDoors", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("CanPickUpLoot", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("can_pick_up_loot", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("PersistenceRequired", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("persistence_required", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("PlayerCreated", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("player_created", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("Age", StringComparison.OrdinalIgnoreCase) && (t is NbtInt { Value: 0 } || t is NbtShort { Value: 0 })) return false;
+                    if (n.Equals("AgeLocked", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("ForcedAge", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: 0 }) return false;
+                    if (n.Equals("InLove", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: 0 }) return false;
                     if (n.Equals("AbsorptionAmount", StringComparison.OrdinalIgnoreCase) && (t is NbtFloat { Value: 0f } || t is NbtDouble { Value: 0d })) return false;
                     if (n.Equals("InWaterTime", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: -1 }) return false;
                     if (n.Equals("DrownedConversionTime", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: -1 }) return false;
                     if (n.Equals("current_impulse_context_reset_grace_time", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: 0 }) return false;
-                    if (n.Equals("Health", StringComparison.OrdinalIgnoreCase) && t is NbtFloat { Value: 20f }) return false;
+                    if (n.Equals("Health", StringComparison.OrdinalIgnoreCase) && t is NbtFloat hTag)
+                    {
+                        if (IsDefaultMaxHealth(entityOrBlockEntityId, hTag.Value)) return false;
+                    }
                     if (n.Equals("FlippedRotation", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
 
                     // Transient combat state
@@ -1604,8 +1940,9 @@ public static class FluentBuilderCodeGenerator
             .ToList();
     }
 
-    private static string FormatNbtCompound(NbtCompound compound, string indentStep, int level = 0, string? entityOrBlockEntityId = null, bool isRoot = true)
+    private static string FormatNbtCompound(NbtCompound compound, string indentStep, int level = 0, string? entityOrBlockEntityId = null, bool isRoot = true, FluentCodeGeneratorOptions? options = null)
     {
+        options ??= new FluentCodeGeneratorOptions();
         var tags = GetMeaningfulTags(compound, entityOrBlockEntityId, isRoot);
 
         if (tags.Count == 0)
@@ -1615,7 +1952,7 @@ public static class FluentBuilderCodeGenerator
 
         if (tags.Count == 1 && IsSimplePrimitive(tags[0]))
         {
-            return $"new NbtCompound {{ {FormatNbtTag(tags[0], indentStep, level)} }}";
+            return $"new NbtCompound {{ {FormatNbtTag(tags[0], indentStep, level, options)} }}";
         }
 
         string baseIndent = string.Concat(Enumerable.Repeat(indentStep, level));
@@ -1626,7 +1963,7 @@ public static class FluentBuilderCodeGenerator
         sb.AppendLine($"{baseIndent}{{");
         for (int i = 0; i < tags.Count; i++)
         {
-            sb.Append($"{childIndent}{FormatNbtTag(tags[i], indentStep, level + 1)}");
+            sb.Append($"{childIndent}{FormatNbtTag(tags[i], indentStep, level + 1, options)}");
             if (i < tags.Count - 1) sb.Append(',');
             sb.AppendLine();
         }
@@ -1641,9 +1978,29 @@ public static class FluentBuilderCodeGenerator
         _ => false
     };
 
-    private static string FormatNbtTag(NbtTag tag, string indentStep, int level)
+    private static string FormatNbtTag(NbtTag tag, string indentStep, int level, FluentCodeGeneratorOptions options)
     {
-        string nameParam = tag.Name != null ? $"\"{EscapeString(tag.Name)}\", " : "";
+        string nameParam;
+        if (tag.Name != null)
+        {
+            bool isNamespaced = tag.Name.Contains(':');
+            if (options.UseStronglyTypedEnchantments && (isNamespaced || !tag.Name.Equals("Item", StringComparison.OrdinalIgnoreCase)) && Minecraft.Enchantments.IsValid(tag.Name))
+            {
+                nameParam = $"Minecraft.Enchantments.{MinecraftRegistryGenerator.ToPascalCase(tag.Name)}, ";
+            }
+            else if (options.UseStronglyTypedItems && isNamespaced && Minecraft.Items.IsValid(tag.Name))
+            {
+                nameParam = $"Minecraft.Items.{MinecraftRegistryGenerator.ToPascalCase(tag.Name)}, ";
+            }
+            else
+            {
+                nameParam = $"\"{EscapeString(tag.Name)}\", ";
+            }
+        }
+        else
+        {
+            nameParam = "";
+        }
 
         switch (tag.TagType)
         {
@@ -1660,7 +2017,24 @@ public static class FluentBuilderCodeGenerator
             case NbtTagType.Double:
                 return $"new NbtDouble({nameParam}{tag.DoubleValue.ToString("R", CultureInfo.InvariantCulture)}d)";
             case NbtTagType.String:
-                return $"new NbtString({nameParam}\"{EscapeString(tag.StringValue)}\")";
+                string sVal = tag.StringValue;
+                if (options.UseStronglyTypedItems && Minecraft.Items.IsValid(sVal))
+                {
+                    return $"new NbtString({nameParam}Minecraft.Items.{MinecraftRegistryGenerator.ToPascalCase(sVal)})";
+                }
+                if (options.UseStronglyTypedEnchantments && Minecraft.Enchantments.IsValid(sVal))
+                {
+                    return $"new NbtString({nameParam}Minecraft.Enchantments.{MinecraftRegistryGenerator.ToPascalCase(sVal)})";
+                }
+                if (options.UseStronglyTypedEntities && Minecraft.Entities.IsValid(sVal))
+                {
+                    return $"new NbtString({nameParam}Minecraft.Entities.{MinecraftRegistryGenerator.ToPascalCase(sVal)})";
+                }
+                if (options.UseStronglyTypedBlocks && Minecraft.Blocks.IsValid(sVal))
+                {
+                    return $"new NbtString({nameParam}Minecraft.Blocks.{MinecraftRegistryGenerator.ToPascalCase(sVal)})";
+                }
+                return $"new NbtString({nameParam}\"{EscapeString(sVal)}\")";
             case NbtTagType.ByteArray:
                 string bytes = string.Join(", ", ((NbtByteArray)tag).Value);
                 return $"new NbtByteArray({nameParam}new byte[] {{ {bytes} }})";
@@ -1673,7 +2047,21 @@ public static class FluentBuilderCodeGenerator
             case NbtTagType.Compound:
                 var comp = (NbtCompound)tag;
                 var meaningfulChildren = GetMeaningfulTags(comp, isRoot: false);
-                string compName = tag.Name != null ? $"new NbtCompound(\"{EscapeString(tag.Name)}\")" : "new NbtCompound()";
+                string compName;
+                if (tag.Name != null)
+                {
+                    bool isNamespaced = tag.Name.Contains(':');
+                    if (options.UseStronglyTypedEnchantments && isNamespaced && Minecraft.Enchantments.IsValid(tag.Name))
+                        compName = $"new NbtCompound(Minecraft.Enchantments.{MinecraftRegistryGenerator.ToPascalCase(tag.Name)})";
+                    else if (options.UseStronglyTypedItems && isNamespaced && Minecraft.Items.IsValid(tag.Name))
+                        compName = $"new NbtCompound(Minecraft.Items.{MinecraftRegistryGenerator.ToPascalCase(tag.Name)})";
+                    else
+                        compName = $"new NbtCompound(\"{EscapeString(tag.Name)}\")";
+                }
+                else
+                {
+                    compName = "new NbtCompound()";
+                }
 
                 if (meaningfulChildren.Count == 0)
                 {
@@ -1682,20 +2070,19 @@ public static class FluentBuilderCodeGenerator
 
                 if (meaningfulChildren.Count == 1 && IsSimplePrimitive(meaningfulChildren[0]))
                 {
-                    string header = tag.Name != null ? $"new NbtCompound(\"{EscapeString(tag.Name)}\") {{ " : "new NbtCompound { ";
-                    return $"{header}{FormatNbtTag(meaningfulChildren[0], indentStep, level)} }}";
+                    string header = tag.Name != null ? $"{compName} {{ " : "new NbtCompound { ";
+                    return $"{header}{FormatNbtTag(meaningfulChildren[0], indentStep, level, options)} }}";
                 }
 
                 string cBaseIndent = string.Concat(Enumerable.Repeat(indentStep, level));
                 string cChildIndent = string.Concat(Enumerable.Repeat(indentStep, level + 1));
 
                 var innerSb = new StringBuilder();
-                if (tag.Name != null) innerSb.AppendLine($"new NbtCompound(\"{EscapeString(tag.Name)}\")");
-                else innerSb.AppendLine("new NbtCompound");
+                innerSb.AppendLine(compName);
                 innerSb.AppendLine($"{cBaseIndent}{{");
                 for (int ci = 0; ci < meaningfulChildren.Count; ci++)
                 {
-                    innerSb.Append($"{cChildIndent}{FormatNbtTag(meaningfulChildren[ci], indentStep, level + 1)}");
+                    innerSb.Append($"{cChildIndent}{FormatNbtTag(meaningfulChildren[ci], indentStep, level + 1, options)}");
                     if (ci < meaningfulChildren.Count - 1) innerSb.Append(',');
                     innerSb.AppendLine();
                 }
@@ -1704,31 +2091,44 @@ public static class FluentBuilderCodeGenerator
 
             case NbtTagType.List:
                 var list = (NbtList)tag;
+                string listHeader;
+                if (tag.Name != null)
+                {
+                    bool isNamespaced = tag.Name.Contains(':');
+                    string listName;
+                    if (options.UseStronglyTypedEnchantments && isNamespaced && Minecraft.Enchantments.IsValid(tag.Name))
+                        listName = $"Minecraft.Enchantments.{MinecraftRegistryGenerator.ToPascalCase(tag.Name)}";
+                    else if (options.UseStronglyTypedItems && isNamespaced && Minecraft.Items.IsValid(tag.Name))
+                        listName = $"Minecraft.Items.{MinecraftRegistryGenerator.ToPascalCase(tag.Name)}";
+                    else
+                        listName = $"\"{EscapeString(tag.Name)}\"";
+
+                    listHeader = $"new NbtList({listName}, NbtTagType.{list.ListType})";
+                }
+                else
+                {
+                    listHeader = $"new NbtList(NbtTagType.{list.ListType})";
+                }
+
                 if (list.Count == 0)
                 {
-                    return tag.Name != null
-                        ? $"new NbtList(\"{EscapeString(tag.Name)}\", NbtTagType.{list.ListType})"
-                        : $"new NbtList(NbtTagType.{list.ListType})";
+                    return listHeader;
                 }
 
                 if (list.Count <= 4 && list.All(IsSimplePrimitive))
                 {
-                    string header = tag.Name != null
-                        ? $"new NbtList(\"{EscapeString(tag.Name)}\", NbtTagType.{list.ListType}) {{ "
-                        : $"new NbtList(NbtTagType.{list.ListType}) {{ ";
-                    return $"{header}{string.Join(", ", list.Select(c => FormatNbtTag(c, indentStep, level)))} }}";
+                    return $"{listHeader} {{ {string.Join(", ", list.Select(c => FormatNbtTag(c, indentStep, level, options)))} }}";
                 }
 
                 string lBaseIndent = string.Concat(Enumerable.Repeat(indentStep, level));
                 string lChildIndent = string.Concat(Enumerable.Repeat(indentStep, level + 1));
 
                 var listSb = new StringBuilder();
-                if (tag.Name != null) listSb.AppendLine($"new NbtList(\"{EscapeString(tag.Name)}\", NbtTagType.{list.ListType})");
-                else listSb.AppendLine($"new NbtList(NbtTagType.{list.ListType})");
+                listSb.AppendLine(listHeader);
                 listSb.AppendLine($"{lBaseIndent}{{");
                 for (int li = 0; li < list.Count; li++)
                 {
-                    listSb.Append($"{lChildIndent}{FormatNbtTag(list[li], indentStep, level + 1)}");
+                    listSb.Append($"{lChildIndent}{FormatNbtTag(list[li], indentStep, level + 1, options)}");
                     if (li < list.Count - 1) listSb.Append(',');
                     listSb.AppendLine();
                 }

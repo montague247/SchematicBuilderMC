@@ -775,6 +775,52 @@ public sealed class Schematic
         AddItemFrame(position.X + 0.5, position.Y + 0.5, position.Z + 0.5, facing, item, rotation, isGlow, isInvisible, isFixed);
 
     /// <summary>
+    /// Adds a dropped item entity ("minecraft:item") to the schematic.
+    /// </summary>
+    public Entity AddDroppedItem(
+        double x, double y, double z,
+        ItemStack item,
+        short age = 0,
+        short pickupDelay = 0)
+    {
+        var entity = Entity.CreateItemEntity(x, y, z, item, age, pickupDelay);
+        AddEntity(entity);
+        return entity;
+    }
+
+    /// <summary>
+    /// Adds a dropped item entity ("minecraft:item") with a specific item ID and count to the schematic.
+    /// </summary>
+    public Entity AddDroppedItem(
+        double x, double y, double z,
+        string itemId,
+        int count = 1,
+        short age = 0,
+        short pickupDelay = 0) =>
+        AddDroppedItem(x, y, z, new ItemStack(itemId, count), age, pickupDelay);
+
+    /// <summary>
+    /// Adds a dropped item entity ("minecraft:item") positioned relative to a block position (centered horizontally at y + 0.1).
+    /// </summary>
+    public Entity AddDroppedItem(
+        BlockPosition position,
+        ItemStack item,
+        short age = 0,
+        short pickupDelay = 0) =>
+        AddDroppedItem(position.X + 0.5, position.Y + 0.1, position.Z + 0.5, item, age, pickupDelay);
+
+    /// <summary>
+    /// Adds a dropped item entity ("minecraft:item") with a specific item ID and count relative to a block position.
+    /// </summary>
+    public Entity AddDroppedItem(
+        BlockPosition position,
+        string itemId,
+        int count = 1,
+        short age = 0,
+        short pickupDelay = 0) =>
+        AddDroppedItem(position.X + 0.5, position.Y + 0.1, position.Z + 0.5, new ItemStack(itemId, count), age, pickupDelay);
+
+    /// <summary>
     /// Removes an entity from the schematic.
     /// </summary>
     public bool RemoveEntity(Entity entity)

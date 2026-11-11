@@ -51,6 +51,11 @@ public sealed class GeneratorOptions
     public bool IncludeFluids { get; set; } = true;
 
     /// <summary>
+    /// Whether to generate the Enchantments registry class. Default is true.
+    /// </summary>
+    public bool IncludeEnchantments { get; set; } = true;
+
+    /// <summary>
     /// Whether to generate read-only collections (e.g. <c>All</c>). Default is true.
     /// </summary>
     public bool GenerateCollections { get; set; } = true;

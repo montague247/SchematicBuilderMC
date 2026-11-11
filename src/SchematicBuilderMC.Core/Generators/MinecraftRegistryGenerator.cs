@@ -457,6 +457,11 @@ public static class MinecraftRegistryGenerator
             list.Add(("fluid", "Fluids", $"Minecraft {options.MinecraftVersion} fluid identifiers.", null));
         }
 
+        if (options.IncludeEnchantments)
+        {
+            list.Add(("enchantment", "Enchantments", $"Minecraft {options.MinecraftVersion} enchantment identifiers.", null));
+        }
+
         if (options.CustomRegistries != null)
         {
             foreach (var (key, customClass) in options.CustomRegistries)

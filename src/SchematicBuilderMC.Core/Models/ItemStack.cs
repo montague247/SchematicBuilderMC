@@ -393,6 +393,17 @@ public sealed class ItemStack : IEquatable<ItemStack>
     }
 
     /// <summary>
+    /// Sets the repair cost penalty for this item stack.
+    /// </summary>
+    /// <param name="repairCost">The repair cost value.</param>
+    public ItemStack WithRepairCost(int repairCost)
+    {
+        CustomData ??= new NbtCompound();
+        CustomData["RepairCost"] = new NbtInt("RepairCost", repairCost);
+        return this;
+    }
+
+    /// <summary>
     /// Converts this item stack to a standard Minecraft container item <see cref="NbtCompound"/>.
     /// </summary>
     public NbtCompound ToNbt()

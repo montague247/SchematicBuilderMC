@@ -647,6 +647,60 @@ public sealed class SchematicBuilder
     }
 
     /// <summary>
+    /// Adds a dropped item entity ("minecraft:item") to the schematic.
+    /// </summary>
+    public SchematicBuilder AddDroppedItem(
+        double x, double y, double z,
+        ItemStack item,
+        short age = 0,
+        short pickupDelay = 0)
+    {
+        _schematic.AddDroppedItem(x, y, z, item, age, pickupDelay);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a dropped item entity ("minecraft:item") with a specific item ID and count to the schematic.
+    /// </summary>
+    public SchematicBuilder AddDroppedItem(
+        double x, double y, double z,
+        string itemId,
+        int count = 1,
+        short age = 0,
+        short pickupDelay = 0)
+    {
+        _schematic.AddDroppedItem(x, y, z, itemId, count, age, pickupDelay);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a dropped item entity ("minecraft:item") positioned relative to a block position (centered horizontally at y + 0.1).
+    /// </summary>
+    public SchematicBuilder AddDroppedItem(
+        BlockPosition position,
+        ItemStack item,
+        short age = 0,
+        short pickupDelay = 0)
+    {
+        _schematic.AddDroppedItem(position, item, age, pickupDelay);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a dropped item entity ("minecraft:item") with a specific item ID and count relative to a block position.
+    /// </summary>
+    public SchematicBuilder AddDroppedItem(
+        BlockPosition position,
+        string itemId,
+        int count = 1,
+        short age = 0,
+        short pickupDelay = 0)
+    {
+        _schematic.AddDroppedItem(position, itemId, count, age, pickupDelay);
+        return this;
+    }
+
+    /// <summary>
     /// Builds and returns the finished schematic.
     /// </summary>
     public Schematic Build() => _schematic;
