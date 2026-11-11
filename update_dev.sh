@@ -19,8 +19,8 @@ set -o pipefail
 
 Charon/update_dev.sh
 
-echo "Updating NetSentinel and dependencies..."
+echo "Updating SchematicBuilderMC and dependencies..."
 
-src/update_dependenies.sh
+src/update_dependencies.sh
 
-echo "Finished updating NetSentinel and dependencies."
+echo "Finished updating SchematicBuilderMC and dependencies."

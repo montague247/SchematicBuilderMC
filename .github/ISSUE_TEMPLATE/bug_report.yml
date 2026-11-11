@@ -1,0 +1,58 @@
+name: Bug Report
+description: Create a report to help us fix a defect or unexpected behavior.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this issue! Please provide as much detail as possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce the problem? Provide minimal code or schematic sample if possible.
+      placeholder: |
+        1. Read schematic file '...'
+        2. Call '...'
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: dropdown
+    id: format
+    attributes:
+      label: Schematic Format
+      description: Which schematic format is involved (if applicable)?
+      options:
+        - Sponge (.schem v1/v2/v3)
+        - Litematica (.litematic)
+        - Classic MCEdit (.schematic)
+        - Fluent Builder / Code Generation
+        - Not format-specific
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating System, .NET version (e.g. .NET 10.0.100), etc.
+      placeholder: "e.g. Windows 11, .NET 10.0.403"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Stack Trace
+      description: Paste any error messages, stack traces, or console output here.
+      render: shell

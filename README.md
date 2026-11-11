@@ -1,5 +1,11 @@
 # SchematicBuilderMC
 
+[![CI](https://github.com/montague247/SchematicBuilderMC/actions/workflows/ci.yml/badge.svg)](https://github.com/montague247/SchematicBuilderMC/actions/workflows/ci.yml)
+[![CodeQL Analysis](https://github.com/montague247/SchematicBuilderMC/actions/workflows/codeql.yml/badge.svg)](https://github.com/montague247/SchematicBuilderMC/actions/workflows/codeql.yml)
+[![NuGet Version](https://img.shields.io/nuget/v/SchematicBuilderMC.Core.svg)](https://www.nuget.org/packages/SchematicBuilderMC.Core)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL_v3-blue.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](https://dotnet.microsoft.com/)
+
 A modern .NET 10 library and CLI for creating, manipulating, reading, and writing Minecraft schematic files.
 
 ## Features

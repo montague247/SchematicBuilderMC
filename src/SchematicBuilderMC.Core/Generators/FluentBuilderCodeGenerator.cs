@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using fNbt;
+using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.IO;
 using SchematicBuilderMC.Models;

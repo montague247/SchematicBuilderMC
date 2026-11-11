@@ -1,3 +1,4 @@
+using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.Extensions;
 using SchematicBuilderMC.Generators;

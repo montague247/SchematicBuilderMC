@@ -1,3 +1,5 @@
+using SchematicBuilderMC.Builder;
+
 namespace SchematicBuilderMC.Generators;
 
 /// <summary>

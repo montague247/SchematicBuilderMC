@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  format-and-audit:
+    name: Code Style & Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Check Code Formatting
+        run: dotnet format ./src --verify-no-changes --verbosity normal
+
+      - name: Restore Dependencies
+        run: dotnet restore ./src
+
+      - name: Audit NuGet Vulnerabilities
+        run: dotnet list ./src package --vulnerable --include-transitive
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: format-and-audit
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore ./src
+
+      - name: Build Solution
+        run: dotnet build ./src --configuration Release --no-restore -warnaserror
+
+      - name: Run Tests & Collect Coverage
+        run: >
+          dotnet test ./src
+          --configuration Release
+          --no-build
+          --verbosity normal
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+          --logger "trx;LogFileName=test-results-${{ matrix.os }}.trx"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: ./TestResults
+          if-no-files-found: warn
+
+  package:
+    name: Pack NuGet & CLI Tools
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore ./src
+
+      - name: Build Solution (Release)
+        run: dotnet build ./src --configuration Release --no-restore -warnaserror
+
+      - name: Pack Library (SchematicBuilderMC.Core)
+        run: dotnet pack ./src/SchematicBuilderMC.Core/SchematicBuilderMC.Core.csproj --configuration Release --no-build --output ./artifacts/packages
+
+      - name: Pack CLI Tool (SchematicBuilderMC)
+        run: dotnet pack ./src/SchematicBuilderMC/SchematicBuilderMC.csproj --configuration Release --no-build --output ./artifacts/packages
+
+      - name: Upload Packages Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./artifacts/packages/*
+          if-no-files-found: error
