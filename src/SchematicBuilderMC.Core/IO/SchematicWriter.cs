@@ -6,7 +6,7 @@ using SchematicBuilderMC.Models;
 namespace SchematicBuilderMC.IO;
 
 /// <summary>
-/// Default implementation of <see cref="ISchematicWriter"/> supporting Sponge (.schem) and Classic (.schematic) formats.
+/// Default implementation of <see cref="ISchematicWriter"/> supporting Sponge (.schem), Classic (.schematic), and Litematica (.litematic) formats.
 /// </summary>
 public sealed class SchematicWriter : ISchematicWriter
 {
@@ -42,9 +42,12 @@ public sealed class SchematicWriter : ISchematicWriter
             format = SchematicFormat.SpongeV2;
         }
 
-        NbtFile file = format == SchematicFormat.Classic
-            ? ClassicSchematicHandler.Write(schematic)
-            : SpongeSchematicHandler.Write(schematic, format);
+        NbtFile file = format switch
+        {
+            SchematicFormat.Classic => ClassicSchematicHandler.Write(schematic),
+            SchematicFormat.Litematica => LitematicaSchematicHandler.Write(schematic),
+            _ => SpongeSchematicHandler.Write(schematic, format)
+        };
 
         var nbtCompression = ToNbtCompression(compression);
         file.SaveToStream(stream, nbtCompression);
@@ -86,6 +89,9 @@ public sealed class SchematicWriter : ISchematicWriter
         string ext = Path.GetExtension(path);
         if (ext.Equals(".schematic", StringComparison.OrdinalIgnoreCase))
             return SchematicFormat.Classic;
+
+        if (ext.Equals(".litematic", StringComparison.OrdinalIgnoreCase))
+            return SchematicFormat.Litematica;
 
         return SchematicFormat.SpongeV2;
     }

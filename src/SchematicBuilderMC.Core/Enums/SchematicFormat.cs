@@ -28,5 +28,10 @@ public enum SchematicFormat
     /// <summary>
     /// Classic MCEdit / WorldEdit legacy format (.schematic, Minecraft &lt;= 1.12.2).
     /// </summary>
-    Classic = 4
+    Classic = 4,
+
+    /// <summary>
+    /// Litematica schematic format (.litematic).
+    /// </summary>
+    Litematica = 5
 }

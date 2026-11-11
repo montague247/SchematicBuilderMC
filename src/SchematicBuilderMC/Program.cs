@@ -30,6 +30,7 @@ if (args.Length > 0)
     if (firstArg is "generate-code" or "to-code" or "code" or "--code" or "-c" ||
         firstArg.EndsWith(".schem", StringComparison.OrdinalIgnoreCase) ||
         firstArg.EndsWith(".schematic", StringComparison.OrdinalIgnoreCase) ||
+        firstArg.EndsWith(".litematic", StringComparison.OrdinalIgnoreCase) ||
         args.Any(a => a is "--code" or "-c" or "--input" or "-i"))
     {
         return RunGenerateCode(args);
@@ -104,7 +105,18 @@ Console.WriteLine($"Block at (2, 1, 1) [Repeater]: {readClassic[2, 1, 1]}");
 Console.WriteLine($"Double Chest at (2, 1, 3) [Right]: {readClassic[2, 1, 3]}, Items: {readClassic.GetItems(2, 1, 3).Count}");
 Console.WriteLine($"Double Chest at (3, 1, 3) [Left]:  {readClassic[3, 1, 3]}, Items: {readClassic.GetItems(3, 1, 3).Count}");
 
-// 4. Generate fluent builder source code from the schematic
+// 4. Write and Read Litematica Schematic (.litematic)
+string litematicPath = Path.Combine(Path.GetFullPath("."), "demo_structure.litematic");
+SchematicFile.Write(schematic, litematicPath, SchematicFormat.Litematica);
+Console.WriteLine($"Wrote Litematica schematic to {litematicPath} ({new FileInfo(litematicPath).Length} bytes)");
+
+var readLitematic = SchematicFile.Read(litematicPath);
+Console.WriteLine($"Read Litematica schematic: {readLitematic.Width}x{readLitematic.Height}x{readLitematic.Length}");
+Console.WriteLine($"Block at (2, 1, 1) [Repeater]: {readLitematic[2, 1, 1]}");
+Console.WriteLine($"Double Chest at (2, 1, 3) [Right]: {readLitematic[2, 1, 3]}, Items: {readLitematic.GetItems(2, 1, 3).Count}");
+Console.WriteLine($"Double Chest at (3, 1, 3) [Left]:  {readLitematic[3, 1, 3]}, Items: {readLitematic.GetItems(3, 1, 3).Count}");
+
+// 5. Generate fluent builder source code from the schematic
 Console.WriteLine("\n--- Fluent Builder Source Code Generation Demo ---");
 string generatedCode = SchematicFile.ToFluentBuilderCode(spongePath);
 Console.WriteLine("Generated fluent builder code preview (first 10 lines):");
@@ -261,12 +273,12 @@ static void PrintHelp()
           SchematicBuilderMC [command] [options]
 
         Commands:
-          generate-code <file> [output.cs]   Generate C# fluent builder code from a schematic file (.schem, .schematic).
+          generate-code <file> [output.cs]   Generate C# fluent builder code from a schematic file (.schem, .schematic, .litematic).
           generate-registries                Generate Minecraft registry constants from embedded/online registries.json.
           demo                               Run the build and read/write demo (default when no args provided).
 
         Options for generate-code:
-          -i, --input <path>      Path to input schematic file (.schem, .schematic).
+          -i, --input <path>      Path to input schematic file (.schem, .schematic, .litematic).
           -o, --output <path>     Path to output .cs file. If omitted, writes to standard output.
           -m, --mode <mode>       Code generation mode: Statement, File, Method, Expression.
                                   (Default: File if output path ends with .cs, otherwise Statement).

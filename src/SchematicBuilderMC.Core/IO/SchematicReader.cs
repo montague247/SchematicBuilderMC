@@ -44,6 +44,7 @@ public sealed class SchematicReader : ISchematicReader
         return resolvedFormat switch
         {
             SchematicFormat.Classic => ClassicSchematicHandler.Read(root),
+            SchematicFormat.Litematica => LitematicaSchematicHandler.Read(root),
             SchematicFormat.SpongeV1 or SchematicFormat.SpongeV2 or SchematicFormat.SpongeV3 => SpongeSchematicHandler.Read(root),
             _ => SpongeSchematicHandler.Read(root)
         };
@@ -85,6 +86,9 @@ public sealed class SchematicReader : ISchematicReader
         if (ext.Equals(".schematic", StringComparison.OrdinalIgnoreCase))
             return SchematicFormat.Classic;
 
+        if (ext.Equals(".litematic", StringComparison.OrdinalIgnoreCase))
+            return SchematicFormat.Litematica;
+
         if (ext.Equals(".schem", StringComparison.OrdinalIgnoreCase))
             return SchematicFormat.Auto;
 
@@ -97,6 +101,12 @@ public sealed class SchematicReader : ISchematicReader
         if (root.Contains("Schematic") && root["Schematic"] is NbtCompound nested)
         {
             tag = nested;
+        }
+
+        // Litematica format check
+        if (tag.Contains("Regions") && (tag.Contains("Metadata") || tag.Contains("MinecraftDataVersion") || tag.Contains("Version")))
+        {
+            return SchematicFormat.Litematica;
         }
 
         // Classic MCEdit format check
