@@ -9,22 +9,6 @@ namespace SchematicBuilderMC.IO.Internal;
 /// </summary>
 internal static class LitematicaSchematicHandler
 {
-    private sealed record RegionInfo(
-        string Name,
-        NbtCompound Compound,
-        int SizeX,
-        int SizeY,
-        int SizeZ,
-        int MinX,
-        int MinY,
-        int MinZ,
-        int MaxX,
-        int MaxY,
-        int MaxZ,
-        int PosX,
-        int PosY,
-        int PosZ);
-
     public static Schematic Read(NbtCompound root)
     {
         if (root["Regions"] is not NbtCompound regionsTag || regionsTag.Count == 0)
