@@ -7,6 +7,7 @@ using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.IO;
 using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
+using SchematicBuilderMC.Utils;
 
 namespace SchematicBuilderMC.Generators;
 
@@ -136,13 +137,7 @@ public static class FluentBuilderCodeGenerator
             }
             else
             {
-                bool hasCustomData = HasCustomPayloadData(ent);
-                if (hasCustomData)
-                {
-                    needsFNbt = true;
-                }
-
-                string entCode = FormatEntity(ent, options, hasCustomData, indentStep);
+                string entCode = FormatEntity(ent, options, ref needsFNbt, indentStep);
                 calls.Add($".AddEntity({entCode})");
             }
         }
@@ -990,15 +985,66 @@ public static class FluentBuilderCodeGenerator
             }
         }
 
-        // Modern 1.20.5+ / 26.3 components support
+        // Modern 1.20.5+ / 26.3 components support (direct or nested in components compound)
+        NbtCompound? componentsCompound = custom["components"] as NbtCompound;
+
+        string? compCustomName = null;
         if (custom["minecraft:custom_name"] is NbtString compNameTag)
         {
-            string displayName = ExtractTextFromTextComponent(compNameTag.StringValue);
-            sb.Append($".WithDisplayName(\"{EscapeString(displayName)}\")");
+            compCustomName = compNameTag.StringValue;
             custom.Remove("minecraft:custom_name");
         }
+        else if (custom["custom_name"] is NbtString shortCompNameTag)
+        {
+            compCustomName = shortCompNameTag.StringValue;
+            custom.Remove("custom_name");
+        }
+        else if (custom["minecraft:item_name"] is NbtString itemNameTag)
+        {
+            compCustomName = itemNameTag.StringValue;
+            custom.Remove("minecraft:item_name");
+        }
+        else if (custom["item_name"] is NbtString shortItemNameTag)
+        {
+            compCustomName = shortItemNameTag.StringValue;
+            custom.Remove("item_name");
+        }
+        else if (componentsCompound != null)
+        {
+            if (componentsCompound["minecraft:custom_name"] is NbtString cCompName)
+            {
+                compCustomName = cCompName.StringValue;
+                componentsCompound.Remove("minecraft:custom_name");
+            }
+            else if (componentsCompound["custom_name"] is NbtString cShortCompName)
+            {
+                compCustomName = cShortCompName.StringValue;
+                componentsCompound.Remove("custom_name");
+            }
+            else if (componentsCompound["minecraft:item_name"] is NbtString cItemName)
+            {
+                compCustomName = cItemName.StringValue;
+                componentsCompound.Remove("minecraft:item_name");
+            }
+            else if (componentsCompound["item_name"] is NbtString cShortItemName)
+            {
+                compCustomName = cShortItemName.StringValue;
+                componentsCompound.Remove("item_name");
+            }
+        }
 
-        if (custom["minecraft:lore"] is NbtList compLoreList && compLoreList.Count > 0)
+        if (compCustomName != null)
+        {
+            string displayName = ExtractTextFromTextComponent(compCustomName);
+            sb.Append($".WithDisplayName(\"{EscapeString(displayName)}\")");
+        }
+
+        NbtList? compLoreList = custom["minecraft:lore"] as NbtList ??
+                                custom["lore"] as NbtList ??
+                                componentsCompound?["minecraft:lore"] as NbtList ??
+                                componentsCompound?["lore"] as NbtList;
+
+        if (compLoreList != null && compLoreList.Count > 0)
         {
             var loreLines = new List<string>();
             foreach (var tag in compLoreList)
@@ -1014,6 +1060,17 @@ public static class FluentBuilderCodeGenerator
                 sb.Append($".WithLore({loreArgs})");
             }
             custom.Remove("minecraft:lore");
+            custom.Remove("lore");
+            if (componentsCompound != null)
+            {
+                componentsCompound.Remove("minecraft:lore");
+                componentsCompound.Remove("lore");
+            }
+        }
+
+        if (componentsCompound != null && componentsCompound.Count == 0)
+        {
+            custom.Remove("components");
         }
 
         // 2. Enchantments
@@ -1077,36 +1134,8 @@ public static class FluentBuilderCodeGenerator
         return sb.ToString();
     }
 
-    private static string ExtractTextFromTextComponent(string jsonOrText)
-    {
-        if (string.IsNullOrWhiteSpace(jsonOrText)) return "";
-
-        if (!jsonOrText.StartsWith('{') || !jsonOrText.EndsWith('}'))
-        {
-            return jsonOrText;
-        }
-
-        try
-        {
-            using var doc = JsonDocument.Parse(jsonOrText);
-            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
-                doc.RootElement.TryGetProperty("text", out var textProp))
-            {
-                int count = 0;
-                foreach (var _ in doc.RootElement.EnumerateObject()) count++;
-                if (count == 1)
-                {
-                    return textProp.GetString() ?? jsonOrText;
-                }
-            }
-        }
-        catch
-        {
-            // Fallback to raw string if parsing fails
-        }
-
-        return jsonOrText;
-    }
+    private static string ExtractTextFromTextComponent(string jsonOrText) =>
+        TextComponentHelper.ExtractText(jsonOrText);
 
     private static string FormatBlockEntity(BlockEntity be, FluentCodeGeneratorOptions options, bool hasCustomData, string indentStep)
     {
@@ -1130,7 +1159,7 @@ public static class FluentBuilderCodeGenerator
         return $"new BlockEntity({idStr}, {posStr}, {dataCode})";
     }
 
-    private static string FormatEntity(Entity ent, FluentCodeGeneratorOptions options, bool hasCustomData, string indentStep)
+    private static string FormatEntity(Entity ent, FluentCodeGeneratorOptions options, ref bool needsFNbt, string indentStep)
     {
         string idStr = options.UseStronglyTypedEntities && Minecraft.Entities.IsValid(ent.Id)
             ? $"Minecraft.Entities.{MinecraftRegistryGenerator.ToPascalCase(ent.Id)}"
@@ -1138,18 +1167,66 @@ public static class FluentBuilderCodeGenerator
 
         string coords = $"{FormatDouble(ent.X)}, {FormatDouble(ent.Y)}, {FormatDouble(ent.Z)}";
 
+        string? customName = ent.CustomName;
+        bool hasCustomName = !string.IsNullOrWhiteSpace(customName);
+
+        NbtCompound dataClone = (NbtCompound)ent.Data.Clone();
+        if (hasCustomName)
+        {
+            dataClone.Remove("CustomName");
+            dataClone.Remove("custom_name");
+            dataClone.Remove("CustomNameVisible");
+            dataClone.Remove("custom_name_visible");
+            dataClone.Remove("PersistenceRequired");
+            dataClone.Remove("persistence_required");
+        }
+
+        var remainingTags = GetMeaningfulTags(dataClone, isRoot: true);
+        bool hasCustomData = remainingTags.Count > 0;
+
+        string entityInit;
         if (!hasCustomData)
         {
-            return $"new Entity({idStr}, {coords})";
+            entityInit = $"new Entity({idStr}, {coords})";
         }
-
-        string dataCode = FormatNbtCompound(ent.Data, indentStep, level: 1);
-        if (dataCode.Contains('\n'))
+        else
         {
-            return $"new Entity(\n{indentStep}{idStr},\n{indentStep}{coords},\n{indentStep}{dataCode})";
+            needsFNbt = true;
+            string dataCode = FormatNbtCompound(dataClone, indentStep, level: 1);
+            if (dataCode.Contains('\n'))
+            {
+                entityInit = $"new Entity(\n{indentStep}{idStr},\n{indentStep}{coords},\n{indentStep}{dataCode})";
+            }
+            else
+            {
+                entityInit = $"new Entity({idStr}, {coords}, {dataCode})";
+            }
         }
 
-        return $"new Entity({idStr}, {coords}, {dataCode})";
+        if (hasCustomName)
+        {
+            bool visible = ent.CustomNameVisible;
+            bool persistence = ent.PersistenceRequired;
+
+            if (!visible && !persistence)
+            {
+                entityInit += $".WithCustomName(\"{EscapeString(customName!)}\", visible: false, persistenceRequired: false)";
+            }
+            else if (!visible)
+            {
+                entityInit += $".WithCustomName(\"{EscapeString(customName!)}\", visible: false)";
+            }
+            else if (!persistence)
+            {
+                entityInit += $".WithCustomName(\"{EscapeString(customName!)}\", persistenceRequired: false)";
+            }
+            else
+            {
+                entityInit += $".WithCustomName(\"{EscapeString(customName!)}\")";
+            }
+        }
+
+        return entityInit;
     }
 
     private static bool HasCustomPayloadData(BlockEntity be)

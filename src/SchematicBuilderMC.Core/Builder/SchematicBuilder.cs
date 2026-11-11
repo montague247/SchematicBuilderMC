@@ -550,6 +550,15 @@ public sealed class SchematicBuilder
     }
 
     /// <summary>
+    /// Adds an entity (optionally named, such as when renamed with a Name Tag) to the schematic.
+    /// </summary>
+    public SchematicBuilder AddEntity(string entityId, double x, double y, double z, string? customName = null, bool customNameVisible = true, bool persistenceRequired = true)
+    {
+        _schematic.AddEntity(entityId, x, y, z, customName, customNameVisible, persistenceRequired);
+        return this;
+    }
+
+    /// <summary>
     /// Adds an item frame entity (or glow item frame) to the schematic.
     /// </summary>
     public SchematicBuilder AddItemFrame(

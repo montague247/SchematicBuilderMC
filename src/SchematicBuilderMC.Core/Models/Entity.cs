@@ -1,5 +1,6 @@
 using fNbt;
 using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Utils;
 
 namespace SchematicBuilderMC.Models;
 
@@ -26,6 +27,56 @@ public sealed class Entity
     public NbtCompound Data { get; set; }
 
     /// <summary>
+    /// Gets or sets the custom name of this entity (e.g. applied by a Name Tag or command).
+    /// </summary>
+    public string? CustomName
+    {
+        get
+        {
+            var tag = Data["CustomName"] ?? Data["custom_name"];
+            if (tag is NbtString strTag)
+            {
+                return TextComponentHelper.ExtractText(strTag.Value);
+            }
+            return tag?.StringValue;
+        }
+        set
+        {
+            if (value == null)
+            {
+                Data.Remove("CustomName");
+                Data.Remove("custom_name");
+            }
+            else
+            {
+                string jsonName = value.StartsWith('{') && value.EndsWith('}')
+                    ? value
+                    : $"{{\"text\":\"{TextComponentHelper.EscapeJsonString(value)}\"}}";
+                Data["CustomName"] = new NbtString("CustomName", jsonName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets whether this entity's custom name is visible as a nameplate above the entity.
+    /// </summary>
+    public bool CustomNameVisible
+    {
+        get => (Data["CustomNameVisible"]?.IntValue ?? Data["custom_name_visible"]?.IntValue ?? 0) != 0;
+        set => Data["CustomNameVisible"] = new NbtByte("CustomNameVisible", (byte)(value ? 1 : 0));
+    }
+
+    /// <summary>
+    /// Gets or sets whether this entity is prevented from despawning naturally
+    /// (standard Minecraft behavior when an entity is named using a Name Tag).
+    /// </summary>
+    public bool PersistenceRequired
+    {
+        get => (Data["PersistenceRequired"]?.IntValue ?? Data["persistence_required"]?.IntValue ?? 0) != 0;
+        set => Data["PersistenceRequired"] = new NbtByte("PersistenceRequired", (byte)(value ? 1 : 0));
+    }
+
+    /// <summary>
     /// Gets whether this entity is a regular item frame or glow item frame.
     /// </summary>
     public bool IsItemFrame =>
@@ -47,6 +98,57 @@ public sealed class Entity
         Y = y;
         Z = z;
         Data = data ?? new NbtCompound();
+    }
+
+    /// <summary>
+    /// Assigns a custom name to this entity (such as applied by a Name Tag) and returns this instance.
+    /// </summary>
+    /// <param name="name">The custom name or JSON text component.</param>
+    /// <param name="visible">Whether the name tag is rendered above the entity (default is true).</param>
+    /// <param name="persistenceRequired">Whether to prevent the entity from despawning (default is true).</param>
+    public Entity WithCustomName(string name, bool visible = true, bool persistenceRequired = true)
+    {
+        CustomName = name;
+        CustomNameVisible = visible;
+        if (persistenceRequired)
+        {
+            PersistenceRequired = true;
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Sets whether persistence is required (prevents natural despawning) and returns this instance.
+    /// </summary>
+    public Entity WithPersistenceRequired(bool required = true)
+    {
+        PersistenceRequired = required;
+        return this;
+    }
+
+    /// <summary>
+    /// Renames this entity as if applying a Name Tag.
+    /// Sets <see cref="CustomName"/>, sets <see cref="CustomNameVisible"/>, and marks <see cref="PersistenceRequired"/> as true.
+    /// </summary>
+    /// <param name="name">The name to assign.</param>
+    /// <param name="visible">Whether the name tag is rendered above the entity.</param>
+    public Entity ApplyNameTag(string name, bool visible = true) =>
+        WithCustomName(name, visible, persistenceRequired: true);
+
+    /// <summary>
+    /// Renames this entity using a named <see cref="ItemStack"/> (such as a named Name Tag).
+    /// </summary>
+    /// <param name="nameTag">The named Name Tag item stack.</param>
+    /// <param name="visible">Whether the name tag is rendered above the entity.</param>
+    public Entity ApplyNameTag(ItemStack nameTag, bool visible = true)
+    {
+        ArgumentNullException.ThrowIfNull(nameTag);
+        string? name = nameTag.DisplayName;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("The provided Name Tag does not have a display name.", nameof(nameTag));
+        }
+        return ApplyNameTag(name, visible);
     }
 
     /// <summary>

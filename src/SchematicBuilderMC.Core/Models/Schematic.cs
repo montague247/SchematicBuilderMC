@@ -688,6 +688,20 @@ public sealed class Schematic
     }
 
     /// <summary>
+    /// Adds an entity (optionally named, such as when renamed with a Name Tag) to the schematic.
+    /// </summary>
+    public Entity AddEntity(string entityId, double x, double y, double z, string? customName = null, bool customNameVisible = true, bool persistenceRequired = true)
+    {
+        var entity = new Entity(entityId, x, y, z);
+        if (!string.IsNullOrWhiteSpace(customName))
+        {
+            entity.WithCustomName(customName, customNameVisible, persistenceRequired);
+        }
+        AddEntity(entity);
+        return entity;
+    }
+
+    /// <summary>
     /// Adds an item frame entity (or glow item frame) to the schematic.
     /// </summary>
     public Entity AddItemFrame(

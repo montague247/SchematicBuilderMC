@@ -1,5 +1,6 @@
 using System.Text.Json;
 using fNbt;
+using SchematicBuilderMC.Utils;
 
 namespace SchematicBuilderMC.Models;
 
@@ -22,6 +23,44 @@ public sealed class BlockEntity
     /// Additional NBT data for the block entity.
     /// </summary>
     public NbtCompound Data { get; set; }
+
+    /// <summary>
+    /// Gets or sets the custom name of this block entity (e.g. for named containers like chests or furnaces).
+    /// </summary>
+    public string? CustomName
+    {
+        get
+        {
+            var tag = Data["CustomName"] ?? Data["custom_name"];
+            if (tag is NbtString strTag)
+                return TextComponentHelper.ExtractText(strTag.Value);
+            return tag?.StringValue;
+        }
+        set
+        {
+            if (value == null)
+            {
+                Data.Remove("CustomName");
+                Data.Remove("custom_name");
+            }
+            else
+            {
+                string jsonName = value.StartsWith('{') && value.EndsWith('}')
+                    ? value
+                    : $"{{\"text\":\"{TextComponentHelper.EscapeJsonString(value)}\"}}";
+                Data["CustomName"] = new NbtString("CustomName", jsonName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sets the custom name of this block entity and returns this instance.
+    /// </summary>
+    public BlockEntity WithCustomName(string name)
+    {
+        CustomName = name;
+        return this;
+    }
 
     /// <summary>
     /// Gets whether this block entity represents a sign.

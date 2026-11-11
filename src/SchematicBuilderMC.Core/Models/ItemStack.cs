@@ -1,4 +1,6 @@
 using fNbt;
+using SchematicBuilderMC.Registries;
+using SchematicBuilderMC.Utils;
 
 namespace SchematicBuilderMC.Models;
 
@@ -42,6 +44,32 @@ public sealed class ItemStack : IEquatable<ItemStack>
     /// Gets or sets additional custom NBT data (such as display name, lore, enchantments, components).
     /// </summary>
     public NbtCompound? CustomData { get; set; }
+
+    /// <summary>
+    /// Gets whether this item stack represents a Name Tag (<c>minecraft:name_tag</c>).
+    /// </summary>
+    public bool IsNameTag => Id.Equals("minecraft:name_tag", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Gets or sets the custom display name of the item.
+    /// Reads from and writes to either modern data components (<c>minecraft:custom_name</c>)
+    /// or legacy NBT tags (<c>display.Name</c>).
+    /// </summary>
+    public string? DisplayName
+    {
+        get => GetDisplayName();
+        set
+        {
+            if (value == null)
+            {
+                RemoveDisplayName();
+            }
+            else
+            {
+                WithDisplayName(value);
+            }
+        }
+    }
 
     /// <summary>
     /// Initializes a new instance of <see cref="ItemStack"/>.
@@ -105,6 +133,8 @@ public sealed class ItemStack : IEquatable<ItemStack>
 
     /// <summary>
     /// Sets a custom display name for this item stack.
+    /// Supports plain text or raw Minecraft JSON text component.
+    /// Updates both legacy <c>display.Name</c> and modern data component <c>minecraft:custom_name</c>.
     /// </summary>
     /// <param name="name">The display name text or JSON text component.</param>
     public ItemStack WithDisplayName(string name)
@@ -112,24 +142,167 @@ public sealed class ItemStack : IEquatable<ItemStack>
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         CustomData ??= new NbtCompound();
-        NbtCompound displayCompound;
-
-        if (CustomData.Contains("display") && CustomData["display"] is NbtCompound existingDisplay)
-        {
-            displayCompound = existingDisplay;
-        }
-        else
-        {
-            displayCompound = new NbtCompound("display");
-            CustomData["display"] = displayCompound;
-        }
 
         string jsonName = name.StartsWith('{') && name.EndsWith('}')
             ? name
-            : $"{{\"text\":\"{EscapeJsonString(name)}\"}}";
+            : $"{{\"text\":\"{TextComponentHelper.EscapeJsonString(name)}\"}}";
 
-        displayCompound["Name"] = new NbtString("Name", jsonName);
+        // Modern 1.20.5+ component support
+        if (CustomData.Name == "components" || CustomData.Contains("minecraft:custom_name") || CustomData.Contains("custom_name"))
+        {
+            CustomData["minecraft:custom_name"] = new NbtString("minecraft:custom_name", jsonName);
+        }
+        else if (CustomData["components"] is NbtCompound componentsComp)
+        {
+            componentsComp["minecraft:custom_name"] = new NbtString("minecraft:custom_name", jsonName);
+        }
+
+        // Legacy display.Name tag support (when not purely a modern components compound)
+        if (CustomData.Name != "components")
+        {
+            NbtCompound displayCompound;
+            if (CustomData.Contains("display") && CustomData["display"] is NbtCompound existingDisplay)
+            {
+                displayCompound = existingDisplay;
+            }
+            else
+            {
+                displayCompound = new NbtCompound("display");
+                CustomData["display"] = displayCompound;
+            }
+
+            displayCompound["Name"] = new NbtString("Name", jsonName);
+        }
+
         return this;
+    }
+
+    /// <summary>
+    /// Renames this item stack as if applying a Name Tag.
+    /// </summary>
+    /// <param name="name">The name to apply to the item.</param>
+    public ItemStack ApplyNameTag(string name) => WithDisplayName(name);
+
+    /// <summary>
+    /// Renames this item stack using the display name from another item stack (such as a named Name Tag).
+    /// </summary>
+    /// <param name="nameTag">The named Name Tag item stack.</param>
+    public ItemStack ApplyNameTag(ItemStack nameTag)
+    {
+        ArgumentNullException.ThrowIfNull(nameTag);
+        string? name = nameTag.DisplayName;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("The provided Name Tag does not have a display name.", nameof(nameTag));
+        }
+        return WithDisplayName(name);
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ItemStack"/> representing a named Name Tag (<c>minecraft:name_tag</c>).
+    /// </summary>
+    /// <param name="customName">The custom name assigned to the Name Tag.</param>
+    /// <param name="count">The quantity of Name Tags (default is 1).</param>
+    /// <param name="slot">The inventory slot index (default is 0).</param>
+    public static ItemStack CreateNameTag(string customName, int count = 1, byte slot = 0)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(customName);
+        return new ItemStack(Minecraft.Items.NameTag, count, slot).WithDisplayName(customName);
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ItemStack"/> representing a named Name Tag with an integer slot index.
+    /// </summary>
+    /// <param name="customName">The custom name assigned to the Name Tag.</param>
+    /// <param name="count">The quantity of Name Tags.</param>
+    /// <param name="slot">The inventory slot index.</param>
+    public static ItemStack CreateNameTag(string customName, int count, int slot) =>
+        CreateNameTag(customName, count, (byte)slot);
+
+    /// <summary>
+    /// Retrieves the clean human-readable display name of this item stack, or <c>null</c> if not named.
+    /// Checks modern data components (<c>minecraft:custom_name</c>, <c>minecraft:item_name</c>)
+    /// as well as legacy NBT tag (<c>display.Name</c>).
+    /// </summary>
+    public string? GetDisplayName()
+    {
+        if (CustomData == null) return null;
+
+        // 1. Direct component tags
+        if (CustomData["minecraft:custom_name"] is NbtString compName)
+            return TextComponentHelper.ExtractText(compName.Value);
+        if (CustomData["custom_name"] is NbtString compNameShort)
+            return TextComponentHelper.ExtractText(compNameShort.Value);
+        if (CustomData["minecraft:item_name"] is NbtString itemName)
+            return TextComponentHelper.ExtractText(itemName.Value);
+        if (CustomData["item_name"] is NbtString itemNameShort)
+            return TextComponentHelper.ExtractText(itemNameShort.Value);
+
+        // 2. Nested "components" compound
+        if (CustomData["components"] is NbtCompound components)
+        {
+            if (components["minecraft:custom_name"] is NbtString nCompName)
+                return TextComponentHelper.ExtractText(nCompName.Value);
+            if (components["custom_name"] is NbtString nCompNameShort)
+                return TextComponentHelper.ExtractText(nCompNameShort.Value);
+            if (components["minecraft:item_name"] is NbtString nItemName)
+                return TextComponentHelper.ExtractText(nItemName.Value);
+            if (components["item_name"] is NbtString nItemNameShort)
+                return TextComponentHelper.ExtractText(nItemNameShort.Value);
+        }
+
+        // 3. Legacy "display" compound
+        if (CustomData["display"] is NbtCompound display && display["Name"] is NbtString nameTag)
+        {
+            return TextComponentHelper.ExtractText(nameTag.Value);
+        }
+
+        // 4. Nested "tag" compound
+        if (CustomData["tag"] is NbtCompound tagComp && tagComp["display"] is NbtCompound nestedDisplay && nestedDisplay["Name"] is NbtString nestedName)
+        {
+            return TextComponentHelper.ExtractText(nestedName.Value);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Removes the custom display name from this item stack.
+    /// </summary>
+    public void RemoveDisplayName()
+    {
+        if (CustomData == null) return;
+
+        CustomData.Remove("minecraft:custom_name");
+        CustomData.Remove("custom_name");
+        CustomData.Remove("minecraft:item_name");
+        CustomData.Remove("item_name");
+
+        if (CustomData["components"] is NbtCompound components)
+        {
+            components.Remove("minecraft:custom_name");
+            components.Remove("custom_name");
+            components.Remove("minecraft:item_name");
+            components.Remove("item_name");
+        }
+
+        if (CustomData["display"] is NbtCompound display)
+        {
+            display.Remove("Name");
+            if (display.Count == 0)
+            {
+                CustomData.Remove("display");
+            }
+        }
+
+        if (CustomData["tag"] is NbtCompound tagComp && tagComp["display"] is NbtCompound tagDisplay)
+        {
+            tagDisplay.Remove("Name");
+            if (tagDisplay.Count == 0)
+            {
+                tagComp.Remove("display");
+            }
+        }
     }
 
     /// <summary>
