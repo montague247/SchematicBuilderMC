@@ -46,6 +46,7 @@ Library/
 **/.local/
 **/.DS_Store
 **/demo_*.schem*
+**/*.litematic
 
 # Others
 ~$*
