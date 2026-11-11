@@ -17,6 +17,9 @@ set -u
 # This is causing it to fail
 set -o pipefail
 
+scriptdir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+cd "$scriptdir"
+
 echo "Update tool..."
 
 if dotnet tool update --global dotnet-outdated-tool; then
