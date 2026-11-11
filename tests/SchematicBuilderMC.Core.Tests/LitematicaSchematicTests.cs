@@ -2,6 +2,7 @@ using fNbt;
 using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.Exceptions;
+using SchematicBuilderMC.Extensions;
 using SchematicBuilderMC.IO;
 using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;

@@ -80,21 +80,47 @@ public static class FluentBuilderCodeGenerator
             {
                 calls.Add(FormatChestCall(be.Position.X, be.Position.Y, be.Position.Z, be.GetItems(), options, ref needsFNbt));
             }
+            else if (be.IsSign)
+            {
+                var (front, back, isWaxed) = be.GetSignText();
+                if (front.Count > 0 || back.Count > 0 || isWaxed)
+                {
+                    calls.Add(FormatSignCall(be.Position.X, be.Position.Y, be.Position.Z, front, back, isWaxed));
+                }
+            }
+            else if (be.IsDecoratedPot)
+            {
+                var (item, front, back, left, right) = be.GetDecoratedPotData();
+                bool isDefaultSherds = (front == null || front == "minecraft:brick") &&
+                                       (back == null || back == "minecraft:brick") &&
+                                       (left == null || left == "minecraft:brick") &&
+                                       (right == null || right == "minecraft:brick");
+
+                if (item != null || !isDefaultSherds)
+                {
+                    calls.Add(FormatDecoratedPotCall(be.Position.X, be.Position.Y, be.Position.Z, item, front, back, left, right, options, ref needsFNbt));
+                }
+            }
+            else if (be.IsCrafter)
+            {
+                var disabled = be.GetDisabledSlots();
+                var items = be.GetItems();
+                if (disabled.Count > 0 || items.Count > 0)
+                {
+                    calls.Add(FormatCrafterCall(be.Position.X, be.Position.Y, be.Position.Z, disabled, items, options, ref needsFNbt));
+                }
+            }
             else if (be.HasItems)
             {
                 var block = schematic[be.Position.X, be.Position.Y, be.Position.Z];
                 string blockId = block.IsAir ? be.Id : block.Identifier;
                 calls.Add(FormatContainerCall(blockId, be.Id, be.Position.X, be.Position.Y, be.Position.Z, be.GetItems(), options, ref needsFNbt));
             }
-            else
+            else if (HasCustomPayloadData(be) || be.Data.Count == 0)
             {
-                bool hasCustomData = HasCustomPayloadData(be);
-                if (hasCustomData)
-                {
-                    needsFNbt = true;
-                }
-
-                string beCode = FormatBlockEntity(be, options, hasCustomData, indentStep);
+                bool hasCustom = HasCustomPayloadData(be);
+                if (hasCustom) needsFNbt = true;
+                string beCode = FormatBlockEntity(be, options, hasCustomData: hasCustom, indentStep);
                 calls.Add($".AddBlockEntity({beCode})");
             }
         }
@@ -241,22 +267,8 @@ public static class FluentBuilderCodeGenerator
 
                         string blockCode = FormatBlockState(block, options);
                         var be = schematic.GetBlockEntity(x, y, z);
-                        if (be != null && IsChest(be.Id) && be.HasItems)
+                        if (be != null && TryGenerateSpecialBlockEntityCall(schematic, be, block, blockCode, options, calls, ref needsFNbt))
                         {
-                            if (block.Properties.Count > 0)
-                            {
-                                calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
-                            }
-                            calls.Add(FormatChestCall(x, y, z, be.GetItems(), options, ref needsFNbt));
-                            handledBlockEntities.Add(be.Position);
-                        }
-                        else if (be != null && be.HasItems)
-                        {
-                            if (block.Properties.Count > 0)
-                            {
-                                calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
-                            }
-                            calls.Add(FormatContainerCall(block.Identifier, be.Id, x, y, z, be.GetItems(), options, ref needsFNbt));
                             handledBlockEntities.Add(be.Position);
                         }
                         else
@@ -346,22 +358,8 @@ public static class FluentBuilderCodeGenerator
                     else
                     {
                         var be = schematic.GetBlockEntity(x, y, z);
-                        if (be != null && IsChest(be.Id) && be.HasItems)
+                        if (be != null && TryGenerateSpecialBlockEntityCall(schematic, be, target, blockCode, options, calls, ref needsFNbt))
                         {
-                            if (target.Properties.Count > 0)
-                            {
-                                calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
-                            }
-                            calls.Add(FormatChestCall(x, y, z, be.GetItems(), options, ref needsFNbt));
-                            handledBlockEntities.Add(be.Position);
-                        }
-                        else if (be != null && be.HasItems)
-                        {
-                            if (target.Properties.Count > 0)
-                            {
-                                calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
-                            }
-                            calls.Add(FormatContainerCall(target.Identifier, be.Id, x, y, z, be.GetItems(), options, ref needsFNbt));
                             handledBlockEntities.Add(be.Position);
                         }
                         else
@@ -611,6 +609,192 @@ public static class FluentBuilderCodeGenerator
                id.Equals("chest", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool TryGenerateSpecialBlockEntityCall(
+        Schematic schematic,
+        BlockEntity be,
+        BlockState block,
+        string blockCode,
+        FluentCodeGeneratorOptions options,
+        List<string> calls,
+        ref bool needsFNbt)
+    {
+        int x = be.Position.X;
+        int y = be.Position.Y;
+        int z = be.Position.Z;
+
+        if (IsChest(be.Id) && be.HasItems)
+        {
+            if (block.Properties.Count > 0)
+            {
+                calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+            }
+            calls.Add(FormatChestCall(x, y, z, be.GetItems(), options, ref needsFNbt));
+            return true;
+        }
+
+        if (be.IsSign)
+        {
+            var (front, back, isWaxed) = be.GetSignText();
+            if (front.Count > 0 || back.Count > 0 || isWaxed)
+            {
+                if (block.Properties.Count > 0)
+                {
+                    calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+                }
+                calls.Add(FormatSignCall(x, y, z, front, back, isWaxed));
+                return true;
+            }
+        }
+
+        if (be.IsDecoratedPot)
+        {
+            var (item, front, back, left, right) = be.GetDecoratedPotData();
+            bool isDefaultSherds = (front == null || front == "minecraft:brick") &&
+                                   (back == null || back == "minecraft:brick") &&
+                                   (left == null || left == "minecraft:brick") &&
+                                   (right == null || right == "minecraft:brick");
+            if (item != null || !isDefaultSherds)
+            {
+                if (block.Properties.Count > 0)
+                {
+                    calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+                }
+                calls.Add(FormatDecoratedPotCall(x, y, z, item, front, back, left, right, options, ref needsFNbt));
+                return true;
+            }
+        }
+
+        if (be.IsCrafter)
+        {
+            var disabled = be.GetDisabledSlots();
+            var items = be.GetItems();
+            if (disabled.Count > 0 || items.Count > 0)
+            {
+                if (block.Properties.Count > 0)
+                {
+                    calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+                }
+                calls.Add(FormatCrafterCall(x, y, z, disabled, items, options, ref needsFNbt));
+                return true;
+            }
+        }
+
+        if (be.HasItems)
+        {
+            if (block.Properties.Count > 0)
+            {
+                calls.Add($".SetBlock({x}, {y}, {z}, {blockCode})");
+            }
+            calls.Add(FormatContainerCall(block.Identifier, be.Id, x, y, z, be.GetItems(), options, ref needsFNbt));
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string FormatSignCall(int x, int y, int z, IReadOnlyList<string> front, IReadOnlyList<string> back, bool isWaxed)
+    {
+        if (back.Count == 0 && !isWaxed)
+        {
+            string frontArgs = string.Join(", ", front.Select(m => $"\"{EscapeString(m)}\""));
+            return $".SetSign({x}, {y}, {z}, {frontArgs})";
+        }
+
+        string fList = front.Count > 0
+            ? $"new[] {{ {string.Join(", ", front.Select(m => $"\"{EscapeString(m)}\""))} }}"
+            : "Array.Empty<string>()";
+
+        string bList = back.Count > 0
+            ? $", new[] {{ {string.Join(", ", back.Select(m => $"\"{EscapeString(m)}\""))} }}"
+            : "";
+
+        string wax = isWaxed ? ", isWaxed: true" : "";
+        return $".SetSign({x}, {y}, {z}, {fList}{bList}{wax})";
+    }
+
+    private static string FormatDecoratedPotCall(
+        int x, int y, int z,
+        ItemStack? item,
+        string? frontSherd, string? backSherd, string? leftSherd, string? rightSherd,
+        FluentCodeGeneratorOptions options,
+        ref bool needsFNbt)
+    {
+        string? itemStr = item != null ? FormatItemStack(item, options, ref needsFNbt, includeSlot: false) : null;
+        bool isDefaultSherds = (frontSherd == null || frontSherd == "minecraft:brick") &&
+                               (backSherd == null || backSherd == "minecraft:brick") &&
+                               (leftSherd == null || leftSherd == "minecraft:brick") &&
+                               (rightSherd == null || rightSherd == "minecraft:brick");
+
+        if (isDefaultSherds)
+        {
+            return $".SetDecoratedPot({x}, {y}, {z}, {itemStr ?? "null"})";
+        }
+
+        string FormatSherdVal(string s)
+        {
+            if (options.UseStronglyTypedItems && Minecraft.Items.IsValid(s))
+                return $"Minecraft.Items.{MinecraftRegistryGenerator.ToPascalCase(s)}";
+            return $"\"{EscapeString(s)}\"";
+        }
+
+        var args = new List<string>();
+        if (itemStr != null)
+        {
+            args.Add(itemStr);
+        }
+
+        if (frontSherd != null && frontSherd != "minecraft:brick")
+            args.Add($"frontSherd: {FormatSherdVal(frontSherd)}");
+        if (backSherd != null && backSherd != "minecraft:brick")
+            args.Add($"backSherd: {FormatSherdVal(backSherd)}");
+        if (leftSherd != null && leftSherd != "minecraft:brick")
+            args.Add($"leftSherd: {FormatSherdVal(leftSherd)}");
+        if (rightSherd != null && rightSherd != "minecraft:brick")
+            args.Add($"rightSherd: {FormatSherdVal(rightSherd)}");
+
+        return $".SetDecoratedPot({x}, {y}, {z}, {string.Join(", ", args)})";
+    }
+
+    private static string FormatCrafterCall(
+        int x, int y, int z,
+        IReadOnlyList<int> disabledSlots,
+        IReadOnlyList<ItemStack> items,
+        FluentCodeGeneratorOptions options,
+        ref bool needsFNbt)
+    {
+        if (items.Count == 0 && disabledSlots.Count > 0)
+        {
+            return $".SetCrafter({x}, {y}, {z}, {string.Join(", ", disabledSlots)})";
+        }
+
+        if (disabledSlots.Count == 0 && items.Count > 0)
+        {
+            string blockIdStr = options.UseStronglyTypedBlocks
+                ? "Minecraft.Blocks.Crafter"
+                : "\"minecraft:crafter\"";
+            string beIdStr = options.UseStronglyTypedEntities
+                ? "Minecraft.BlockEntities.Crafter"
+                : "\"minecraft:crafter\"";
+            return FormatContainerCall(blockIdStr, beIdStr, x, y, z, items, options, ref needsFNbt);
+        }
+
+        string disabledExpr = $"new[] {{ {string.Join(", ", disabledSlots)} }}";
+        var lines = new List<string>(items.Count + 1)
+        {
+            $".SetCrafter({x}, {y}, {z}, {disabledExpr},"
+        };
+
+        var sortedItems = items.OrderBy(i => i.Slot).ToList();
+        for (int i = 0; i < sortedItems.Count; i++)
+        {
+            string itemStr = FormatItemStack(sortedItems[i], options, ref needsFNbt);
+            bool isLast = i == sortedItems.Count - 1;
+            lines.Add(isLast ? $"{itemStr})" : $"{itemStr},");
+        }
+
+        return string.Join("\n", lines);
+    }
+
     private static string FormatChestCall(
         int x, int y, int z,
         IReadOnlyList<ItemStack> items,
@@ -677,7 +861,7 @@ public static class FluentBuilderCodeGenerator
         return string.Join("\n", lines);
     }
 
-    private static string FormatItemStack(ItemStack item, FluentCodeGeneratorOptions options, ref bool needsFNbt)
+    private static string FormatItemStack(ItemStack item, FluentCodeGeneratorOptions options, ref bool needsFNbt, bool includeSlot = true)
     {
         string itemIdCode;
         if (options.UseStronglyTypedItems && Minecraft.Items.IsValid(item.Id))
@@ -690,7 +874,18 @@ public static class FluentBuilderCodeGenerator
         }
 
         var sb = new StringBuilder();
-        sb.Append($"new ItemStack({itemIdCode}, count: {item.Count}, slot: {item.Slot})");
+        if (includeSlot)
+        {
+            sb.Append($"new ItemStack({itemIdCode}, count: {item.Count}, slot: {item.Slot})");
+        }
+        else if (item.Count > 1)
+        {
+            sb.Append($"new ItemStack({itemIdCode}, count: {item.Count})");
+        }
+        else
+        {
+            sb.Append($"new ItemStack({itemIdCode})");
+        }
 
         if (item.CustomData == null || item.CustomData.Count == 0)
         {
@@ -865,7 +1060,12 @@ public static class FluentBuilderCodeGenerator
             return $"new BlockEntity({idStr}, {posStr})";
         }
 
-        string dataCode = FormatNbtCompound(be.Data, indentStep);
+        string dataCode = FormatNbtCompound(be.Data, indentStep, level: 1, be.Id);
+        if (dataCode.Contains('\n'))
+        {
+            return $"new BlockEntity(\n{indentStep}{idStr},\n{indentStep}{posStr},\n{indentStep}{dataCode})";
+        }
+
         return $"new BlockEntity({idStr}, {posStr}, {dataCode})";
     }
 
@@ -882,7 +1082,12 @@ public static class FluentBuilderCodeGenerator
             return $"new Entity({idStr}, {coords})";
         }
 
-        string dataCode = FormatNbtCompound(ent.Data, indentStep);
+        string dataCode = FormatNbtCompound(ent.Data, indentStep, level: 1);
+        if (dataCode.Contains('\n'))
+        {
+            return $"new Entity(\n{indentStep}{idStr},\n{indentStep}{coords},\n{indentStep}{dataCode})";
+        }
+
         return $"new Entity({idStr}, {coords}, {dataCode})";
     }
 
@@ -897,6 +1102,46 @@ public static class FluentBuilderCodeGenerator
             if (name.Equals("y", StringComparison.OrdinalIgnoreCase)) continue;
             if (name.Equals("z", StringComparison.OrdinalIgnoreCase)) continue;
             if (name.Equals("Pos", StringComparison.OrdinalIgnoreCase)) continue;
+
+            // Empty components compound
+            if (name.Equals("components", StringComparison.OrdinalIgnoreCase) && tag is NbtCompound { Count: 0 })
+                continue;
+
+            // Empty Items list
+            if (name.Equals("Items", StringComparison.OrdinalIgnoreCase) && tag is NbtList { Count: 0 })
+                continue;
+
+            // Default TransferCooldown on hopper/dispenser/dropper
+            if (name.Equals("TransferCooldown", StringComparison.OrdinalIgnoreCase) && tag is NbtInt { Value: 0 })
+                continue;
+
+            // Comparator output signal (transient in-game calculation)
+            if (name.Equals("OutputSignal", StringComparison.OrdinalIgnoreCase) &&
+                be.Id.Equals("minecraft:comparator", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            // Default crafter state
+            if (name.Equals("crafting_ticks_remaining", StringComparison.OrdinalIgnoreCase) && tag is NbtInt { Value: 0 })
+                continue;
+            if (name.Equals("triggered", StringComparison.OrdinalIgnoreCase) && tag is NbtByte { Value: 0 })
+                continue;
+            if (name.Equals("disabled_slots", StringComparison.OrdinalIgnoreCase) &&
+                tag is NbtIntArray { Value.Length: 9 } dia &&
+                dia.Value.SequenceEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]))
+                continue;
+
+            // Sign text handled by FormatSignCall
+            if (be.IsSign && (name.Equals("front_text", StringComparison.OrdinalIgnoreCase) ||
+                              name.Equals("back_text", StringComparison.OrdinalIgnoreCase) ||
+                              name.Equals("is_waxed", StringComparison.OrdinalIgnoreCase) ||
+                              name.StartsWith("Text", StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            // Decorated pot item and sherds handled by FormatDecoratedPotCall
+            if (be.IsDecoratedPot && (name.Equals("item", StringComparison.OrdinalIgnoreCase) ||
+                                      name.Equals("sherds", StringComparison.OrdinalIgnoreCase)))
+                continue;
+
             return true;
         }
         return false;
@@ -918,37 +1163,74 @@ public static class FluentBuilderCodeGenerator
         return false;
     }
 
-    private static string FormatNbtCompound(NbtCompound compound, string indentStep)
+    private static List<NbtTag> GetMeaningfulTags(NbtCompound compound, string? blockEntityId = null)
     {
-        var tags = compound
+        return compound
             .Where(t =>
             {
                 string n = t.Name ?? "";
-                return !n.Equals("id", StringComparison.OrdinalIgnoreCase) &&
-                       !n.Equals("x", StringComparison.OrdinalIgnoreCase) &&
-                       !n.Equals("y", StringComparison.OrdinalIgnoreCase) &&
-                       !n.Equals("z", StringComparison.OrdinalIgnoreCase) &&
-                       !n.Equals("Pos", StringComparison.OrdinalIgnoreCase);
+                if (n.Equals("id", StringComparison.OrdinalIgnoreCase)) return false;
+                if (n.Equals("x", StringComparison.OrdinalIgnoreCase)) return false;
+                if (n.Equals("y", StringComparison.OrdinalIgnoreCase)) return false;
+                if (n.Equals("z", StringComparison.OrdinalIgnoreCase)) return false;
+                if (n.Equals("Pos", StringComparison.OrdinalIgnoreCase)) return false;
+
+                if (n.Equals("components", StringComparison.OrdinalIgnoreCase) && t is NbtCompound { Count: 0 })
+                    return false;
+
+                if (n.Equals("Items", StringComparison.OrdinalIgnoreCase) && t is NbtList { Count: 0 })
+                    return false;
+
+                if (n.Equals("TransferCooldown", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: 0 })
+                    return false;
+
+                if (n.Equals("OutputSignal", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(blockEntityId, "minecraft:comparator", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                return true;
             })
             .ToList();
+    }
+
+    private static string FormatNbtCompound(NbtCompound compound, string indentStep, int level = 0, string? blockEntityId = null)
+    {
+        var tags = GetMeaningfulTags(compound, blockEntityId);
 
         if (tags.Count == 0)
         {
             return "new NbtCompound()";
         }
 
+        if (tags.Count == 1 && IsSimplePrimitive(tags[0]))
+        {
+            return $"new NbtCompound {{ {FormatNbtTag(tags[0], indentStep, level)} }}";
+        }
+
+        string baseIndent = string.Concat(Enumerable.Repeat(indentStep, level));
+        string childIndent = string.Concat(Enumerable.Repeat(indentStep, level + 1));
+
         var sb = new StringBuilder();
-        sb.Append("new NbtCompound { ");
+        sb.AppendLine("new NbtCompound");
+        sb.AppendLine($"{baseIndent}{{");
         for (int i = 0; i < tags.Count; i++)
         {
-            sb.Append(FormatNbtTag(tags[i]));
-            if (i < tags.Count - 1) sb.Append(", ");
+            sb.Append($"{childIndent}{FormatNbtTag(tags[i], indentStep, level + 1)}");
+            if (i < tags.Count - 1) sb.Append(',');
+            sb.AppendLine();
         }
-        sb.Append(" }");
+        sb.Append($"{baseIndent}}}");
         return sb.ToString();
     }
 
-    private static string FormatNbtTag(NbtTag tag)
+    private static bool IsSimplePrimitive(NbtTag tag) => tag.TagType switch
+    {
+        NbtTagType.Byte or NbtTagType.Short or NbtTagType.Int or NbtTagType.Long or
+        NbtTagType.Float or NbtTagType.Double or NbtTagType.String => true,
+        _ => false
+    };
+
+    private static string FormatNbtTag(NbtTag tag, string indentStep, int level)
     {
         string nameParam = tag.Name != null ? $"\"{EscapeString(tag.Name)}\", " : "";
 
@@ -979,21 +1261,36 @@ public static class FluentBuilderCodeGenerator
                 return $"new NbtLongArray({nameParam}new long[] {{ {longs} }})";
             case NbtTagType.Compound:
                 var comp = (NbtCompound)tag;
-                if (comp.Count == 0)
+                var meaningfulChildren = GetMeaningfulTags(comp);
+                string compName = tag.Name != null ? $"new NbtCompound(\"{EscapeString(tag.Name)}\")" : "new NbtCompound()";
+
+                if (meaningfulChildren.Count == 0)
                 {
-                    return tag.Name != null ? $"new NbtCompound(\"{EscapeString(tag.Name)}\")" : "new NbtCompound()";
+                    return compName;
                 }
+
+                if (meaningfulChildren.Count == 1 && IsSimplePrimitive(meaningfulChildren[0]))
+                {
+                    string header = tag.Name != null ? $"new NbtCompound(\"{EscapeString(tag.Name)}\") {{ " : "new NbtCompound { ";
+                    return $"{header}{FormatNbtTag(meaningfulChildren[0], indentStep, level)} }}";
+                }
+
+                string cBaseIndent = string.Concat(Enumerable.Repeat(indentStep, level));
+                string cChildIndent = string.Concat(Enumerable.Repeat(indentStep, level + 1));
+
                 var innerSb = new StringBuilder();
-                if (tag.Name != null) innerSb.Append($"new NbtCompound(\"{EscapeString(tag.Name)}\") {{ ");
-                else innerSb.Append("new NbtCompound { ");
-                int c = 0;
-                foreach (var child in comp)
+                if (tag.Name != null) innerSb.AppendLine($"new NbtCompound(\"{EscapeString(tag.Name)}\")");
+                else innerSb.AppendLine("new NbtCompound");
+                innerSb.AppendLine($"{cBaseIndent}{{");
+                for (int ci = 0; ci < meaningfulChildren.Count; ci++)
                 {
-                    innerSb.Append(FormatNbtTag(child));
-                    if (++c < comp.Count) innerSb.Append(", ");
+                    innerSb.Append($"{cChildIndent}{FormatNbtTag(meaningfulChildren[ci], indentStep, level + 1)}");
+                    if (ci < meaningfulChildren.Count - 1) innerSb.Append(',');
+                    innerSb.AppendLine();
                 }
-                innerSb.Append(" }");
+                innerSb.Append($"{cBaseIndent}}}");
                 return innerSb.ToString();
+
             case NbtTagType.List:
                 var list = (NbtList)tag;
                 if (list.Count == 0)
@@ -1002,17 +1299,31 @@ public static class FluentBuilderCodeGenerator
                         ? $"new NbtList(\"{EscapeString(tag.Name)}\", NbtTagType.{list.ListType})"
                         : $"new NbtList(NbtTagType.{list.ListType})";
                 }
-                var listSb = new StringBuilder();
-                if (tag.Name != null) listSb.Append($"new NbtList(\"{EscapeString(tag.Name)}\", NbtTagType.{list.ListType}) {{ ");
-                else listSb.Append($"new NbtList(NbtTagType.{list.ListType}) {{ ");
-                int lc = 0;
-                foreach (var child in list)
+
+                if (list.Count <= 4 && list.All(IsSimplePrimitive))
                 {
-                    listSb.Append(FormatNbtTag(child));
-                    if (++lc < list.Count) listSb.Append(", ");
+                    string header = tag.Name != null
+                        ? $"new NbtList(\"{EscapeString(tag.Name)}\", NbtTagType.{list.ListType}) {{ "
+                        : $"new NbtList(NbtTagType.{list.ListType}) {{ ";
+                    return $"{header}{string.Join(", ", list.Select(c => FormatNbtTag(c, indentStep, level)))} }}";
                 }
-                listSb.Append(" }");
+
+                string lBaseIndent = string.Concat(Enumerable.Repeat(indentStep, level));
+                string lChildIndent = string.Concat(Enumerable.Repeat(indentStep, level + 1));
+
+                var listSb = new StringBuilder();
+                if (tag.Name != null) listSb.AppendLine($"new NbtList(\"{EscapeString(tag.Name)}\", NbtTagType.{list.ListType})");
+                else listSb.AppendLine($"new NbtList(NbtTagType.{list.ListType})");
+                listSb.AppendLine($"{lBaseIndent}{{");
+                for (int li = 0; li < list.Count; li++)
+                {
+                    listSb.Append($"{lChildIndent}{FormatNbtTag(list[li], indentStep, level + 1)}");
+                    if (li < list.Count - 1) listSb.Append(',');
+                    listSb.AppendLine();
+                }
+                listSb.Append($"{lBaseIndent}}}");
                 return listSb.ToString();
+
             default:
                 return $"new NbtCompound() /* {tag.TagType} */";
         }

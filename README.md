@@ -7,6 +7,7 @@ A modern .NET 10 library and CLI for creating, manipulating, reading, and writin
 - **NuGet Integration**: Built on `fNbt` 2.1.0, the standard, actively-maintained, high-performance NBT library for modern .NET.
 - **Multi-Format Support**:
   - **Sponge Schematics (`.schem`)**: Full support for Sponge versions 1, 2, and 3 (used by WorldEdit 7+, FAWE, Axiom, etc.), including VarInt block data packing, block state palettes, block entities, entities, and metadata.
+  - **Litematica Schematics (`.litematic`)**: Full read and write support for modern Litematica schematics, including arbitrary bit-width bit-packing, multi-region consolidation, negative region coordinate normalization, block entities, and entities.
   - **Classic MCEdit Schematics (`.schematic`)**: Support for legacy Minecraft <= 1.12.2 schematics, including 8-bit blocks/data, extended `AddBlocks` (4-bit nibbles for IDs > 255), TileEntities, and WorldEdit offsets.
 - **Format Auto-Detection**: Automatically detects format from file extension or by inspecting NBT structure.
 - **Compression**: Transparent handling of GZip, ZLib, or uncompressed NBT streams.
@@ -15,15 +16,15 @@ A modern .NET 10 library and CLI for creating, manipulating, reading, and writin
   - `MinecraftRegistryGenerator`: Built-in code generator for creating or updating strongly-typed registry constants from Minecraft registry JSON data or mcmeta dumps.
   - `BlockState`: Namespaced block identifier (e.g. `minecraft:oak_stairs`) with canonical, sorted properties (e.g. `facing=north,half=bottom,waterlogged=false`).
   - `BlockPosition`: 3D integer coordinate record.
-  - `BlockEntity`: Tile entities with position and custom NBT data.
+  - `BlockEntity`: Tile entities with position and custom NBT data, with dedicated helpers for Signs, Containers, Decorated Pots, Crafters, etc.
   - `Entity`: Non-block entities with double coordinates and custom NBT data.
   - `Schematic`: 3D block container with bounds checking, cuboid fill, and metadata.
 - **Redstone & Additional Block States**:
   - Strongly-typed enums: `Direction`, `BlockFace`, `ComparatorMode`, `BlockHalf`, `DoorHinge`, `SlabType`, `ChestType`, `StairsShape`, `Axis`.
   - Semantic fluent block state extensions: `.WithDelay(4)`, `.WithSubtractMode()`, `.WithFace(BlockFace.Floor)`, `.Powered()`, `.WithPower(15)`, `.WithHalf(BlockHalf.Top)`, `.WithOpen(true)`, `.WithHinge(DoorHinge.Left)`, etc.
-  - Dedicated builder methods on `Schematic` and `SchematicBuilder`: `SetRepeater`, `SetComparator`, `SetLever`, `SetRedstoneWire`, `SetPiston`, `SetChest`.
+  - Dedicated builder methods on `Schematic` and `SchematicBuilder`: `SetRepeater`, `SetComparator`, `SetLever`, `SetRedstoneWire`, `SetPiston`, `SetChest`, `SetDoubleChest`, `SetSign`, `SetDecoratedPot`, `SetCrafter`.
 - **Fluent Builder**: `SchematicBuilder` for quick programmatic structure generation.
-- **Fluent Builder Code Generation**: Automatically generate C# source code using `SchematicBuilder` from any schematic file (`.schem`, `.schematic`) with greedy 3D cuboid fill optimization, strongly-typed block constants, semantic property call emission (`WithDelay`, `WithFacing`, `WithSubtractMode`), and multiple output modes (`Statement`, `File`, `Method`, `Expression`).
+- **Fluent Builder Code Generation**: Automatically generate C# source code using `SchematicBuilder` from any schematic file (`.schem`, `.schematic`, `.litematic`) with greedy 3D cuboid fill optimization, strongly-typed block constants, semantic property call emission (`WithDelay`, `WithFacing`, `WithSubtractMode`), dedicated container/sign/pot/crafter calls, and multiple output modes (`Statement`, `File`, `Method`, `Expression`).
 - **Async I/O**: Sync and async `Read`/`Write` methods for files, streams, and byte arrays.
 
 ## Quick Start
@@ -97,11 +98,13 @@ builder.SetBlock(2, 1, 3, Minecraft.Blocks.Chest.WithFacing(Direction.North).Wit
 ### 3. Writing a Schematic
 
 ```csharp
-// Write as modern Sponge schematic (.schem)
-SchematicFile.Write(schematic, "tower.schem", SchematicFormat.SpongeV2);
-
-// Or write as legacy Classic schematic (.schematic)
-SchematicFile.Write(schematic, "tower.schematic", SchematicFormat.Classic);
+// Auto-detects format from extension:
+// .schem -> Sponge V2
+// .litematic -> Litematica
+// .schematic -> Classic
+SchematicFile.Write(schematic, "tower.schem");
+SchematicFile.Write(schematic, "tower.litematic");
+SchematicFile.Write(schematic, "tower.schematic");
 ```
 
 ### 4. Reading a Schematic
@@ -124,7 +127,7 @@ await SchematicFile.WriteAsync(loaded, "tower_copy.schem");
 
 ### 6. Generating Fluent Builder Source Code from a Schematic
 
-Convert any `.schem` or `.schematic` file into clean, strongly-typed C# fluent builder code:
+Convert any `.schem`, `.schematic`, or `.litematic` file into clean, strongly-typed C# fluent builder code:
 
 #### Programmatic Usage
 ```csharp

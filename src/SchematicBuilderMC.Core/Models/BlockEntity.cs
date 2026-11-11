@@ -1,3 +1,4 @@
+using System.Text.Json;
 using fNbt;
 
 namespace SchematicBuilderMC.Models;
@@ -21,6 +22,27 @@ public sealed class BlockEntity
     /// Additional NBT data for the block entity.
     /// </summary>
     public NbtCompound Data { get; set; }
+
+    /// <summary>
+    /// Gets whether this block entity represents a sign.
+    /// </summary>
+    public bool IsSign =>
+        Id.Equals("minecraft:sign", StringComparison.OrdinalIgnoreCase) ||
+        Id.EndsWith("_sign", StringComparison.OrdinalIgnoreCase) ||
+        Id.Equals("minecraft:hanging_sign", StringComparison.OrdinalIgnoreCase) ||
+        Id.EndsWith("_hanging_sign", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Gets whether this block entity represents a decorated pot.
+    /// </summary>
+    public bool IsDecoratedPot =>
+        Id.Equals("minecraft:decorated_pot", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Gets whether this block entity represents a crafter.
+    /// </summary>
+    public bool IsCrafter =>
+        Id.Equals("minecraft:crafter", StringComparison.OrdinalIgnoreCase);
 
     public BlockEntity(string id, BlockPosition position, NbtCompound? data = null)
     {
@@ -290,6 +312,321 @@ public sealed class BlockEntity
     /// </summary>
     public static BlockEntity CreateContainer(string containerId, int x, int y, int z, params ItemStack[] items) =>
         CreateContainer(containerId, new BlockPosition(x, y, z), items);
+
+    /// <summary>
+    /// Retrieves sign front messages, back messages, and waxed state from this block entity.
+    /// </summary>
+    public (IReadOnlyList<string> FrontMessages, IReadOnlyList<string> BackMessages, bool IsWaxed) GetSignText()
+    {
+        var front = ExtractSignMessages(Data["front_text"] as NbtCompound);
+        var back = ExtractSignMessages(Data["back_text"] as NbtCompound);
+
+        // Fallback to legacy Text1..Text4 tags if modern front_text is empty
+        if (front.Count == 0 && back.Count == 0)
+        {
+            for (int i = 1; i <= 4; i++)
+            {
+                if (Data[$"Text{i}"] is NbtString sTag)
+                {
+                    front.Add(ParseSignTextJson(sTag.Value));
+                }
+            }
+
+            while (front.Count > 0 && string.IsNullOrEmpty(front[^1]))
+            {
+                front.RemoveAt(front.Count - 1);
+            }
+        }
+
+        bool isWaxed = (Data["is_waxed"]?.ByteValue ?? 0) != 0;
+        return (front, back, isWaxed);
+    }
+
+    private static List<string> ExtractSignMessages(NbtCompound? sideComp)
+    {
+        var list = new List<string>();
+        if (sideComp == null) return list;
+
+        if (sideComp["messages"] is NbtList msgList)
+        {
+            foreach (var tag in msgList)
+            {
+                if (tag is NbtString strTag)
+                {
+                    list.Add(ParseSignTextJson(strTag.Value));
+                }
+            }
+        }
+
+        while (list.Count > 0 && string.IsNullOrEmpty(list[^1]))
+        {
+            list.RemoveAt(list.Count - 1);
+        }
+
+        return list;
+    }
+
+    private static string ParseSignTextJson(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+        if (!raw.StartsWith('{')) return raw;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            if (doc.RootElement.TryGetProperty("text", out var textProp))
+            {
+                return textProp.GetString() ?? raw;
+            }
+        }
+        catch
+        {
+            // Ignore json parse error and keep raw
+        }
+
+        return raw;
+    }
+
+    /// <summary>
+    /// Creates a sign block entity with optional front messages.
+    /// </summary>
+    public static BlockEntity CreateSign(BlockPosition position, params string[] frontMessages) =>
+        CreateSign(position, (IEnumerable<string>)frontMessages);
+
+    /// <summary>
+    /// Creates a sign block entity with optional front messages.
+    /// </summary>
+    public static BlockEntity CreateSign(int x, int y, int z, params string[] frontMessages) =>
+        CreateSign(new BlockPosition(x, y, z), (IEnumerable<string>)frontMessages);
+
+    /// <summary>
+    /// Creates a sign block entity with front messages, optional back messages, and waxed state.
+    /// </summary>
+    public static BlockEntity CreateSign(
+        BlockPosition position,
+        IEnumerable<string>? frontMessages = null,
+        IEnumerable<string>? backMessages = null,
+        bool isWaxed = false,
+        string frontColor = "black",
+        bool frontGlowing = false,
+        string backColor = "black",
+        bool backGlowing = false)
+    {
+        var be = new BlockEntity("minecraft:sign", position);
+        var data = be.Data;
+
+        var frontArr = frontMessages?.Take(4).ToList() ?? new List<string>();
+        while (frontArr.Count < 4) frontArr.Add(string.Empty);
+
+        var frontComp = new NbtCompound("front_text")
+        {
+            new NbtString("color", frontColor ?? "black"),
+            new NbtByte("has_glowing_text", (byte)(frontGlowing ? 1 : 0))
+        };
+        var frontList = new NbtList("messages", NbtTagType.String);
+        for (int i = 0; i < 4; i++)
+        {
+            string msg = frontArr[i] ?? string.Empty;
+            frontList.Add(new NbtString(msg));
+            data.Add(new NbtString($"Text{i + 1}", $"{{\"text\":\"{msg}\"}}"));
+        }
+        frontComp.Add(frontList);
+        data.Add(frontComp);
+
+        var backArr = backMessages?.Take(4).ToList() ?? new List<string>();
+        while (backArr.Count < 4) backArr.Add(string.Empty);
+
+        var backComp = new NbtCompound("back_text")
+        {
+            new NbtString("color", backColor ?? "black"),
+            new NbtByte("has_glowing_text", (byte)(backGlowing ? 1 : 0))
+        };
+        var backList = new NbtList("messages", NbtTagType.String);
+        foreach (var msg in backArr)
+        {
+            backList.Add(new NbtString(msg ?? string.Empty));
+        }
+        backComp.Add(backList);
+        data.Add(backComp);
+
+        data.Add(new NbtByte("is_waxed", (byte)(isWaxed ? 1 : 0)));
+        return be;
+    }
+
+    /// <summary>
+    /// Creates a sign block entity with front messages, optional back messages, and waxed state.
+    /// </summary>
+    public static BlockEntity CreateSign(
+        int x, int y, int z,
+        IEnumerable<string>? frontMessages = null,
+        IEnumerable<string>? backMessages = null,
+        bool isWaxed = false,
+        string frontColor = "black",
+        bool frontGlowing = false,
+        string backColor = "black",
+        bool backGlowing = false) =>
+        CreateSign(new BlockPosition(x, y, z), frontMessages, backMessages, isWaxed, frontColor, frontGlowing, backColor, backGlowing);
+
+    /// <summary>
+    /// Retrieves item and sherds stored in a decorated pot block entity.
+    /// </summary>
+    public (ItemStack? Item, string? FrontSherd, string? BackSherd, string? LeftSherd, string? RightSherd) GetDecoratedPotData()
+    {
+        ItemStack? item = null;
+        if (Data["item"] is NbtCompound itemComp)
+        {
+            item = ItemStack.FromNbt(itemComp);
+        }
+
+        string? front = null, back = null, left = null, right = null;
+        if (Data["sherds"] is NbtCompound sherdsComp)
+        {
+            front = ExtractSherd(sherdsComp["front"]);
+            back = ExtractSherd(sherdsComp["back"]);
+            left = ExtractSherd(sherdsComp["left"]);
+            right = ExtractSherd(sherdsComp["right"]);
+        }
+        else if (Data["sherds"] is NbtList sherdsList && sherdsList.Count >= 4)
+        {
+            back = ExtractSherd(sherdsList[0]);
+            left = ExtractSherd(sherdsList[1]);
+            right = ExtractSherd(sherdsList[2]);
+            front = ExtractSherd(sherdsList[3]);
+        }
+
+        return (item, front, back, left, right);
+    }
+
+    private static string? ExtractSherd(NbtTag? tag)
+    {
+        if (tag is NbtCompound comp && comp["id"] is NbtString idStr)
+        {
+            return idStr.Value;
+        }
+        if (tag is NbtString sTag)
+        {
+            return sTag.Value;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Creates a decorated pot block entity with an optional item and optional custom sherds.
+    /// </summary>
+    public static BlockEntity CreateDecoratedPot(
+        BlockPosition position,
+        ItemStack? item = null,
+        string? frontSherd = null,
+        string? backSherd = null,
+        string? leftSherd = null,
+        string? rightSherd = null)
+    {
+        var be = new BlockEntity("minecraft:decorated_pot", position);
+        var data = be.Data;
+
+        if (item != null)
+        {
+            var itemComp = item.ToNbt();
+            itemComp.Name = "item";
+            data.Add(itemComp);
+        }
+
+        string f = frontSherd ?? "minecraft:brick";
+        string b = backSherd ?? "minecraft:brick";
+        string l = leftSherd ?? "minecraft:brick";
+        string r = rightSherd ?? "minecraft:brick";
+
+        var sherdsComp = new NbtCompound("sherds")
+        {
+            new NbtCompound("back") { new NbtString("id", b.Contains(':') ? b : "minecraft:" + b) },
+            new NbtCompound("left") { new NbtString("id", l.Contains(':') ? l : "minecraft:" + l) },
+            new NbtCompound("right") { new NbtString("id", r.Contains(':') ? r : "minecraft:" + r) },
+            new NbtCompound("front") { new NbtString("id", f.Contains(':') ? f : "minecraft:" + f) }
+        };
+        data.Add(sherdsComp);
+
+        return be;
+    }
+
+    /// <summary>
+    /// Creates a decorated pot block entity with an optional item and optional custom sherds.
+    /// </summary>
+    public static BlockEntity CreateDecoratedPot(
+        int x, int y, int z,
+        ItemStack? item = null,
+        string? frontSherd = null,
+        string? backSherd = null,
+        string? leftSherd = null,
+        string? rightSherd = null) =>
+        CreateDecoratedPot(new BlockPosition(x, y, z), item, frontSherd, backSherd, leftSherd, rightSherd);
+
+    /// <summary>
+    /// Creates a decorated pot block entity with an item.
+    /// </summary>
+    public static BlockEntity CreateDecoratedPot(int x, int y, int z, ItemStack item) =>
+        CreateDecoratedPot(new BlockPosition(x, y, z), item);
+
+    /// <summary>
+    /// Creates a decorated pot block entity with an item.
+    /// </summary>
+    public static BlockEntity CreateDecoratedPot(BlockPosition position, ItemStack item) =>
+        CreateDecoratedPot(position, item, null, null, null, null);
+
+    /// <summary>
+    /// Retrieves disabled slots from this crafter block entity.
+    /// </summary>
+    public IReadOnlyList<int> GetDisabledSlots()
+    {
+        if (Data["disabled_slots"] is NbtIntArray intArray)
+        {
+            return intArray.Value;
+        }
+        return Array.Empty<int>();
+    }
+
+    /// <summary>
+    /// Creates a crafter block entity with optional disabled slots and items.
+    /// </summary>
+    public static BlockEntity CreateCrafter(
+        BlockPosition position,
+        IEnumerable<int>? disabledSlots = null,
+        IEnumerable<ItemStack>? items = null)
+    {
+        var be = new BlockEntity("minecraft:crafter", position);
+        var data = be.Data;
+
+        data.Add(new NbtInt("crafting_ticks_remaining", 0));
+        data.Add(new NbtInt("triggered", 0));
+
+        if (disabledSlots != null)
+        {
+            data.Add(new NbtIntArray("disabled_slots", disabledSlots.ToArray()));
+        }
+
+        if (items != null)
+        {
+            var itemsList = new NbtList("Items", NbtTagType.Compound);
+            foreach (var item in items)
+            {
+                itemsList.Add(item.ToNbt());
+            }
+            data.Add(itemsList);
+        }
+
+        return be;
+    }
+
+    /// <summary>
+    /// Creates a crafter block entity with disabled slots.
+    /// </summary>
+    public static BlockEntity CreateCrafter(int x, int y, int z, params int[] disabledSlots) =>
+        CreateCrafter(new BlockPosition(x, y, z), disabledSlots, null);
+
+    /// <summary>
+    /// Creates a crafter block entity with disabled slots and items.
+    /// </summary>
+    public static BlockEntity CreateCrafter(int x, int y, int z, IEnumerable<int>? disabledSlots, params ItemStack[] items) =>
+        CreateCrafter(new BlockPosition(x, y, z), disabledSlots, items);
 
     public override string ToString() => $"{Id} at {Position}";
 }

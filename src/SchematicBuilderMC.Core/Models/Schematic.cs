@@ -119,6 +119,18 @@ public sealed class Schematic
     }
 
     /// <summary>
+    /// Sets the block state at the specified position.
+    /// </summary>
+    public void SetBlock(BlockPosition position, BlockState blockState) =>
+        SetBlock(position.X, position.Y, position.Z, blockState);
+
+    /// <summary>
+    /// Sets the block state at the specified position from a blockstate string.
+    /// </summary>
+    public void SetBlock(BlockPosition position, string blockStateString) =>
+        SetBlock(position.X, position.Y, position.Z, blockStateString);
+
+    /// <summary>
     /// Attempts to get the block state at (x, y, z), returning false if coordinates are out of bounds.
     /// </summary>
     public bool TryGetBlock(int x, int y, int z, out BlockState blockState)
@@ -369,6 +381,118 @@ public sealed class Schematic
     /// </summary>
     public BlockEntity SetContainer(string blockId, string blockEntityId, BlockPosition position, params ItemStack[] items) =>
         SetContainer(blockId, blockEntityId, position.X, position.Y, position.Z, items);
+
+    /// <summary>
+    /// Sets a sign block entity with front messages at (x, y, z).
+    /// If the block at (x, y, z) is air, places a default Oak Sign.
+    /// </summary>
+    public BlockEntity SetSign(int x, int y, int z, params string[] frontMessages) =>
+        SetSign(new BlockPosition(x, y, z), frontMessages);
+
+    /// <summary>
+    /// Sets a sign block entity with front messages at the specified position.
+    /// </summary>
+    public BlockEntity SetSign(BlockPosition position, params string[] frontMessages) =>
+        SetSign(position, (IEnumerable<string>)frontMessages);
+
+    /// <summary>
+    /// Sets a sign block entity with front messages, optional back messages, and waxed state at (x, y, z).
+    /// </summary>
+    public BlockEntity SetSign(int x, int y, int z, IEnumerable<string> frontMessages, IEnumerable<string>? backMessages = null, bool isWaxed = false) =>
+        SetSign(new BlockPosition(x, y, z), frontMessages, backMessages, isWaxed);
+
+    /// <summary>
+    /// Sets a sign block entity with front messages, optional back messages, and waxed state at the specified position.
+    /// </summary>
+    public BlockEntity SetSign(BlockPosition position, IEnumerable<string> frontMessages, IEnumerable<string>? backMessages = null, bool isWaxed = false)
+    {
+        EnsureInBounds(position.X, position.Y, position.Z);
+        var currentBlock = this[position];
+        if (currentBlock.IsAir)
+        {
+            SetBlock(position, "minecraft:oak_sign");
+        }
+
+        var be = BlockEntity.CreateSign(position, frontMessages, backMessages, isWaxed);
+        SetBlockEntity(be);
+        return be;
+    }
+
+    /// <summary>
+    /// Sets a decorated pot block and block entity at (x, y, z) with an item.
+    /// </summary>
+    public BlockEntity SetDecoratedPot(int x, int y, int z, ItemStack item) =>
+        SetDecoratedPot(new BlockPosition(x, y, z), item);
+
+    /// <summary>
+    /// Sets a decorated pot block and block entity at the specified position with an item.
+    /// </summary>
+    public BlockEntity SetDecoratedPot(BlockPosition position, ItemStack item) =>
+        SetDecoratedPot(position, item, null, null, null, null);
+
+    /// <summary>
+    /// Sets a decorated pot block and block entity at (x, y, z) with an optional item and sherds.
+    /// </summary>
+    public BlockEntity SetDecoratedPot(int x, int y, int z, ItemStack? item = null, string? frontSherd = null, string? backSherd = null, string? leftSherd = null, string? rightSherd = null) =>
+        SetDecoratedPot(new BlockPosition(x, y, z), item, frontSherd, backSherd, leftSherd, rightSherd);
+
+    /// <summary>
+    /// Sets a decorated pot block and block entity at the specified position with an optional item and sherds.
+    /// </summary>
+    public BlockEntity SetDecoratedPot(BlockPosition position, ItemStack? item = null, string? frontSherd = null, string? backSherd = null, string? leftSherd = null, string? rightSherd = null)
+    {
+        EnsureInBounds(position.X, position.Y, position.Z);
+        var currentBlock = this[position];
+        if (currentBlock.IsAir)
+        {
+            SetBlock(position, "minecraft:decorated_pot");
+        }
+
+        var be = BlockEntity.CreateDecoratedPot(position, item, frontSherd, backSherd, leftSherd, rightSherd);
+        SetBlockEntity(be);
+        return be;
+    }
+
+    /// <summary>
+    /// Sets a crafter block and its block entity with disabled slots at (x, y, z).
+    /// </summary>
+    public BlockEntity SetCrafter(int x, int y, int z, params int[] disabledSlots) =>
+        SetCrafter(new BlockPosition(x, y, z), disabledSlots, null);
+
+    /// <summary>
+    /// Sets a crafter block and its block entity with disabled slots at the specified position.
+    /// </summary>
+    public BlockEntity SetCrafter(BlockPosition position, params int[] disabledSlots) =>
+        SetCrafter(position, disabledSlots, null);
+
+    /// <summary>
+    /// Sets a crafter block and its block entity with disabled slots and items at (x, y, z).
+    /// </summary>
+    public BlockEntity SetCrafter(int x, int y, int z, IEnumerable<int>? disabledSlots, IEnumerable<ItemStack>? items) =>
+        SetCrafter(new BlockPosition(x, y, z), disabledSlots, items);
+
+    /// <summary>
+    /// Sets a crafter block and its block entity with disabled slots and items at (x, y, z).
+    /// </summary>
+    public BlockEntity SetCrafter(int x, int y, int z, IEnumerable<int>? disabledSlots, params ItemStack[] items) =>
+        SetCrafter(new BlockPosition(x, y, z), disabledSlots, (IEnumerable<ItemStack>)items);
+
+    /// <summary>
+    /// Sets a crafter block and its block entity with disabled slots and items at the specified position.
+    /// </summary>
+    public BlockEntity SetCrafter(BlockPosition position, IEnumerable<int>? disabledSlots, IEnumerable<ItemStack>? items)
+    {
+        EnsureInBounds(position.X, position.Y, position.Z);
+        var currentBlock = this[position];
+        if (currentBlock.IsAir)
+        {
+            SetBlock(position, "minecraft:crafter");
+        }
+
+        var be = BlockEntity.CreateCrafter(position, disabledSlots, items);
+        SetBlockEntity(be);
+        return be;
+    }
 
     /// <summary>
     /// Adds an item to a container block entity at the specified coordinates.

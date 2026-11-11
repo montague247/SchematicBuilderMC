@@ -238,6 +238,123 @@ public sealed class SchematicBuilder
     }
 
     /// <summary>
+    /// Sets a sign block entity with front messages at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetSign(int x, int y, int z, params string[] frontMessages)
+    {
+        _schematic.SetSign(x, y, z, frontMessages);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a sign block entity with front messages at the specified position.
+    /// </summary>
+    public SchematicBuilder SetSign(BlockPosition position, params string[] frontMessages)
+    {
+        _schematic.SetSign(position, frontMessages);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a sign block entity with front messages, optional back messages, and waxed state at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetSign(int x, int y, int z, IEnumerable<string> frontMessages, IEnumerable<string>? backMessages = null, bool isWaxed = false)
+    {
+        _schematic.SetSign(x, y, z, frontMessages, backMessages, isWaxed);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a sign block entity with front messages, optional back messages, and waxed state at the specified position.
+    /// </summary>
+    public SchematicBuilder SetSign(BlockPosition position, IEnumerable<string> frontMessages, IEnumerable<string>? backMessages = null, bool isWaxed = false)
+    {
+        _schematic.SetSign(position, frontMessages, backMessages, isWaxed);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a decorated pot with an item at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetDecoratedPot(int x, int y, int z, ItemStack item)
+    {
+        _schematic.SetDecoratedPot(x, y, z, item);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a decorated pot with an item at the specified position.
+    /// </summary>
+    public SchematicBuilder SetDecoratedPot(BlockPosition position, ItemStack item)
+    {
+        _schematic.SetDecoratedPot(position, item);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a decorated pot with an optional item and sherds at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetDecoratedPot(int x, int y, int z, ItemStack? item = null, string? frontSherd = null, string? backSherd = null, string? leftSherd = null, string? rightSherd = null)
+    {
+        _schematic.SetDecoratedPot(x, y, z, item, frontSherd, backSherd, leftSherd, rightSherd);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a decorated pot with an optional item and sherds at the specified position.
+    /// </summary>
+    public SchematicBuilder SetDecoratedPot(BlockPosition position, ItemStack? item = null, string? frontSherd = null, string? backSherd = null, string? leftSherd = null, string? rightSherd = null)
+    {
+        _schematic.SetDecoratedPot(position, item, frontSherd, backSherd, leftSherd, rightSherd);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a crafter block and its block entity with disabled slots at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetCrafter(int x, int y, int z, params int[] disabledSlots)
+    {
+        _schematic.SetCrafter(x, y, z, disabledSlots);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a crafter block and its block entity with disabled slots at the specified position.
+    /// </summary>
+    public SchematicBuilder SetCrafter(BlockPosition position, params int[] disabledSlots)
+    {
+        _schematic.SetCrafter(position, disabledSlots);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a crafter block and its block entity with disabled slots and items at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetCrafter(int x, int y, int z, IEnumerable<int>? disabledSlots, IEnumerable<ItemStack>? items)
+    {
+        _schematic.SetCrafter(x, y, z, disabledSlots, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a crafter block and its block entity with disabled slots and items at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetCrafter(int x, int y, int z, IEnumerable<int>? disabledSlots, params ItemStack[] items)
+    {
+        _schematic.SetCrafter(x, y, z, disabledSlots, (IEnumerable<ItemStack>)items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a crafter block and its block entity with disabled slots and items at the specified position.
+    /// </summary>
+    public SchematicBuilder SetCrafter(BlockPosition position, IEnumerable<int>? disabledSlots, IEnumerable<ItemStack>? items)
+    {
+        _schematic.SetCrafter(position, disabledSlots, items);
+        return this;
+    }
+
+    /// <summary>
     /// Adds an item to the container block entity at (x, y, z).
     /// </summary>
     public SchematicBuilder AddItem(int x, int y, int z, string itemId, int count = 1, byte? slot = null, fNbt.NbtCompound? customData = null)

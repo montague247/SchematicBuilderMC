@@ -12,7 +12,7 @@ public sealed class SchematicWriter : ISchematicWriter
 {
     public static SchematicWriter Instance { get; } = new();
 
-    public void Write(Schematic schematic, string filePath, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip)
+    public void Write(Schematic schematic, string filePath, SchematicFormat format = SchematicFormat.Auto, SchematicCompression compression = SchematicCompression.GZip)
     {
         ArgumentNullException.ThrowIfNull(schematic);
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -32,7 +32,7 @@ public sealed class SchematicWriter : ISchematicWriter
         Write(schematic, stream, format, compression);
     }
 
-    public void Write(Schematic schematic, Stream stream, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip)
+    public void Write(Schematic schematic, Stream stream, SchematicFormat format = SchematicFormat.Auto, SchematicCompression compression = SchematicCompression.GZip)
     {
         ArgumentNullException.ThrowIfNull(schematic);
         ArgumentNullException.ThrowIfNull(stream);
@@ -53,17 +53,22 @@ public sealed class SchematicWriter : ISchematicWriter
         file.SaveToStream(stream, nbtCompression);
     }
 
-    public byte[] WriteToBytes(Schematic schematic, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip)
+    public byte[] WriteToBytes(Schematic schematic, SchematicFormat format = SchematicFormat.Auto, SchematicCompression compression = SchematicCompression.GZip)
     {
         using var ms = new MemoryStream();
         Write(schematic, ms, format, compression);
         return ms.ToArray();
     }
 
-    public async Task WriteAsync(Schematic schematic, string filePath, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip, CancellationToken cancellationToken = default)
+    public async Task WriteAsync(Schematic schematic, string filePath, SchematicFormat format = SchematicFormat.Auto, SchematicCompression compression = SchematicCompression.GZip, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(schematic);
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        if (format == SchematicFormat.Auto)
+        {
+            format = DetectFormatFromExtension(filePath);
+        }
 
         byte[] bytes = WriteToBytes(schematic, format, compression);
         string? dir = Path.GetDirectoryName(filePath);
@@ -75,7 +80,7 @@ public sealed class SchematicWriter : ISchematicWriter
         await File.WriteAllBytesAsync(filePath, bytes, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task WriteAsync(Schematic schematic, Stream stream, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip, CancellationToken cancellationToken = default)
+    public async Task WriteAsync(Schematic schematic, Stream stream, SchematicFormat format = SchematicFormat.Auto, SchematicCompression compression = SchematicCompression.GZip, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(schematic);
         ArgumentNullException.ThrowIfNull(stream);

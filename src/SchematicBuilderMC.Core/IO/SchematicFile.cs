@@ -45,31 +45,31 @@ public static class SchematicFile
     /// <summary>
     /// Writes a schematic to disk.
     /// </summary>
-    public static void Write(Schematic schematic, string filePath, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip) =>
+    public static void Write(Schematic schematic, string filePath, SchematicFormat format = SchematicFormat.Auto, SchematicCompression compression = SchematicCompression.GZip) =>
         Writer.Write(schematic, filePath, format, compression);
 
     /// <summary>
     /// Writes a schematic to an open stream.
     /// </summary>
-    public static void Write(Schematic schematic, Stream stream, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip) =>
+    public static void Write(Schematic schematic, Stream stream, SchematicFormat format = SchematicFormat.Auto, SchematicCompression compression = SchematicCompression.GZip) =>
         Writer.Write(schematic, stream, format, compression);
 
     /// <summary>
     /// Writes a schematic to an in-memory byte array.
     /// </summary>
-    public static byte[] WriteToBytes(Schematic schematic, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip) =>
+    public static byte[] WriteToBytes(Schematic schematic, SchematicFormat format = SchematicFormat.Auto, SchematicCompression compression = SchematicCompression.GZip) =>
         Writer.WriteToBytes(schematic, format, compression);
 
     /// <summary>
     /// Writes a schematic asynchronously to disk.
     /// </summary>
-    public static Task WriteAsync(Schematic schematic, string filePath, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip, CancellationToken cancellationToken = default) =>
+    public static Task WriteAsync(Schematic schematic, string filePath, SchematicFormat format = SchematicFormat.Auto, SchematicCompression compression = SchematicCompression.GZip, CancellationToken cancellationToken = default) =>
         Writer.WriteAsync(schematic, filePath, format, compression, cancellationToken);
 
     /// <summary>
     /// Writes a schematic asynchronously to an open stream.
     /// </summary>
-    public static Task WriteAsync(Schematic schematic, Stream stream, SchematicFormat format = SchematicFormat.SpongeV2, SchematicCompression compression = SchematicCompression.GZip, CancellationToken cancellationToken = default) =>
+    public static Task WriteAsync(Schematic schematic, Stream stream, SchematicFormat format = SchematicFormat.Auto, SchematicCompression compression = SchematicCompression.GZip, CancellationToken cancellationToken = default) =>
         Writer.WriteAsync(schematic, stream, format, compression, cancellationToken);
 
     /// <summary>

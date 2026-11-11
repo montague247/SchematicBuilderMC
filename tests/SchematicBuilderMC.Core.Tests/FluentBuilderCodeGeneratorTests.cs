@@ -342,4 +342,65 @@ public class FluentBuilderCodeGeneratorTests : IDisposable
         Assert.Contains("Author \\\"One\\\"", code);
         Assert.Contains("Line1\\nLine2\\tTabbed", code);
     }
+
+    [Fact]
+    public void Generate_Sign_FrontOnly_EmitsConciseSetSignCall()
+    {
+        var schematic = SchematicBuilder.Create(3, 3, 3)
+            .SetSign(1, 1, 1, "Welcome", "To My Base")
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains(".SetSign(1, 1, 1, \"Welcome\", \"To My Base\")", code);
+    }
+
+    [Fact]
+    public void Generate_Sign_FrontAndBack_EmitsDetailedSetSignCall()
+    {
+        var schematic = SchematicBuilder.Create(3, 3, 3)
+            .SetSign(1, 1, 1, frontMessages: new[] { "Front Line" }, backMessages: new[] { "Back Line" }, isWaxed: true)
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains(".SetSign(1, 1, 1, new[] { \"Front Line\" }, new[] { \"Back Line\" }, isWaxed: true)", code);
+    }
+
+    [Fact]
+    public void Generate_DecoratedPot_WithItem_EmitsConciseSetDecoratedPotCall()
+    {
+        var schematic = SchematicBuilder.Create(3, 3, 3)
+            .SetDecoratedPot(2, 2, 2, new ItemStack(Minecraft.Items.Diamond, count: 64))
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains(".SetDecoratedPot(2, 2, 2, new ItemStack(Minecraft.Items.Diamond, count: 64))", code);
+    }
+
+    [Fact]
+    public void Generate_DecoratedPot_WithSherds_EmitsSherdsSetDecoratedPotCall()
+    {
+        var schematic = SchematicBuilder.Create(3, 3, 3)
+            .SetDecoratedPot(2, 2, 2, frontSherd: Minecraft.Items.AnglerPotterySherd)
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains(".SetDecoratedPot(2, 2, 2, frontSherd: Minecraft.Items.AnglerPotterySherd)", code);
+    }
+
+    [Fact]
+    public void Generate_Crafter_WithDisabledSlotsAndItems_EmitsSetCrafterCall()
+    {
+        var schematic = SchematicBuilder.Create(3, 3, 3)
+            .SetCrafter(0, 0, 0, new[] { 0, 1 }, new ItemStack(Minecraft.Items.IronIngot, count: 1, slot: 2))
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains(".SetCrafter(0, 0, 0, new[] { 0, 1 },", code);
+        Assert.Contains("new ItemStack(Minecraft.Items.IronIngot, count: 1, slot: 2)", code);
+    }
 }
