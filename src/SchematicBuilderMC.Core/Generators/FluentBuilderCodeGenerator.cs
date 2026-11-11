@@ -128,14 +128,22 @@ public static class FluentBuilderCodeGenerator
         // Entities (ordered by position for deterministic output)
         foreach (var ent in schematic.Entities.OrderBy(e => e.Y).ThenBy(e => e.Z).ThenBy(e => e.X))
         {
-            bool hasCustomData = HasCustomPayloadData(ent);
-            if (hasCustomData)
+            if (ent.IsItemFrame && !HasCustomNonItemFrameData(ent))
             {
-                needsFNbt = true;
+                var (facing, item, rotation, invisible, fixedTag, isGlow) = ent.GetItemFrameData();
+                calls.Add(FormatItemFrameCall(ent.X, ent.Y, ent.Z, facing, item, rotation, isGlow, invisible, fixedTag, options, ref needsFNbt));
             }
+            else
+            {
+                bool hasCustomData = HasCustomPayloadData(ent);
+                if (hasCustomData)
+                {
+                    needsFNbt = true;
+                }
 
-            string entCode = FormatEntity(ent, options, hasCustomData, indentStep);
-            calls.Add($".AddEntity({entCode})");
+                string entCode = FormatEntity(ent, options, hasCustomData, indentStep);
+                calls.Add($".AddEntity({entCode})");
+            }
         }
 
         // Finalize builder chain
@@ -795,6 +803,58 @@ public static class FluentBuilderCodeGenerator
         return string.Join("\n", lines);
     }
 
+    private static string FormatItemFrameCall(
+        double x, double y, double z,
+        Direction facing,
+        ItemStack? item,
+        int rotation,
+        bool isGlow,
+        bool isInvisible,
+        bool isFixed,
+        FluentCodeGeneratorOptions options,
+        ref bool needsFNbt)
+    {
+        string xStr = FormatDouble(x);
+        string yStr = FormatDouble(y);
+        string zStr = FormatDouble(z);
+
+        string? itemStr = item != null ? FormatItemStack(item, options, ref needsFNbt, includeSlot: false) : null;
+
+        var args = new List<string> { xStr, yStr, zStr };
+
+        if (facing != Direction.North || itemStr != null)
+        {
+            args.Add($"Direction.{facing}");
+        }
+
+        if (itemStr != null)
+        {
+            args.Add(itemStr);
+        }
+
+        if (rotation != 0)
+        {
+            args.Add($"rotation: {rotation}");
+        }
+
+        if (isGlow)
+        {
+            args.Add("isGlow: true");
+        }
+
+        if (isInvisible)
+        {
+            args.Add("isInvisible: true");
+        }
+
+        if (isFixed)
+        {
+            args.Add("isFixed: true");
+        }
+
+        return $".AddItemFrame({string.Join(", ", args)})";
+    }
+
     private static string FormatChestCall(
         int x, int y, int z,
         IReadOnlyList<ItemStack> items,
@@ -1147,33 +1207,99 @@ public static class FluentBuilderCodeGenerator
         return false;
     }
 
-    private static bool HasCustomPayloadData(Entity ent)
+    private static bool HasCustomNonItemFrameData(Entity ent)
     {
         if (ent.Data == null || ent.Data.Count == 0) return false;
         foreach (var tag in ent.Data)
         {
             string name = tag.Name ?? "";
+            // Identity and Position
             if (name.Equals("id", StringComparison.OrdinalIgnoreCase)) continue;
             if (name.Equals("Pos", StringComparison.OrdinalIgnoreCase)) continue;
             if (name.Equals("x", StringComparison.OrdinalIgnoreCase)) continue;
             if (name.Equals("y", StringComparison.OrdinalIgnoreCase)) continue;
             if (name.Equals("z", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("block_pos", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("TileX", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("TileY", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("TileZ", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("UUID", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("LastEntityID", StringComparison.OrdinalIgnoreCase)) continue;
+
+            // ItemFrame specific fields handled by AddItemFrame
+            if (name.Equals("Facing", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("Item", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("ItemRotation", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("Invisible", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("Fixed", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("ItemDropChance", StringComparison.OrdinalIgnoreCase)) continue;
+
+            // Vanilla physics / living entity default tags
+            if (name.Equals("Motion", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("Rotation", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("Air", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("Fire", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("fall_distance", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("Invulnerable", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("OnGround", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("PortalCooldown", StringComparison.OrdinalIgnoreCase)) continue;
+
             return true;
         }
         return false;
     }
 
-    private static List<NbtTag> GetMeaningfulTags(NbtCompound compound, string? blockEntityId = null)
+    private static bool HasCustomPayloadData(Entity ent)
+    {
+        if (ent.Data == null || ent.Data.Count == 0) return false;
+        var tags = GetMeaningfulTags(ent.Data, isRoot: true);
+        return tags.Count > 0;
+    }
+
+    private static List<NbtTag> GetMeaningfulTags(NbtCompound compound, string? blockEntityId = null, bool isRoot = true)
     {
         return compound
             .Where(t =>
             {
                 string n = t.Name ?? "";
-                if (n.Equals("id", StringComparison.OrdinalIgnoreCase)) return false;
-                if (n.Equals("x", StringComparison.OrdinalIgnoreCase)) return false;
-                if (n.Equals("y", StringComparison.OrdinalIgnoreCase)) return false;
-                if (n.Equals("z", StringComparison.OrdinalIgnoreCase)) return false;
-                if (n.Equals("Pos", StringComparison.OrdinalIgnoreCase)) return false;
+                if (isRoot)
+                {
+                    if (n.Equals("id", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("x", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("y", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("z", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("Pos", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("UUID", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("LastEntityID", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("block_pos", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("TileX", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("TileY", StringComparison.OrdinalIgnoreCase)) return false;
+                    if (n.Equals("TileZ", StringComparison.OrdinalIgnoreCase)) return false;
+
+                    if (n.Equals("Air", StringComparison.OrdinalIgnoreCase) && t is NbtShort { Value: 300 }) return false;
+                    if (n.Equals("Fire", StringComparison.OrdinalIgnoreCase) && t is NbtShort { Value: <= 0 }) return false;
+                    if (n.Equals("Invulnerable", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if (n.Equals("PortalCooldown", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: 0 }) return false;
+                    if (n.Equals("OnGround", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 or 1 }) return false;
+                    if (n.Equals("ItemDropChance", StringComparison.OrdinalIgnoreCase) && t is NbtFloat { Value: 1.0f }) return false;
+
+                    if (n.Equals("fall_distance", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (t is NbtFloat { Value: 0f } || t is NbtDouble { Value: 0d }) return false;
+                    }
+
+                    if (n.Equals("Motion", StringComparison.OrdinalIgnoreCase) && t is NbtList mList)
+                    {
+                        if (mList.All(m => (m is NbtDouble d && d.Value == 0d) || (m is NbtFloat f && f.Value == 0f)))
+                            return false;
+                    }
+
+                    if (n.Equals("Rotation", StringComparison.OrdinalIgnoreCase) && t is NbtList rList)
+                    {
+                        if (rList.All(r => (r is NbtFloat f && f.Value == 0f) || (r is NbtDouble d && d.Value == 0d)))
+                            return false;
+                    }
+                }
 
                 if (n.Equals("components", StringComparison.OrdinalIgnoreCase) && t is NbtCompound { Count: 0 })
                     return false;
@@ -1193,9 +1319,9 @@ public static class FluentBuilderCodeGenerator
             .ToList();
     }
 
-    private static string FormatNbtCompound(NbtCompound compound, string indentStep, int level = 0, string? blockEntityId = null)
+    private static string FormatNbtCompound(NbtCompound compound, string indentStep, int level = 0, string? blockEntityId = null, bool isRoot = true)
     {
-        var tags = GetMeaningfulTags(compound, blockEntityId);
+        var tags = GetMeaningfulTags(compound, blockEntityId, isRoot);
 
         if (tags.Count == 0)
         {
@@ -1261,7 +1387,7 @@ public static class FluentBuilderCodeGenerator
                 return $"new NbtLongArray({nameParam}new long[] {{ {longs} }})";
             case NbtTagType.Compound:
                 var comp = (NbtCompound)tag;
-                var meaningfulChildren = GetMeaningfulTags(comp);
+                var meaningfulChildren = GetMeaningfulTags(comp, isRoot: false);
                 string compName = tag.Name != null ? $"new NbtCompound(\"{EscapeString(tag.Name)}\")" : "new NbtCompound()";
 
                 if (meaningfulChildren.Count == 0)

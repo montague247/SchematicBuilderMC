@@ -550,6 +550,54 @@ public sealed class SchematicBuilder
     }
 
     /// <summary>
+    /// Adds an item frame entity (or glow item frame) to the schematic.
+    /// </summary>
+    public SchematicBuilder AddItemFrame(
+        double x, double y, double z,
+        Direction facing = Direction.North,
+        ItemStack? item = null,
+        int rotation = 0,
+        bool isGlow = false,
+        bool isInvisible = false,
+        bool isFixed = false)
+    {
+        _schematic.AddItemFrame(x, y, z, facing, item, rotation, isGlow, isInvisible, isFixed);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an item frame entity with a specific item identifier.
+    /// </summary>
+    public SchematicBuilder AddItemFrame(
+        double x, double y, double z,
+        Direction facing,
+        string itemId,
+        int rotation = 0,
+        bool isGlow = false,
+        bool isInvisible = false,
+        bool isFixed = false)
+    {
+        _schematic.AddItemFrame(x, y, z, facing, itemId, rotation, isGlow, isInvisible, isFixed);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an item frame entity positioned relative to a block position.
+    /// </summary>
+    public SchematicBuilder AddItemFrame(
+        BlockPosition position,
+        Direction facing = Direction.North,
+        ItemStack? item = null,
+        int rotation = 0,
+        bool isGlow = false,
+        bool isInvisible = false,
+        bool isFixed = false)
+    {
+        _schematic.AddItemFrame(position, facing, item, rotation, isGlow, isInvisible, isFixed);
+        return this;
+    }
+
+    /// <summary>
     /// Builds and returns the finished schematic.
     /// </summary>
     public Schematic Build() => _schematic;

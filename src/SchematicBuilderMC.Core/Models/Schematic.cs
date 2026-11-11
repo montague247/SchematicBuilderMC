@@ -687,6 +687,49 @@ public sealed class Schematic
     }
 
     /// <summary>
+    /// Adds an item frame entity (or glow item frame) to the schematic.
+    /// </summary>
+    public Entity AddItemFrame(
+        double x, double y, double z,
+        Direction facing = Direction.North,
+        ItemStack? item = null,
+        int rotation = 0,
+        bool isGlow = false,
+        bool isInvisible = false,
+        bool isFixed = false)
+    {
+        var entity = Entity.CreateItemFrame(x, y, z, facing, item, rotation, isGlow, isInvisible, isFixed);
+        AddEntity(entity);
+        return entity;
+    }
+
+    /// <summary>
+    /// Adds an item frame entity with a specific item identifier.
+    /// </summary>
+    public Entity AddItemFrame(
+        double x, double y, double z,
+        Direction facing,
+        string itemId,
+        int rotation = 0,
+        bool isGlow = false,
+        bool isInvisible = false,
+        bool isFixed = false) =>
+        AddItemFrame(x, y, z, facing, new ItemStack(itemId), rotation, isGlow, isInvisible, isFixed);
+
+    /// <summary>
+    /// Adds an item frame entity positioned relative to a block position.
+    /// </summary>
+    public Entity AddItemFrame(
+        BlockPosition position,
+        Direction facing = Direction.North,
+        ItemStack? item = null,
+        int rotation = 0,
+        bool isGlow = false,
+        bool isInvisible = false,
+        bool isFixed = false) =>
+        AddItemFrame(position.X + 0.5, position.Y + 0.5, position.Z + 0.5, facing, item, rotation, isGlow, isInvisible, isFixed);
+
+    /// <summary>
     /// Removes an entity from the schematic.
     /// </summary>
     public bool RemoveEntity(Entity entity)

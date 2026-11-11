@@ -22,9 +22,9 @@ A modern .NET 10 library and CLI for creating, manipulating, reading, and writin
 - **Redstone & Additional Block States**:
   - Strongly-typed enums: `Direction`, `BlockFace`, `ComparatorMode`, `BlockHalf`, `DoorHinge`, `SlabType`, `ChestType`, `StairsShape`, `Axis`.
   - Semantic fluent block state extensions: `.WithDelay(4)`, `.WithSubtractMode()`, `.WithFace(BlockFace.Floor)`, `.Powered()`, `.WithPower(15)`, `.WithHalf(BlockHalf.Top)`, `.WithOpen(true)`, `.WithHinge(DoorHinge.Left)`, etc.
-  - Dedicated builder methods on `Schematic` and `SchematicBuilder`: `SetRepeater`, `SetComparator`, `SetLever`, `SetRedstoneWire`, `SetPiston`, `SetChest`, `SetDoubleChest`, `SetSign`, `SetDecoratedPot`, `SetCrafter`.
+  - Dedicated builder methods on `Schematic` and `SchematicBuilder`: `SetRepeater`, `SetComparator`, `SetLever`, `SetRedstoneWire`, `SetPiston`, `SetChest`, `SetDoubleChest`, `SetSign`, `SetDecoratedPot`, `SetCrafter`, `AddItemFrame`.
 - **Fluent Builder**: `SchematicBuilder` for quick programmatic structure generation.
-- **Fluent Builder Code Generation**: Automatically generate C# source code using `SchematicBuilder` from any schematic file (`.schem`, `.schematic`, `.litematic`) with greedy 3D cuboid fill optimization, strongly-typed block constants, semantic property call emission (`WithDelay`, `WithFacing`, `WithSubtractMode`), dedicated container/sign/pot/crafter calls, and multiple output modes (`Statement`, `File`, `Method`, `Expression`).
+- **Fluent Builder Code Generation**: Automatically generate C# source code using `SchematicBuilder` from any schematic file (`.schem`, `.schematic`, `.litematic`) with greedy 3D cuboid fill optimization, strongly-typed block constants, semantic property call emission (`WithDelay`, `WithFacing`, `WithSubtractMode`), dedicated container/sign/pot/crafter/item frame calls, and multiple output modes (`Statement`, `File`, `Method`, `Expression`).
 - **Async I/O**: Sync and async `Read`/`Write` methods for files, streams, and byte arrays.
 
 ## Quick Start
@@ -95,7 +95,20 @@ builder.SetBlock(2, 1, 3, Minecraft.Blocks.Chest.WithFacing(Direction.North).Wit
        .SetChest(3, 1, 3, new ItemStack(Minecraft.Items.Bow, count: 1, slot: 0));
 ```
 
-### 3. Writing a Schematic
+### 3. Item Frames
+
+```csharp
+// Regular item frame with item and facing
+builder.AddItemFrame(24.5, 11.5, 29.03125, Direction.South, new ItemStack(Minecraft.Items.Dispenser));
+
+// Glow item frame with rotation and invisible flag
+builder.AddItemFrame(1.5, 2.0, 3.5, Direction.North, new ItemStack(Minecraft.Items.Diamond), rotation: 2, isGlow: true, isInvisible: true);
+
+// Empty item frame
+builder.AddItemFrame(5.5, 2.0, 5.5, Direction.East);
+```
+
+### 4. Writing a Schematic
 
 ```csharp
 // Auto-detects format from extension:
@@ -107,7 +120,7 @@ SchematicFile.Write(schematic, "tower.litematic");
 SchematicFile.Write(schematic, "tower.schematic");
 ```
 
-### 4. Reading a Schematic
+### 5. Reading a Schematic
 
 ```csharp
 // Format is auto-detected from NBT structure and/or extension
@@ -118,14 +131,14 @@ BlockState block = loaded[2, 1, 2];
 Console.WriteLine($"Block at (2, 1, 2): {block}");
 ```
 
-### 5. Async I/O
+### 6. Async I/O
 
 ```csharp
 Schematic loaded = await SchematicFile.ReadAsync("tower.schem");
 await SchematicFile.WriteAsync(loaded, "tower_copy.schem");
 ```
 
-### 6. Generating Fluent Builder Source Code from a Schematic
+### 7. Generating Fluent Builder Source Code from a Schematic
 
 Convert any `.schem`, `.schematic`, or `.litematic` file into clean, strongly-typed C# fluent builder code:
 

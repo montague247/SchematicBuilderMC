@@ -403,4 +403,55 @@ public class FluentBuilderCodeGeneratorTests : IDisposable
         Assert.Contains(".SetCrafter(0, 0, 0, new[] { 0, 1 },", code);
         Assert.Contains("new ItemStack(Minecraft.Items.IronIngot, count: 1, slot: 2)", code);
     }
+
+    [Fact]
+    public void Generate_ItemFrame_WithItemAndFacing_EmitsCleanAddItemFrameCall()
+    {
+        var schematic = SchematicBuilder.Create(30, 20, 30)
+            .AddItemFrame(24.5, 11.5, 29.03125, Direction.South, new ItemStack(Minecraft.Items.RedstoneBlock))
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains(".AddItemFrame(24.5, 11.5, 29.03125, Direction.South, new ItemStack(Minecraft.Items.RedstoneBlock))", code);
+        Assert.DoesNotContain(".AddEntity(", code);
+    }
+
+    [Fact]
+    public void Generate_ItemFrame_Empty_EmitsConciseAddItemFrameCall()
+    {
+        var schematic = SchematicBuilder.Create(10, 10, 10)
+            .AddItemFrame(1.5, 2.0, 3.5, Direction.East)
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains(".AddItemFrame(1.5, 2.0, 3.5, Direction.East)", code);
+        Assert.DoesNotContain(".AddEntity(", code);
+    }
+
+    [Fact]
+    public void Generate_GlowItemFrame_EmitsGlowFlag()
+    {
+        var schematic = SchematicBuilder.Create(10, 10, 10)
+            .AddItemFrame(1.5, 2.0, 3.5, Direction.North, isGlow: true)
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains(".AddItemFrame(1.5, 2.0, 3.5, isGlow: true)", code);
+        Assert.DoesNotContain(".AddEntity(", code);
+    }
+
+    [Fact]
+    public void Generate_ItemFrame_WithRotationAndFlags_EmitsNamedArgs()
+    {
+        var schematic = SchematicBuilder.Create(10, 10, 10)
+            .AddItemFrame(1.5, 2.0, 3.5, Direction.South, new ItemStack(Minecraft.Items.Diamond), rotation: 3, isInvisible: true, isFixed: true)
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains(".AddItemFrame(1.5, 2.0, 3.5, Direction.South, new ItemStack(Minecraft.Items.Diamond), rotation: 3, isInvisible: true, isFixed: true)", code);
+    }
 }
