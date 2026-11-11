@@ -312,4 +312,129 @@ public class ChestItemTests
         string code = FluentBuilderCodeGenerator.Generate(schematic, options);
         Assert.Contains("new ItemStack(\"minecraft:diamond\", count: 64, slot: 0)", code);
     }
+
+    [Fact]
+    public void SetDoubleChest_PlacesRightAndLeftHalvesWithCorrectBlockStates()
+    {
+        var schematic = SchematicBuilder.Create(5, 5, 5)
+            .SetDoubleChest(1, 1, 1, Direction.North)
+            .Build();
+
+        // Right half at (1, 1, 1)
+        var rightBlock = schematic[1, 1, 1];
+        Assert.Equal("minecraft:chest", rightBlock.Identifier);
+        Assert.Equal("north", rightBlock.GetProperty("facing"));
+        Assert.Equal("right", rightBlock.GetProperty("type"));
+
+        // Left half at (2, 1, 1)
+        var leftBlock = schematic[2, 1, 1];
+        Assert.Equal("minecraft:chest", leftBlock.Identifier);
+        Assert.Equal("north", leftBlock.GetProperty("facing"));
+        Assert.Equal("left", leftBlock.GetProperty("type"));
+
+        // Both block entities exist
+        Assert.NotNull(schematic.GetBlockEntity(1, 1, 1));
+        Assert.NotNull(schematic.GetBlockEntity(2, 1, 1));
+    }
+
+    [Fact]
+    public void SetDoubleChest_DistributesItemsAcrossRightAndLeftChests()
+    {
+        var schematic = SchematicBuilder.Create(5, 5, 5)
+            .SetDoubleChest(1, 1, 1, Direction.North,
+                new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),
+                new ItemStack(Minecraft.Items.IronIngot, count: 32, slot: 26),
+                new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 27),
+                new ItemStack(Minecraft.Items.NetheriteIngot, count: 8, slot: 30))
+            .Build();
+
+        // Right half holds slots 0..26
+        var rightBe = schematic.GetBlockEntity(1, 1, 1);
+        Assert.NotNull(rightBe);
+        var rightItems = rightBe.GetItems();
+        Assert.Equal(2, rightItems.Count);
+
+        var diamond = rightBe.GetItem(0);
+        Assert.NotNull(diamond);
+        Assert.Equal("minecraft:diamond", diamond.Id);
+        Assert.Equal(64, diamond.Count);
+        Assert.Equal(0, diamond.Slot);
+
+        var iron = rightBe.GetItem(26);
+        Assert.NotNull(iron);
+        Assert.Equal("minecraft:iron_ingot", iron.Id);
+        Assert.Equal(32, iron.Count);
+        Assert.Equal(26, iron.Slot);
+
+        // Left half holds slots 27..53 (mapped to 0..26)
+        var leftBe = schematic.GetBlockEntity(2, 1, 1);
+        Assert.NotNull(leftBe);
+        var leftItems = leftBe.GetItems();
+        Assert.Equal(2, leftItems.Count);
+
+        // Slot 27 becomes slot 0 in the left half
+        var gapple = leftBe.GetItem(0);
+        Assert.NotNull(gapple);
+        Assert.Equal("minecraft:golden_apple", gapple.Id);
+        Assert.Equal(16, gapple.Count);
+        Assert.Equal(0, gapple.Slot);
+
+        // Slot 30 becomes slot 3 in the left half (30 - 27 = 3)
+        var netherite = leftBe.GetItem(3);
+        Assert.NotNull(netherite);
+        Assert.Equal("minecraft:netherite_ingot", netherite.Id);
+        Assert.Equal(8, netherite.Count);
+        Assert.Equal(3, netherite.Slot);
+    }
+
+    [Fact]
+    public void SetDoubleChest_FluentBuilderCodeGenerator_GeneratesCorrectCalls()
+    {
+        var schematic = SchematicBuilder.Create(5, 5, 5)
+            .SetDoubleChest(1, 1, 1, Direction.North,
+                new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),
+                new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 27))
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        // Right half
+        Assert.Contains("Minecraft.Blocks.Chest.WithFacing(\"north\").WithChestType(\"right\")", code);
+        Assert.Contains(".SetChest(1, 1, 1,", code);
+        Assert.Contains("new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0)", code);
+
+        // Left half
+        Assert.Contains("Minecraft.Blocks.Chest.WithFacing(\"north\").WithChestType(\"left\")", code);
+        Assert.Contains(".SetChest(2, 1, 1,", code);
+        Assert.Contains("new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 0)", code);
+    }
+
+    [Fact]
+    public void SetDoubleChest_SpongeSchematicRoundtrip_PreservesDoubleChestAndItems()
+    {
+        var original = SchematicBuilder.Create(5, 5, 5)
+            .SetDoubleChest(1, 1, 1, Direction.North,
+                new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 5),
+                new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 35))
+            .Build();
+
+        byte[] bytes = SchematicFile.WriteToBytes(original, SchematicFormat.SpongeV2);
+        var loaded = SchematicFile.Read(bytes, SchematicFormat.SpongeV2);
+
+        // Verify Right half
+        Assert.Equal("right", loaded[1, 1, 1].GetProperty("type"));
+        Assert.Equal("north", loaded[1, 1, 1].GetProperty("facing"));
+        var rightItem = loaded.GetBlockEntity(1, 1, 1)?.GetItem(5);
+        Assert.NotNull(rightItem);
+        Assert.Equal("minecraft:diamond", rightItem.Id);
+        Assert.Equal(64, rightItem.Count);
+
+        // Verify Left half
+        Assert.Equal("left", loaded[2, 1, 1].GetProperty("type"));
+        Assert.Equal("north", loaded[2, 1, 1].GetProperty("facing"));
+        var leftItem = loaded.GetBlockEntity(2, 1, 1)?.GetItem(8); // 35 - 27 = 8
+        Assert.NotNull(leftItem);
+        Assert.Equal("minecraft:golden_apple", leftItem.Id);
+        Assert.Equal(16, leftItem.Count);
+    }
 }

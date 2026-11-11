@@ -231,10 +231,28 @@ public sealed class BlockEntity
         CreateContainer("minecraft:chest", position, items);
 
     /// <summary>
+    /// Creates a chest block entity with items.
+    /// </summary>
+    public static BlockEntity CreateChest(BlockPosition position, IEnumerable<ItemStack> items) =>
+        CreateContainer("minecraft:chest", position, items);
+
+    /// <summary>
     /// Creates a chest block entity with optional items.
     /// </summary>
     public static BlockEntity CreateChest(int x, int y, int z, params ItemStack[] items) =>
         CreateChest(new BlockPosition(x, y, z), items);
+
+    /// <summary>
+    /// Creates a chest block entity with items.
+    /// </summary>
+    public static BlockEntity CreateChest(int x, int y, int z, IEnumerable<ItemStack> items) =>
+        CreateChest(new BlockPosition(x, y, z), items);
+
+    /// <summary>
+    /// Creates a container block entity with the specified identifier and items.
+    /// </summary>
+    public static BlockEntity CreateContainer(string containerId, BlockPosition position, IEnumerable<ItemStack> items) =>
+        CreateContainer(containerId, position, items?.ToArray() ?? Array.Empty<ItemStack>());
 
     /// <summary>
     /// Creates a container block entity with the specified identifier and items.

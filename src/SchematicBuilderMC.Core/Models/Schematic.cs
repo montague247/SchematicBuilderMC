@@ -228,6 +228,125 @@ public sealed class Schematic
         SetChest(position.X, position.Y, position.Z, items);
 
     /// <summary>
+    /// Sets a double chest starting at (x, y, z) with the specified facing direction.
+    /// (x, y, z) becomes the right half, and the adjacent connected block becomes the left half.
+    /// Items with slot 0..26 are placed in the right half; items with slot 27..53 are placed in the left half (with adjusted slot 0..26).
+    /// </summary>
+    public (BlockEntity Right, BlockEntity Left) SetDoubleChest(int x, int y, int z, Direction facing = Direction.North, params ItemStack[] items)
+    {
+        var (leftX, leftY, leftZ) = GetDoubleChestLeftOffset(x, y, z, facing);
+        return SetDoubleChest(x, y, z, leftX, leftY, leftZ, facing, (IEnumerable<ItemStack>)items);
+    }
+
+    /// <summary>
+    /// Sets a double chest starting at the specified position with the specified facing direction.
+    /// </summary>
+    public (BlockEntity Right, BlockEntity Left) SetDoubleChest(BlockPosition position, Direction facing = Direction.North, params ItemStack[] items) =>
+        SetDoubleChest(position.X, position.Y, position.Z, facing, items);
+
+    /// <summary>
+    /// Sets a double chest starting at (x, y, z) with the specified facing direction.
+    /// </summary>
+    public (BlockEntity Right, BlockEntity Left) SetDoubleChest(int x, int y, int z, Direction facing, IEnumerable<ItemStack> items)
+    {
+        var (leftX, leftY, leftZ) = GetDoubleChestLeftOffset(x, y, z, facing);
+        return SetDoubleChest(x, y, z, leftX, leftY, leftZ, facing, items);
+    }
+
+    /// <summary>
+    /// Sets a double chest starting at the specified position with the specified facing direction.
+    /// </summary>
+    public (BlockEntity Right, BlockEntity Left) SetDoubleChest(BlockPosition position, Direction facing, IEnumerable<ItemStack> items) =>
+        SetDoubleChest(position.X, position.Y, position.Z, facing, items);
+
+    /// <summary>
+    /// Sets a double chest with explicitly specified coordinates for the right and left halves and facing direction.
+    /// Items with slot 0..26 are placed in the right half; items with slot 27..53 are placed in the left half (with adjusted slot 0..26).
+    /// </summary>
+    public (BlockEntity Right, BlockEntity Left) SetDoubleChest(int rightX, int rightY, int rightZ, int leftX, int leftY, int leftZ, Direction facing = Direction.North, params ItemStack[] items) =>
+        SetDoubleChest(rightX, rightY, rightZ, leftX, leftY, leftZ, facing, (IEnumerable<ItemStack>)items);
+
+    /// <summary>
+    /// Sets a double chest with explicitly specified coordinates for the right and left halves and facing direction.
+    /// Items with slot 0..26 are placed in the right half; items with slot 27..53 are placed in the left half (with adjusted slot 0..26).
+    /// </summary>
+    public (BlockEntity Right, BlockEntity Left) SetDoubleChest(int rightX, int rightY, int rightZ, int leftX, int leftY, int leftZ, Direction facing, IEnumerable<ItemStack>? items)
+    {
+        EnsureInBounds(rightX, rightY, rightZ);
+        EnsureInBounds(leftX, leftY, leftZ);
+
+        string facingStr = facing.ToStateString();
+
+        // 1. Set right half block state
+        var rightState = Minecraft.Blocks.Chest
+            .WithFacing(facingStr)
+            .WithChestType(ChestType.Right);
+        SetBlock(rightX, rightY, rightZ, rightState);
+
+        // 2. Set left half block state
+        var leftState = Minecraft.Blocks.Chest
+            .WithFacing(facingStr)
+            .WithChestType(ChestType.Left);
+        SetBlock(leftX, leftY, leftZ, leftState);
+
+        // 3. Partition items into right (0..26) and left (27..53 -> 0..26)
+        var rightItems = new List<ItemStack>();
+        var leftItems = new List<ItemStack>();
+
+        if (items != null)
+        {
+            foreach (var item in items)
+            {
+                if (item.Slot >= 27 && item.Slot < 54)
+                {
+                    var cloned = item.Clone();
+                    cloned.Slot = (byte)(item.Slot - 27);
+                    leftItems.Add(cloned);
+                }
+                else
+                {
+                    rightItems.Add(item.Clone());
+                }
+            }
+        }
+
+        var rightPos = new BlockPosition(rightX, rightY, rightZ);
+        var leftPos = new BlockPosition(leftX, leftY, leftZ);
+
+        var rightBe = BlockEntity.CreateChest(rightPos, rightItems);
+        var leftBe = BlockEntity.CreateChest(leftPos, leftItems);
+
+        SetBlockEntity(rightBe);
+        SetBlockEntity(leftBe);
+
+        return (rightBe, leftBe);
+    }
+
+    /// <summary>
+    /// Sets a double chest with explicitly specified positions for the right and left halves and facing direction.
+    /// </summary>
+    public (BlockEntity Right, BlockEntity Left) SetDoubleChest(BlockPosition rightPos, BlockPosition leftPos, Direction facing = Direction.North, params ItemStack[] items) =>
+        SetDoubleChest(rightPos.X, rightPos.Y, rightPos.Z, leftPos.X, leftPos.Y, leftPos.Z, facing, (IEnumerable<ItemStack>)items);
+
+    /// <summary>
+    /// Sets a double chest with explicitly specified positions for the right and left halves and facing direction.
+    /// </summary>
+    public (BlockEntity Right, BlockEntity Left) SetDoubleChest(BlockPosition rightPos, BlockPosition leftPos, Direction facing, IEnumerable<ItemStack>? items) =>
+        SetDoubleChest(rightPos.X, rightPos.Y, rightPos.Z, leftPos.X, leftPos.Y, leftPos.Z, facing, items);
+
+    private static (int X, int Y, int Z) GetDoubleChestLeftOffset(int x, int y, int z, Direction facing)
+    {
+        return facing switch
+        {
+            Direction.North => (x + 1, y, z),
+            Direction.South => (x - 1, y, z),
+            Direction.East => (x, y, z - 1),
+            Direction.West => (x, y, z + 1),
+            _ => (x + 1, y, z)
+        };
+    }
+
+    /// <summary>
     /// Sets a container block and its block entity with optional inventory items.
     /// </summary>
     public BlockEntity SetContainer(string blockId, string blockEntityId, int x, int y, int z, params ItemStack[] items)

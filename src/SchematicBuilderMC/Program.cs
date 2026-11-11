@@ -67,12 +67,13 @@ var schematic = SchematicBuilder.Create(width: 5, height: 4, length: 5)
     .SetRepeater(2, 1, 1, delay: 2, facing: Direction.South)
     .SetComparator(3, 1, 1, subtractMode: true, facing: Direction.South)
     .SetRedstoneWire(1, 1, 2, power: 15)
-    // Chest with items using strongly-typed identifiers
-    .SetBlock(2, 1, 3, Minecraft.Blocks.Chest.WithFacing(Direction.North))
-    .SetChest(2, 1, 3,
+    // Double chest with inventory items across both halves (slots 0..53)
+    .SetDoubleChest(2, 1, 3, Direction.North,
         new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),
         new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 1),
-        new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName("Watchtower Blade"))
+        new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName("Watchtower Blade"),
+        new ItemStack(Minecraft.Items.Bow, count: 1, slot: 27),
+        new ItemStack(Minecraft.Items.Arrow, count: 64, slot: 28))
     .Build();
 
 Console.WriteLine($"Constructed schematic: {schematic.Metadata.Name}");
@@ -89,7 +90,8 @@ Console.WriteLine($"Wrote Sponge schematic to {spongePath} ({new FileInfo(sponge
 var readSponge = SchematicFile.Read(spongePath);
 Console.WriteLine($"Read Sponge schematic: {readSponge.Width}x{readSponge.Height}x{readSponge.Length}");
 Console.WriteLine($"Block at (2, 1, 1) [Repeater]: {readSponge[2, 1, 1]}");
-Console.WriteLine($"Block Entity at (2, 1, 3) [Chest]: {readSponge.GetBlockEntity(2, 1, 3)?.Id}, Items: {readSponge.GetItems(2, 1, 3).Count}");
+Console.WriteLine($"Double Chest at (2, 1, 3) [Right]: {readSponge[2, 1, 3]}, Items: {readSponge.GetItems(2, 1, 3).Count}");
+Console.WriteLine($"Double Chest at (3, 1, 3) [Left]:  {readSponge[3, 1, 3]}, Items: {readSponge.GetItems(3, 1, 3).Count}");
 
 // 3. Write and Read Classic Schematic (.schematic)
 string classicPath = Path.Combine(Path.GetFullPath("."), "demo_structure.schematic");
@@ -99,7 +101,8 @@ Console.WriteLine($"Wrote Classic schematic to {classicPath} ({new FileInfo(clas
 var readClassic = SchematicFile.Read(classicPath);
 Console.WriteLine($"Read Classic schematic: {readClassic.Width}x{readClassic.Height}x{readClassic.Length}");
 Console.WriteLine($"Block at (2, 1, 1) [Repeater]: {readClassic[2, 1, 1]}");
-Console.WriteLine($"Block Entity at (2, 1, 3) [Chest]: {readClassic.GetBlockEntity(2, 1, 3)?.Id}, Items: {readClassic.GetItems(2, 1, 3).Count}");
+Console.WriteLine($"Double Chest at (2, 1, 3) [Right]: {readClassic[2, 1, 3]}, Items: {readClassic.GetItems(2, 1, 3).Count}");
+Console.WriteLine($"Double Chest at (3, 1, 3) [Left]:  {readClassic[3, 1, 3]}, Items: {readClassic.GetItems(3, 1, 3).Count}");
 
 // 4. Generate fluent builder source code from the schematic
 Console.WriteLine("\n--- Fluent Builder Source Code Generation Demo ---");

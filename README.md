@@ -58,16 +58,43 @@ var schematic = SchematicBuilder.Create(width: 5, height: 4, length: 5)
     .SetRepeater(2, 1, 1, delay: 2, facing: Direction.South)
     .SetComparator(3, 1, 1, subtractMode: true, facing: Direction.South)
     .SetRedstoneWire(1, 1, 2, power: 15)
-    // Chest with inventory items
-    .SetBlock(2, 1, 3, Minecraft.Blocks.Chest.WithFacing(Direction.North))
-    .SetChest(2, 1, 3,
+    // Double chest with 54-slot inventory items across both halves
+    .SetDoubleChest(2, 1, 3, Direction.North,
         new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),
         new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 1),
-        new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName("Watchtower Blade"))
+        new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName("Watchtower Blade"),
+        new ItemStack(Minecraft.Items.Bow, count: 1, slot: 27),
+        new ItemStack(Minecraft.Items.Arrow, count: 64, slot: 28))
     .Build();
 ```
 
-### 2. Writing a Schematic
+### 2. Chests & Double Chests
+
+SchematicBuilderMC provides first-class support for single chests and double chests with inventory items:
+
+```csharp
+// 1. Single Chest
+builder.SetBlock(2, 1, 3, Minecraft.Blocks.Chest.WithFacing(Direction.North))
+       .SetChest(2, 1, 3,
+           new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),
+           new ItemStack(Minecraft.Items.GoldenApple, count: 16, slot: 1),
+           new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName("Watchtower Blade"));
+
+// 2. Double Chest (automatically connects right and left halves; slots 0..26 in right half, slots 27..53 in left half)
+builder.SetDoubleChest(2, 1, 3, Direction.North,
+    new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0),
+    new ItemStack(Minecraft.Items.IronSword, count: 1, slot: 4).WithDisplayName("Watchtower Blade"),
+    new ItemStack(Minecraft.Items.Bow, count: 1, slot: 27),
+    new ItemStack(Minecraft.Items.Arrow, count: 64, slot: 28));
+
+// 3. Or configure double chest block states explicitly with ChestType.Right and ChestType.Left
+builder.SetBlock(2, 1, 3, Minecraft.Blocks.Chest.WithFacing(Direction.North).WithChestType(ChestType.Right))
+       .SetChest(2, 1, 3, new ItemStack(Minecraft.Items.Diamond, count: 64, slot: 0))
+       .SetBlock(3, 1, 3, Minecraft.Blocks.Chest.WithFacing(Direction.North).WithChestType(ChestType.Left))
+       .SetChest(3, 1, 3, new ItemStack(Minecraft.Items.Bow, count: 1, slot: 0));
+```
+
+### 3. Writing a Schematic
 
 ```csharp
 // Write as modern Sponge schematic (.schem)
@@ -77,7 +104,7 @@ SchematicFile.Write(schematic, "tower.schem", SchematicFormat.SpongeV2);
 SchematicFile.Write(schematic, "tower.schematic", SchematicFormat.Classic);
 ```
 
-### 3. Reading a Schematic
+### 4. Reading a Schematic
 
 ```csharp
 // Format is auto-detected from NBT structure and/or extension
@@ -88,14 +115,14 @@ BlockState block = loaded[2, 1, 2];
 Console.WriteLine($"Block at (2, 1, 2): {block}");
 ```
 
-### 4. Async I/O
+### 5. Async I/O
 
 ```csharp
 Schematic loaded = await SchematicFile.ReadAsync("tower.schem");
 await SchematicFile.WriteAsync(loaded, "tower_copy.schem");
 ```
 
-### 5. Generating Fluent Builder Source Code from a Schematic
+### 6. Generating Fluent Builder Source Code from a Schematic
 
 Convert any `.schem` or `.schematic` file into clean, strongly-typed C# fluent builder code:
 

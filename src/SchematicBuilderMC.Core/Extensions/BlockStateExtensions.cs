@@ -574,6 +574,18 @@ public static class BlockStateExtensions
         new BlockState(identifier).WithSlabType(type);
 
     /// <summary>
+    /// Sets slab type using a string ("top", "bottom", "double").
+    /// </summary>
+    public static BlockState WithSlabType(this BlockState state, string type) =>
+        state.WithType(type);
+
+    /// <summary>
+    /// Sets slab type using a string ("top", "bottom", "double").
+    /// </summary>
+    public static BlockState WithSlabType(this string identifier, string type) =>
+        new BlockState(identifier).WithSlabType(type);
+
+    /// <summary>
     /// Sets chest connection type using <see cref="ChestType"/>.
     /// </summary>
     public static BlockState WithChestType(this BlockState state, ChestType type) =>
@@ -583,6 +595,18 @@ public static class BlockStateExtensions
     /// Sets chest connection type using <see cref="ChestType"/>.
     /// </summary>
     public static BlockState WithChestType(this string identifier, ChestType type) =>
+        new BlockState(identifier).WithChestType(type);
+
+    /// <summary>
+    /// Sets chest connection type using a string ("single", "left", "right").
+    /// </summary>
+    public static BlockState WithChestType(this BlockState state, string type) =>
+        state.WithType(type);
+
+    /// <summary>
+    /// Sets chest connection type using a string ("single", "left", "right").
+    /// </summary>
+    public static BlockState WithChestType(this string identifier, string type) =>
         new BlockState(identifier).WithChestType(type);
 
     #endregion

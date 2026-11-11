@@ -146,6 +146,80 @@ public sealed class SchematicBuilder
     }
 
     /// <summary>
+    /// Sets a double chest starting at (x, y, z) with the specified facing direction.
+    /// (x, y, z) becomes the right half, and the adjacent connected block becomes the left half.
+    /// Items with slot 0..26 are placed in the right half; items with slot 27..53 are placed in the left half (with adjusted slot 0..26).
+    /// </summary>
+    public SchematicBuilder SetDoubleChest(int x, int y, int z, Direction facing = Direction.North, params ItemStack[] items)
+    {
+        _schematic.SetDoubleChest(x, y, z, facing, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a double chest starting at the specified position with the specified facing direction.
+    /// </summary>
+    public SchematicBuilder SetDoubleChest(BlockPosition position, Direction facing = Direction.North, params ItemStack[] items)
+    {
+        _schematic.SetDoubleChest(position, facing, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a double chest starting at (x, y, z) with the specified facing direction.
+    /// </summary>
+    public SchematicBuilder SetDoubleChest(int x, int y, int z, Direction facing, IEnumerable<ItemStack> items)
+    {
+        _schematic.SetDoubleChest(x, y, z, facing, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a double chest starting at the specified position with the specified facing direction.
+    /// </summary>
+    public SchematicBuilder SetDoubleChest(BlockPosition position, Direction facing, IEnumerable<ItemStack> items)
+    {
+        _schematic.SetDoubleChest(position, facing, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a double chest with explicitly specified coordinates for the right and left halves and facing direction.
+    /// </summary>
+    public SchematicBuilder SetDoubleChest(int rightX, int rightY, int rightZ, int leftX, int leftY, int leftZ, Direction facing = Direction.North, params ItemStack[] items)
+    {
+        _schematic.SetDoubleChest(rightX, rightY, rightZ, leftX, leftY, leftZ, facing, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a double chest with explicitly specified coordinates for the right and left halves and facing direction.
+    /// </summary>
+    public SchematicBuilder SetDoubleChest(int rightX, int rightY, int rightZ, int leftX, int leftY, int leftZ, Direction facing, IEnumerable<ItemStack>? items)
+    {
+        _schematic.SetDoubleChest(rightX, rightY, rightZ, leftX, leftY, leftZ, facing, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a double chest with explicitly specified positions for the right and left halves and facing direction.
+    /// </summary>
+    public SchematicBuilder SetDoubleChest(BlockPosition rightPos, BlockPosition leftPos, Direction facing = Direction.North, params ItemStack[] items)
+    {
+        _schematic.SetDoubleChest(rightPos, leftPos, facing, items);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a double chest with explicitly specified positions for the right and left halves and facing direction.
+    /// </summary>
+    public SchematicBuilder SetDoubleChest(BlockPosition rightPos, BlockPosition leftPos, Direction facing, IEnumerable<ItemStack>? items)
+    {
+        _schematic.SetDoubleChest(rightPos, leftPos, facing, items);
+        return this;
+    }
+
+    /// <summary>
     /// Sets a container block and adds inventory items to its block entity at (x, y, z).
     /// </summary>
     public SchematicBuilder SetContainer(string blockId, string blockEntityId, int x, int y, int z, params ItemStack[] items)

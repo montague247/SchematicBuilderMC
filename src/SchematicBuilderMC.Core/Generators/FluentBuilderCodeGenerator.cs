@@ -594,6 +594,10 @@ public static class FluentBuilderCodeGenerator
                 return $".WithShape(\"{EscapeString(value)}\")";
 
             case "type":
+                if (identifier.Contains("chest", StringComparison.OrdinalIgnoreCase))
+                    return $".WithChestType(\"{EscapeString(value)}\")";
+                if (identifier.Contains("slab", StringComparison.OrdinalIgnoreCase))
+                    return $".WithSlabType(\"{EscapeString(value)}\")";
                 return $".WithType(\"{EscapeString(value)}\")";
         }
 
