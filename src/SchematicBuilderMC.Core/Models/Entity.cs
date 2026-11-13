@@ -77,6 +77,15 @@ public sealed class Entity
     }
 
     /// <summary>
+    /// Gets or sets whether this entity is unaffected by gravity.
+    /// </summary>
+    public bool NoGravity
+    {
+        get => (Data["NoGravity"]?.IntValue ?? Data["no_gravity"]?.IntValue ?? 0) != 0;
+        set => Data["NoGravity"] = new NbtByte("NoGravity", (byte)(value ? 1 : 0));
+    }
+
+    /// <summary>
     /// Gets whether this entity is a regular item frame or glow item frame.
     /// </summary>
     public bool IsItemFrame =>
@@ -145,6 +154,15 @@ public sealed class Entity
     public Entity WithPersistenceRequired(bool required = true)
     {
         PersistenceRequired = required;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets whether this entity is unaffected by gravity and returns this instance.
+    /// </summary>
+    public Entity WithNoGravity(bool noGravity = true)
+    {
+        NoGravity = noGravity;
         return this;
     }
 
@@ -553,6 +571,13 @@ public sealed class Entity
     public Entity WithChest(ItemStack item) => WithEquipment("chest", item);
     public Entity WithLegs(ItemStack item) => WithEquipment("legs", item);
     public Entity WithFeet(ItemStack item) => WithEquipment("feet", item);
+
+    public Entity WithMainHand(string itemId, int count = 1) => WithMainHand(new ItemStack(itemId, count));
+    public Entity WithOffHand(string itemId, int count = 1) => WithOffHand(new ItemStack(itemId, count));
+    public Entity WithHead(string itemId, int count = 1) => WithHead(new ItemStack(itemId, count));
+    public Entity WithChest(string itemId, int count = 1) => WithChest(new ItemStack(itemId, count));
+    public Entity WithLegs(string itemId, int count = 1) => WithLegs(new ItemStack(itemId, count));
+    public Entity WithFeet(string itemId, int count = 1) => WithFeet(new ItemStack(itemId, count));
 
     /// <summary>
     /// Sets drop chance for an equipment slot.

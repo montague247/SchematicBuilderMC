@@ -1431,6 +1431,10 @@ public static class FluentBuilderCodeGenerator
             dataClone.Remove("uuid");
         }
 
+        bool hasNoGravity = (dataClone["NoGravity"]?.IntValue ?? dataClone["no_gravity"]?.IntValue ?? 0) != 0;
+        dataClone.Remove("NoGravity");
+        dataClone.Remove("no_gravity");
+
         // Equipment extraction
         ItemStack? mainHand = null, offHand = null, head = null, chest = null, legs = null, feet = null;
         if (dataClone["equipment"] is NbtCompound eqComp)
@@ -1516,6 +1520,11 @@ public static class FluentBuilderCodeGenerator
         }
 
         var chainedCalls = new List<string>();
+
+        if (hasNoGravity)
+        {
+            chainedCalls.Add(".WithNoGravity()");
+        }
 
         if (mainHand != null && mainHand.Id != "minecraft:air" && !string.IsNullOrWhiteSpace(mainHand.Id))
         {
@@ -1744,6 +1753,90 @@ public static class FluentBuilderCodeGenerator
         return tags.Count > 0;
     }
 
+    private static bool IsDefaultCanPickUpLoot(string? entityId, byte val)
+    {
+        bool naturallyPicksUpLoot = false;
+        if (!string.IsNullOrWhiteSpace(entityId))
+        {
+            string id = entityId.Contains(':') ? entityId : "minecraft:" + entityId;
+            naturallyPicksUpLoot = id.ToLowerInvariant() switch
+            {
+                "minecraft:allay" or "minecraft:villager" or "minecraft:piglin" or
+                "minecraft:piglin_brute" or "minecraft:fox" or "minecraft:dolphin" => true,
+                _ => false
+            };
+        }
+
+        return naturallyPicksUpLoot ? val == 1 : val == 0;
+    }
+
+    private static bool IsTransientBrainMemory(string? memoryKey)
+    {
+        if (string.IsNullOrWhiteSpace(memoryKey)) return true;
+        string key = memoryKey.StartsWith("minecraft:") ? memoryKey.Substring("minecraft:".Length) : memoryKey;
+        return key.ToLowerInvariant() switch
+        {
+            "liked_player" or "liked_noteblock_position" or "liked_noteblock_cooldown_ticks" or
+            "is_panicking" or "is_tempted" or "temptation_cooldown_ticks" or
+            "admiring_item" or "admiring_disabled" or "hunted_recently" or "golem_detected_recently" or
+            "last_worked_at_poi" or "last_slept" or "last_woken" or "play_dead_ticks" or
+            "ram_cooldown_ticks" or "has_hunting_cooldown" or "walk_target" or "look_target" or
+            "attack_target" or "target" or "breeze_jump_cooldown" or "breeze_shoot_cooldown" or
+            "roar_target" or "disturbance_location" or "dig_cooldown" or "sniff_cooldown" or
+            "unreachable_tongue_targets" or "pacified" or "item_pickup_cooldown_ticks" => true,
+            _ => false
+        };
+    }
+
+    private static bool IsTransientBrain(NbtCompound brainComp)
+    {
+        if (brainComp.Count == 0) return true;
+        foreach (var tag in brainComp)
+        {
+            if (tag.Name != null && tag.Name.Equals("memories", StringComparison.OrdinalIgnoreCase))
+            {
+                if (tag is NbtCompound memComp)
+                {
+                    if (!memComp.All(m => IsTransientBrainMemory(m.Name)))
+                        return false;
+                }
+            }
+            else if (tag is NbtCompound emptyComp && emptyComp.Count == 0)
+            {
+                continue;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool IsDefaultVibrationListener(NbtCompound listenerComp)
+    {
+        int eventDelay = listenerComp["event_delay"]?.IntValue ?? 0;
+        if (eventDelay != 0) return false;
+
+        if (listenerComp["selector"] is NbtCompound selector)
+        {
+            long tick = selector["tick"]?.LongValue ?? -1L;
+            if (tick > 0) return false;
+            if (selector.Any(t => !string.Equals(t.Name, "tick", StringComparison.OrdinalIgnoreCase)))
+                return false;
+        }
+
+        foreach (var tag in listenerComp)
+        {
+            string tagName = tag.Name ?? "";
+            if (tagName.Equals("event_delay", StringComparison.OrdinalIgnoreCase)) continue;
+            if (tagName.Equals("selector", StringComparison.OrdinalIgnoreCase)) continue;
+            if (tagName.Equals("range", StringComparison.OrdinalIgnoreCase) && tag is NbtInt { Value: 16 }) continue;
+            return false;
+        }
+        return true;
+    }
+
     private static bool IsDefaultMaxHealth(string? entityId, float health)
     {
         if (string.IsNullOrWhiteSpace(entityId)) return Math.Abs(health - 20f) < 0.01f;
@@ -1857,7 +1950,7 @@ public static class FluentBuilderCodeGenerator
 
                             bool isResting =
                                 Math.Abs(mx) < 0.05 && Math.Abs(mz) < 0.05 &&
-                                (Math.Abs(my) < 0.001 || Math.Abs(my - (-0.0784000015258789d)) < 0.001);
+                                (Math.Abs(my) < 0.05 || Math.Abs(my - (-0.0784000015258789d)) < 0.001);
 
                             if (isResting)
                                 return false;
@@ -1881,10 +1974,13 @@ public static class FluentBuilderCodeGenerator
                     if (n.Equals("Sleeping", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
                     if (n.Equals("LeftHanded", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
                     if (n.Equals("CanBreakDoors", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
-                    if (n.Equals("CanPickUpLoot", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
-                    if (n.Equals("can_pick_up_loot", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if ((n.Equals("CanPickUpLoot", StringComparison.OrdinalIgnoreCase) || n.Equals("can_pick_up_loot", StringComparison.OrdinalIgnoreCase)) &&
+                        t is NbtByte bLoot && IsDefaultCanPickUpLoot(entityOrBlockEntityId, bLoot.Value)) return false;
                     if (n.Equals("PersistenceRequired", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
                     if (n.Equals("persistence_required", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
+                    if ((n.Equals("NoGravity", StringComparison.OrdinalIgnoreCase) || n.Equals("no_gravity", StringComparison.OrdinalIgnoreCase)) && t is NbtByte { Value: 0 }) return false;
+                    if ((n.Equals("DuplicationCooldown", StringComparison.OrdinalIgnoreCase) || n.Equals("duplication_cooldown", StringComparison.OrdinalIgnoreCase)) &&
+                        (t is NbtLong { Value: <= 0L } || t is NbtInt { Value: <= 0 })) return false;
                     if (n.Equals("PlayerCreated", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
                     if (n.Equals("player_created", StringComparison.OrdinalIgnoreCase) && t is NbtByte { Value: 0 }) return false;
                     if (n.Equals("Age", StringComparison.OrdinalIgnoreCase) && (t is NbtInt { Value: 0 } || t is NbtShort { Value: 0 })) return false;
@@ -1907,11 +2003,16 @@ public static class FluentBuilderCodeGenerator
                     if (n.Equals("angry_at", StringComparison.OrdinalIgnoreCase)) return false;
                     if (n.Equals("anger_end_time", StringComparison.OrdinalIgnoreCase)) return false;
 
-                    // Empty Brain compound
-                    if (n.Equals("Brain", StringComparison.OrdinalIgnoreCase) && t is NbtCompound brainComp)
+                    // Brain compound with transient memories
+                    if ((n.Equals("Brain", StringComparison.OrdinalIgnoreCase) || n.Equals("brain", StringComparison.OrdinalIgnoreCase)) && t is NbtCompound brainComp)
                     {
-                        if (brainComp.Count == 0) return false;
-                        if (brainComp.Count == 1 && brainComp["memories"] is NbtCompound { Count: 0 }) return false;
+                        if (IsTransientBrain(brainComp)) return false;
+                    }
+
+                    // Default idle vibration listener
+                    if (n.Equals("listener", StringComparison.OrdinalIgnoreCase) && t is NbtCompound listenerComp)
+                    {
+                        if (IsDefaultVibrationListener(listenerComp)) return false;
                     }
 
                     // Default attributes
@@ -1926,6 +2027,9 @@ public static class FluentBuilderCodeGenerator
                     return false;
 
                 if (n.Equals("Items", StringComparison.OrdinalIgnoreCase) && t is NbtList { Count: 0 })
+                    return false;
+
+                if ((n.Equals("Inventory", StringComparison.OrdinalIgnoreCase) || n.Equals("inventory", StringComparison.OrdinalIgnoreCase)) && t is NbtList { Count: 0 })
                     return false;
 
                 if (n.Equals("TransferCooldown", StringComparison.OrdinalIgnoreCase) && t is NbtInt { Value: 0 })

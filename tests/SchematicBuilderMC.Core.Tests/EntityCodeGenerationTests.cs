@@ -202,4 +202,124 @@ public class EntityCodeGenerationTests
         Assert.Contains(".WithHealth(86f)", code);
         Assert.Contains(".WithRotation(180f)", code);
     }
+
+    [Fact]
+    public void Entity_NoGravity_Property_And_FluentMethod()
+    {
+        var allay = new Entity(Minecraft.Entities.Allay, 0, 0, 0);
+        Assert.False(allay.NoGravity);
+
+        allay.WithNoGravity();
+        Assert.True(allay.NoGravity);
+        Assert.Equal((byte)1, allay.Data["NoGravity"]?.ByteValue);
+
+        allay.WithNoGravity(false);
+        Assert.False(allay.NoGravity);
+        Assert.Equal((byte)0, allay.Data["NoGravity"]?.ByteValue);
+    }
+
+    [Fact]
+    public void Entity_EquipmentConvenienceOverloads_WorkWithItemIdentifiers()
+    {
+        var entity = new Entity(Minecraft.Entities.Zombie, 0, 0, 0)
+            .WithMainHand(Minecraft.Items.DiamondSword)
+            .WithOffHand(Minecraft.Items.Shield)
+            .WithHead(Minecraft.Items.DiamondHelmet)
+            .WithChest(Minecraft.Items.DiamondChestplate)
+            .WithLegs(Minecraft.Items.DiamondLeggings)
+            .WithFeet(Minecraft.Items.DiamondBoots);
+
+        var eq = entity.Data["equipment"] as NbtCompound;
+        Assert.NotNull(eq);
+        Assert.Equal("minecraft:diamond_sword", eq["mainhand"]?["id"]?.StringValue);
+        Assert.Equal("minecraft:shield", eq["offhand"]?["id"]?.StringValue);
+        Assert.Equal("minecraft:diamond_helmet", eq["head"]?["id"]?.StringValue);
+        Assert.Equal("minecraft:diamond_chestplate", eq["chest"]?["id"]?.StringValue);
+        Assert.Equal("minecraft:diamond_leggings", eq["legs"]?["id"]?.StringValue);
+        Assert.Equal("minecraft:diamond_boots", eq["feet"]?["id"]?.StringValue);
+    }
+
+    [Fact]
+    public void FluentBuilderCodeGenerator_AllayDefaults_AreOmitted_And_WithNoGravity_IsGenerated()
+    {
+        var allayCompound = new NbtCompound
+        {
+            new NbtString("id", "minecraft:allay"),
+            new NbtList("Pos", NbtTagType.Double) { new NbtDouble(0.5709921046658906), new NbtDouble(2.0729235545797877), new NbtDouble(1.871308390241694) },
+            new NbtByte("NoGravity", 1),
+            new NbtCompound("Brain")
+            {
+                new NbtCompound("memories")
+                {
+                    new NbtCompound("minecraft:liked_player")
+                    {
+                        new NbtIntArray("value", new int[] { -1652937059, 304301920, -1954908319, 973468245 })
+                    }
+                }
+            },
+            new NbtCompound("listener")
+            {
+                new NbtCompound("selector") { new NbtLong("tick", -1L) },
+                new NbtInt("event_delay", 0)
+            },
+            new NbtLong("DuplicationCooldown", 0L),
+            new NbtList("Motion", NbtTagType.Double) { new NbtDouble(-0.029462814417454672d), new NbtDouble(0.030660835759548154d), new NbtDouble(0.048707494398240396d) },
+            new NbtByte("CanPickUpLoot", 1),
+            new NbtList("Inventory", NbtTagType.End),
+            new NbtList("Rotation", NbtTagType.Float) { new NbtFloat(2.2070389f), new NbtFloat(0f) },
+            new NbtCompound("equipment")
+            {
+                new NbtCompound("mainhand")
+                {
+                    new NbtInt("count", 1),
+                    new NbtString("id", "minecraft:bamboo")
+                }
+            }
+        };
+
+        var allay = Entity.FromNbt(allayCompound);
+        var schematic = SchematicBuilder.Create(3, 3, 3)
+            .AddEntity(allay)
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains("Minecraft.Entities.Allay", code);
+        Assert.Contains(".WithNoGravity()", code);
+        Assert.Contains(".WithMainHand(new ItemStack(Minecraft.Items.Bamboo))", code);
+        Assert.Contains(".WithRotation(2.2070389f)", code);
+
+        // All defaults and transient tags should be stripped completely
+        Assert.DoesNotContain("new NbtCompound", code);
+        Assert.DoesNotContain("Brain", code);
+        Assert.DoesNotContain("liked_player", code);
+        Assert.DoesNotContain("listener", code);
+        Assert.DoesNotContain("DuplicationCooldown", code);
+        Assert.DoesNotContain("CanPickUpLoot", code);
+        Assert.DoesNotContain("Inventory", code);
+        Assert.DoesNotContain("Motion", code);
+    }
+
+    [Fact]
+    public void FluentBuilderCodeGenerator_AllayNonDefaults_ArePreserved()
+    {
+        // If Allay has active DuplicationCooldown and CanPickUpLoot = 0 (non-default for allay), preserve them
+        var allayCompound = new NbtCompound
+        {
+            new NbtString("id", "minecraft:allay"),
+            new NbtList("Pos", NbtTagType.Double) { new NbtDouble(1.0), new NbtDouble(1.0), new NbtDouble(1.0) },
+            new NbtLong("DuplicationCooldown", 6000L),
+            new NbtByte("CanPickUpLoot", 0) // default for allay is 1, so 0 is non-default!
+        };
+
+        var allay = Entity.FromNbt(allayCompound);
+        var schematic = SchematicBuilder.Create(3, 3, 3)
+            .AddEntity(allay)
+            .Build();
+
+        string code = FluentBuilderCodeGenerator.Generate(schematic);
+
+        Assert.Contains("DuplicationCooldown", code);
+        Assert.Contains("CanPickUpLoot", code);
+    }
 }
