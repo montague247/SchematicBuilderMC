@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>SchematicBuilderMC</RootNamespace>
     <PackageId>SchematicBuilderMC.Core</PackageId>
-    <Title>SchematicBuilderMC.Core</Title>
+    <Title>SchematicBuilderMC Core</Title>
     <Description>A high-performance modern .NET library for creating, manipulating, reading, and writing Minecraft schematic files (.schem, .schematic, .litematic).</Description>
     <Version Condition="'$(Version)' == ''">1.0.0</Version>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
