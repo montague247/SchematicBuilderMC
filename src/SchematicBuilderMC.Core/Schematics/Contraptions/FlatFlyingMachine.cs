@@ -1,4 +1,4 @@
-namespace SchematicBuilderMC.Schematics.Farms;
+namespace SchematicBuilderMC.Schematics.Contraptions;
 
 public sealed class FlatFlyingMachine : FlyingMachine
 {

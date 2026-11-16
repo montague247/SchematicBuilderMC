@@ -1,24 +1,23 @@
 using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.IO;
-using SchematicBuilderMC.Schematics.Farms;
+using SchematicBuilderMC.Schematics.Contraptions;
 
-namespace SchematicBuilderMC.Core.Tests.Schematics.Farms;
+namespace SchematicBuilderMC.Core.Tests.Schematics.Contraptions;
 
-public sealed class BambooFarmWithAllaysTests
+public sealed class FlatFylingMachineSchematicCreatorTests
 {
     [Fact]
     public void Build_ShouldCreateSchematicWithCorrectDimensions()
     {
         // Arrange
-        var bambooFarm = new BambooFarmWithAllays();
+        var bambooFarm = new FlatFylingMachineSchematicCreator();
 
         // Act
         var schematic = bambooFarm.Build();
 
         // Assert
-        Assert.Equal(35, schematic.Width);
-        Assert.Equal(12, schematic.Height);
-        Assert.Equal(bambooFarm.Length, schematic.Length);
+        Assert.Equal(20, schematic.Width);
+        Assert.Equal(2, schematic.Height);
 
         // Write to file
         string spongePath = Path.Combine(Path.GetFullPath("."), $"{schematic.Metadata.Name}.schem");

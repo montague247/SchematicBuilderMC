@@ -3,7 +3,7 @@ using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.Extensions;
 using SchematicBuilderMC.Registries;
 
-namespace SchematicBuilderMC.Schematics.Farms;
+namespace SchematicBuilderMC.Schematics.Contraptions;
 
 public static class FlyingMachineExtensions
 {

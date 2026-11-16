@@ -2,10 +2,11 @@ using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Extensions;
 using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
+using SchematicBuilderMC.Schematics.Contraptions;
 
 namespace SchematicBuilderMC.Schematics.Farms;
 
-public sealed class BambooFarmWithAllays
+public sealed class BambooFarmWithAllaysSchematicCreator
 {
     public int Width { get; set; } = 35; // best (max): 35, chunk: 16
 
