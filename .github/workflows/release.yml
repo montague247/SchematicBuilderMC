@@ -153,9 +153,15 @@ jobs:
           dotnet nuget push ./nupkg/*.nupkg --source github --skip-duplicate
 
       - name: Publish to NuGet.org
-        if: ${{ !inputs.dry_run && secrets.NUGET_API_KEY != '' }}
+        if: ${{ !inputs.dry_run }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
-          dotnet nuget push ./nupkg/*.nupkg --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          if [ -n "${NUGET_API_KEY}" ]; then
+            dotnet nuget push ./nupkg/*.nupkg --api-key "${NUGET_API_KEY}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          else
+            echo "NUGET_API_KEY is not configured; skipping NuGet.org publish."
+          fi
 
   create-release:
     name: Create GitHub Release
