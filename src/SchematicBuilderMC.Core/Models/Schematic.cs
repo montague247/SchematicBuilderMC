@@ -958,6 +958,421 @@ public sealed class Schematic
     }
 
     /// <summary>
+    /// Places a filled or hollow circle centered at (centerX, centerY, centerZ) in the plane perpendicular to <paramref name="normalAxis"/>.
+    /// </summary>
+    public void SetCircle(int centerX, int centerY, int centerZ, int radius, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y)
+    {
+        ArgumentNullException.ThrowIfNull(blockState);
+        if (radius < 0)
+            throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
+        ValidateAxis(normalAxis, nameof(normalAxis));
+
+        EnsureAxisBoxInBounds(centerX, centerY, centerZ, -radius, radius, -radius, radius, 0, 0, normalAxis);
+        SetEllipticalSlice(centerX, centerY, centerZ, radius, radius, blockState, filled, normalAxis);
+    }
+
+    /// <summary>
+    /// Places a filled or hollow circle centered at (centerX, centerY, centerZ) from a blockstate string.
+    /// </summary>
+    public void SetCircle(int centerX, int centerY, int centerZ, int radius, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y) =>
+        SetCircle(centerX, centerY, centerZ, radius, BlockState.Parse(blockStateString), filled, normalAxis);
+
+    /// <summary>
+    /// Places a filled or hollow circle centered at <paramref name="center"/>.
+    /// </summary>
+    public void SetCircle(BlockPosition center, int radius, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y) =>
+        SetCircle(center.X, center.Y, center.Z, radius, blockState, filled, normalAxis);
+
+    /// <summary>
+    /// Places a filled or hollow circle centered at <paramref name="center"/> from a blockstate string.
+    /// </summary>
+    public void SetCircle(BlockPosition center, int radius, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y) =>
+        SetCircle(center.X, center.Y, center.Z, radius, BlockState.Parse(blockStateString), filled, normalAxis);
+
+    /// <summary>
+    /// Places a filled or hollow sphere centered at (centerX, centerY, centerZ).
+    /// </summary>
+    public void SetSphere(int centerX, int centerY, int centerZ, int radius, BlockState blockState, bool filled = true)
+    {
+        ArgumentNullException.ThrowIfNull(blockState);
+        if (radius < 0)
+            throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
+
+        EnsureInBounds(centerX - radius, centerY - radius, centerZ - radius);
+        EnsureInBounds(centerX + radius, centerY + radius, centerZ + radius);
+
+        double outerRadiusSq = (radius + 0.5) * (radius + 0.5);
+        bool IsInside(int dx, int dy, int dz) => dx * dx + dy * dy + dz * dz <= outerRadiusSq;
+
+        for (int dy = -radius; dy <= radius; dy++)
+        {
+            for (int dz = -radius; dz <= radius; dz++)
+            {
+                for (int dx = -radius; dx <= radius; dx++)
+                {
+                    if (!IsInside(dx, dy, dz))
+                        continue;
+
+                    if (!filled &&
+                        IsInside(dx + 1, dy, dz) && IsInside(dx - 1, dy, dz) &&
+                        IsInside(dx, dy + 1, dz) && IsInside(dx, dy - 1, dz) &&
+                        IsInside(dx, dy, dz + 1) && IsInside(dx, dy, dz - 1))
+                    {
+                        continue;
+                    }
+
+                    SetBlock(centerX + dx, centerY + dy, centerZ + dz, blockState);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow sphere centered at (centerX, centerY, centerZ) from a blockstate string.
+    /// </summary>
+    public void SetSphere(int centerX, int centerY, int centerZ, int radius, string blockStateString, bool filled = true) =>
+        SetSphere(centerX, centerY, centerZ, radius, BlockState.Parse(blockStateString), filled);
+
+    /// <summary>
+    /// Places a filled or hollow sphere centered at <paramref name="center"/>.
+    /// </summary>
+    public void SetSphere(BlockPosition center, int radius, BlockState blockState, bool filled = true) =>
+        SetSphere(center.X, center.Y, center.Z, radius, blockState, filled);
+
+    /// <summary>
+    /// Places a filled or hollow sphere centered at <paramref name="center"/> from a blockstate string.
+    /// </summary>
+    public void SetSphere(BlockPosition center, int radius, string blockStateString, bool filled = true) =>
+        SetSphere(center.X, center.Y, center.Z, radius, BlockState.Parse(blockStateString), filled);
+
+    /// <summary>
+    /// Places a filled or hollow rectangle starting at (startX, startY, startZ) in the plane perpendicular to <paramref name="normalAxis"/>.
+    /// </summary>
+    public void SetRectangle(int startX, int startY, int startZ, int width, int length, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y)
+    {
+        ArgumentNullException.ThrowIfNull(blockState);
+        if (width <= 0)
+            throw new ArgumentOutOfRangeException(nameof(width), width, "Width must be greater than zero.");
+        if (length <= 0)
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Length must be greater than zero.");
+        ValidateAxis(normalAxis, nameof(normalAxis));
+
+        EnsureAxisBoxInBounds(startX, startY, startZ, 0, width - 1, 0, length - 1, 0, 0, normalAxis);
+
+        for (int v = 0; v < length; v++)
+        {
+            for (int u = 0; u < width; u++)
+            {
+                if (filled || u == 0 || u == width - 1 || v == 0 || v == length - 1)
+                {
+                    var pos = MapAxisOffset(startX, startY, startZ, u, v, 0, normalAxis);
+                    SetBlock(pos.X, pos.Y, pos.Z, blockState);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow rectangle starting at (startX, startY, startZ) from a blockstate string.
+    /// </summary>
+    public void SetRectangle(int startX, int startY, int startZ, int width, int length, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y) =>
+        SetRectangle(startX, startY, startZ, width, length, BlockState.Parse(blockStateString), filled, normalAxis);
+
+    /// <summary>
+    /// Places a filled or hollow rectangle starting at <paramref name="start"/>.
+    /// </summary>
+    public void SetRectangle(BlockPosition start, int width, int length, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y) =>
+        SetRectangle(start.X, start.Y, start.Z, width, length, blockState, filled, normalAxis);
+
+    /// <summary>
+    /// Places a filled or hollow rectangle starting at <paramref name="start"/> from a blockstate string.
+    /// </summary>
+    public void SetRectangle(BlockPosition start, int width, int length, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y) =>
+        SetRectangle(start.X, start.Y, start.Z, width, length, BlockState.Parse(blockStateString), filled, normalAxis);
+
+    /// <summary>
+    /// Places a filled or hollow cube starting at (startX, startY, startZ) with edge length <paramref name="size"/>.
+    /// </summary>
+    public void SetCube(int startX, int startY, int startZ, int size, BlockState blockState, bool filled = true)
+    {
+        ArgumentNullException.ThrowIfNull(blockState);
+        if (size <= 0)
+            throw new ArgumentOutOfRangeException(nameof(size), size, "Cube size must be greater than zero.");
+
+        EnsureInBounds(startX, startY, startZ);
+        EnsureInBounds(startX + size - 1, startY + size - 1, startZ + size - 1);
+
+        if (filled)
+        {
+            Fill(startX, startY, startZ, startX + size - 1, startY + size - 1, startZ + size - 1, blockState);
+            return;
+        }
+
+        for (int dy = 0; dy < size; dy++)
+        {
+            for (int dz = 0; dz < size; dz++)
+            {
+                for (int dx = 0; dx < size; dx++)
+                {
+                    if (dx == 0 || dx == size - 1 ||
+                        dy == 0 || dy == size - 1 ||
+                        dz == 0 || dz == size - 1)
+                    {
+                        SetBlock(startX + dx, startY + dy, startZ + dz, blockState);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow cube starting at (startX, startY, startZ) from a blockstate string.
+    /// </summary>
+    public void SetCube(int startX, int startY, int startZ, int size, string blockStateString, bool filled = true) =>
+        SetCube(startX, startY, startZ, size, BlockState.Parse(blockStateString), filled);
+
+    /// <summary>
+    /// Places a filled or hollow cube starting at <paramref name="start"/>.
+    /// </summary>
+    public void SetCube(BlockPosition start, int size, BlockState blockState, bool filled = true) =>
+        SetCube(start.X, start.Y, start.Z, size, blockState, filled);
+
+    /// <summary>
+    /// Places a filled or hollow cube starting at <paramref name="start"/> from a blockstate string.
+    /// </summary>
+    public void SetCube(BlockPosition start, int size, string blockStateString, bool filled = true) =>
+        SetCube(start.X, start.Y, start.Z, size, BlockState.Parse(blockStateString), filled);
+
+    /// <summary>
+    /// Places a filled or hollow oval (ellipse) centered at (centerX, centerY, centerZ) in the plane perpendicular to <paramref name="normalAxis"/>.
+    /// </summary>
+    public void SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y)
+    {
+        ArgumentNullException.ThrowIfNull(blockState);
+        if (radiusU < 0)
+            throw new ArgumentOutOfRangeException(nameof(radiusU), radiusU, "RadiusU must be zero or greater.");
+        if (radiusV < 0)
+            throw new ArgumentOutOfRangeException(nameof(radiusV), radiusV, "RadiusV must be zero or greater.");
+        ValidateAxis(normalAxis, nameof(normalAxis));
+
+        EnsureAxisBoxInBounds(centerX, centerY, centerZ, -radiusU, radiusU, -radiusV, radiusV, 0, 0, normalAxis);
+        SetEllipticalSlice(centerX, centerY, centerZ, radiusU, radiusV, blockState, filled, normalAxis);
+    }
+
+    /// <summary>
+    /// Places a filled or hollow oval centered at (centerX, centerY, centerZ) from a blockstate string.
+    /// </summary>
+    public void SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y) =>
+        SetOval(centerX, centerY, centerZ, radiusU, radiusV, BlockState.Parse(blockStateString), filled, normalAxis);
+
+    /// <summary>
+    /// Places a filled or hollow oval centered at <paramref name="center"/>.
+    /// </summary>
+    public void SetOval(BlockPosition center, int radiusU, int radiusV, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y) =>
+        SetOval(center.X, center.Y, center.Z, radiusU, radiusV, blockState, filled, normalAxis);
+
+    /// <summary>
+    /// Places a filled or hollow oval centered at <paramref name="center"/> from a blockstate string.
+    /// </summary>
+    public void SetOval(BlockPosition center, int radiusU, int radiusV, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y) =>
+        SetOval(center.X, center.Y, center.Z, radiusU, radiusV, BlockState.Parse(blockStateString), filled, normalAxis);
+
+    /// <summary>
+    /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) extending along <paramref name="axis"/>.
+    /// </summary>
+    public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockState blockState, bool filled = true, Axis axis = Axis.Y)
+    {
+        ArgumentNullException.ThrowIfNull(blockState);
+        if (radius < 0)
+            throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
+        if (height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(height), height, "Height must be greater than zero.");
+        ValidateAxis(axis, nameof(axis));
+
+        EnsureAxisBoxInBounds(centerX, startY, centerZ, -radius, radius, -radius, radius, 0, height - 1, axis);
+
+        for (int h = 0; h < height; h++)
+        {
+            var sliceCenter = MapAxisOffset(centerX, startY, centerZ, 0, 0, h, axis);
+            SetEllipticalSlice(sliceCenter.X, sliceCenter.Y, sliceCenter.Z, radius, radius, blockState, filled, axis);
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) from a blockstate string.
+    /// </summary>
+    public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y) =>
+        SetCylinder(centerX, startY, centerZ, radius, height, BlockState.Parse(blockStateString), filled, axis);
+
+    /// <summary>
+    /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/>.
+    /// </summary>
+    public void SetCylinder(BlockPosition baseCenter, int radius, int height, BlockState blockState, bool filled = true, Axis axis = Axis.Y) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, blockState, filled, axis);
+
+    /// <summary>
+    /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/> from a blockstate string.
+    /// </summary>
+    public void SetCylinder(BlockPosition baseCenter, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, BlockState.Parse(blockStateString), filled, axis);
+
+    /// <summary>
+    /// Places a filled or hollow torus centered at (centerX, centerY, centerZ) oriented around <paramref name="axis"/>.
+    /// </summary>
+    public void SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, BlockState blockState, bool filled = true, Axis axis = Axis.Y)
+    {
+        ArgumentNullException.ThrowIfNull(blockState);
+        if (majorRadius <= 0)
+            throw new ArgumentOutOfRangeException(nameof(majorRadius), majorRadius, "MajorRadius must be greater than zero.");
+        if (minorRadius < 0 || minorRadius >= majorRadius)
+            throw new ArgumentOutOfRangeException(nameof(minorRadius), minorRadius, "MinorRadius must be non-negative and less than MajorRadius.");
+        ValidateAxis(axis, nameof(axis));
+
+        int outerExtent = majorRadius + minorRadius;
+        EnsureAxisBoxInBounds(centerX, centerY, centerZ, -outerExtent, outerExtent, -outerExtent, outerExtent, -minorRadius, minorRadius, axis);
+
+        double minorSq = (minorRadius + 0.5) * (minorRadius + 0.5);
+        bool IsInside(int du, int dv, int dh)
+        {
+            double ringDelta = Math.Sqrt(du * du + dv * dv) - majorRadius;
+            return ringDelta * ringDelta + dh * dh <= minorSq;
+        }
+
+        for (int dh = -minorRadius; dh <= minorRadius; dh++)
+        {
+            for (int dv = -outerExtent; dv <= outerExtent; dv++)
+            {
+                for (int du = -outerExtent; du <= outerExtent; du++)
+                {
+                    if (!IsInside(du, dv, dh))
+                        continue;
+
+                    if (!filled &&
+                        IsInside(du + 1, dv, dh) && IsInside(du - 1, dv, dh) &&
+                        IsInside(du, dv + 1, dh) && IsInside(du, dv - 1, dh) &&
+                        IsInside(du, dv, dh + 1) && IsInside(du, dv, dh - 1))
+                    {
+                        continue;
+                    }
+
+                    var pos = MapAxisOffset(centerX, centerY, centerZ, du, dv, dh, axis);
+                    SetBlock(pos.X, pos.Y, pos.Z, blockState);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow torus centered at (centerX, centerY, centerZ) from a blockstate string.
+    /// </summary>
+    public void SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, string blockStateString, bool filled = true, Axis axis = Axis.Y) =>
+        SetTorus(centerX, centerY, centerZ, majorRadius, minorRadius, BlockState.Parse(blockStateString), filled, axis);
+
+    /// <summary>
+    /// Places a filled or hollow torus centered at <paramref name="center"/>.
+    /// </summary>
+    public void SetTorus(BlockPosition center, int majorRadius, int minorRadius, BlockState blockState, bool filled = true, Axis axis = Axis.Y) =>
+        SetTorus(center.X, center.Y, center.Z, majorRadius, minorRadius, blockState, filled, axis);
+
+    /// <summary>
+    /// Places a filled or hollow torus centered at <paramref name="center"/> from a blockstate string.
+    /// </summary>
+    public void SetTorus(BlockPosition center, int majorRadius, int minorRadius, string blockStateString, bool filled = true, Axis axis = Axis.Y) =>
+        SetTorus(center.X, center.Y, center.Z, majorRadius, minorRadius, BlockState.Parse(blockStateString), filled, axis);
+
+    /// <summary>
+    /// Places a filled or hollow square-base pyramid starting at (startX, startY, startZ) with base edge <paramref name="baseSize"/>.
+    /// </summary>
+    public void SetPyramid(int startX, int startY, int startZ, int baseSize, BlockState blockState, bool filled = true)
+    {
+        ArgumentNullException.ThrowIfNull(blockState);
+        if (baseSize <= 0)
+            throw new ArgumentOutOfRangeException(nameof(baseSize), baseSize, "BaseSize must be greater than zero.");
+
+        int pyramidHeight = (baseSize + 1) / 2;
+        EnsureInBounds(startX, startY, startZ);
+        EnsureInBounds(startX + baseSize - 1, startY + pyramidHeight - 1, startZ + baseSize - 1);
+
+        for (int level = 0; level < pyramidHeight; level++)
+        {
+            int layerWidth = baseSize - 2 * level;
+            SetRectangle(startX + level, startY + level, startZ + level, layerWidth, layerWidth, blockState, filled: filled, normalAxis: Axis.Y);
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow square-base pyramid starting at (startX, startY, startZ) from a blockstate string.
+    /// </summary>
+    public void SetPyramid(int startX, int startY, int startZ, int baseSize, string blockStateString, bool filled = true) =>
+        SetPyramid(startX, startY, startZ, baseSize, BlockState.Parse(blockStateString), filled);
+
+    /// <summary>
+    /// Places a filled or hollow square-base pyramid starting at <paramref name="start"/>.
+    /// </summary>
+    public void SetPyramid(BlockPosition start, int baseSize, BlockState blockState, bool filled = true) =>
+        SetPyramid(start.X, start.Y, start.Z, baseSize, blockState, filled);
+
+    /// <summary>
+    /// Places a filled or hollow square-base pyramid starting at <paramref name="start"/> from a blockstate string.
+    /// </summary>
+    public void SetPyramid(BlockPosition start, int baseSize, string blockStateString, bool filled = true) =>
+        SetPyramid(start.X, start.Y, start.Z, baseSize, BlockState.Parse(blockStateString), filled);
+
+    private void SetEllipticalSlice(int cx, int cy, int cz, int radiusU, int radiusV, BlockState blockState, bool filled, Axis normalAxis)
+    {
+        double ruSq = (radiusU + 0.5) * (radiusU + 0.5);
+        double rvSq = (radiusV + 0.5) * (radiusV + 0.5);
+        bool isCircle = radiusU == radiusV;
+
+        bool IsInside(int du, int dv) => isCircle
+            ? du * du + dv * dv <= ruSq
+            : (du * du) / ruSq + (dv * dv) / rvSq <= 1.0;
+
+        for (int dv = -radiusV; dv <= radiusV; dv++)
+        {
+            for (int du = -radiusU; du <= radiusU; du++)
+            {
+                if (!IsInside(du, dv))
+                    continue;
+
+                if (!filled &&
+                    IsInside(du + 1, dv) && IsInside(du - 1, dv) &&
+                    IsInside(du, dv + 1) && IsInside(du, dv - 1))
+                {
+                    continue;
+                }
+
+                var pos = MapAxisOffset(cx, cy, cz, du, dv, 0, normalAxis);
+                SetBlock(pos.X, pos.Y, pos.Z, blockState);
+            }
+        }
+    }
+
+    private void EnsureAxisBoxInBounds(int cx, int cy, int cz, int minU, int maxU, int minV, int maxV, int minH, int maxH, Axis axis)
+    {
+        var minCorner = MapAxisOffset(cx, cy, cz, minU, minV, minH, axis);
+        var maxCorner = MapAxisOffset(cx, cy, cz, maxU, maxV, maxH, axis);
+        EnsureInBounds(minCorner.X, minCorner.Y, minCorner.Z);
+        EnsureInBounds(maxCorner.X, maxCorner.Y, maxCorner.Z);
+    }
+
+    private static BlockPosition MapAxisOffset(int cx, int cy, int cz, int du, int dv, int dh, Axis axis) => axis switch
+    {
+        Axis.X => new BlockPosition(cx + dh, cy + du, cz + dv),
+        Axis.Y => new BlockPosition(cx + du, cy + dh, cz + dv),
+        Axis.Z => new BlockPosition(cx + du, cy + dv, cz + dh),
+        _ => throw new ArgumentOutOfRangeException(nameof(axis), axis, "Unsupported axis value.")
+    };
+
+    private static void ValidateAxis(Axis axis, string paramName)
+    {
+        if (!Enum.IsDefined(axis))
+        {
+            throw new ArgumentOutOfRangeException(paramName, axis, "Unsupported axis value.");
+        }
+    }
+
+    /// <summary>
     /// Returns all distinct block states currently present in this schematic.
     /// </summary>
     public IReadOnlyList<BlockState> GetUniqueBlockStates()
