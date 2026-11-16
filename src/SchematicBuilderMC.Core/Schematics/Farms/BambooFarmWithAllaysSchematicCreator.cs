@@ -77,10 +77,10 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         builder.SetBlock(centerX - 1, SoilLevel + 5, centerZ, Minecraft.Blocks.BambooTrapdoor.FacingWest().WithHalf("top").WithOpen(true)); //
 
         // add allays to the schematic, each with a bamboo in their main hand
-        builder.AddEntity(new Entity(Minecraft.Entities.Allay, 1, SoilLevel + 4, 1)
+        builder.AddEntity(1, SoilLevel + 4, 1, new Entity(Minecraft.Entities.Allay)
                 .WithNoGravity()
                 .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
-        builder.AddEntity(new Entity(Minecraft.Entities.Allay, -1, SoilLevel + 4, -1)
+        builder.AddEntity(Width - 2, SoilLevel + 4, Length - 2, new Entity(Minecraft.Entities.Allay)
                 .WithNoGravity()
                 .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
 

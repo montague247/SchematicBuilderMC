@@ -28,7 +28,7 @@ A modern .NET 10 library and CLI for creating, manipulating, reading, and writin
 - **Redstone & Additional Block States**:
   - Strongly-typed enums: `Direction`, `BlockFace`, `ComparatorMode`, `BlockHalf`, `DoorHinge`, `SlabType`, `ChestType`, `StairsShape`, `Axis`.
   - Semantic fluent block state extensions: `.WithDelay(4)`, `.WithSubtractMode()`, `.WithFace(BlockFace.Floor)`, `.Powered()`, `.WithPower(15)`, `.WithHalf(BlockHalf.Top)`, `.WithOpen(true)`, `.WithHinge(DoorHinge.Left)`, etc.
-  - Dedicated builder methods on `Schematic` and `SchematicBuilder`: `SetRepeater`, `SetComparator`, `SetLever`, `SetRedstoneWire`, `SetPiston`, `SetChest`, `SetDoubleChest`, `SetSign`, `SetDecoratedPot`, `SetCrafter`, `AddItemFrame`.
+  - Dedicated builder methods on `Schematic` and `SchematicBuilder`: `SetRepeater`, `SetComparator`, `SetLever`, `SetRedstoneWire`, `SetPiston`, `SetChest`, `SetDoubleChest`, `SetSign`, `SetDecoratedPot`, `SetCrafter`, `AddEntity`, `AddMinecart`, `AddItemFrame`, `AddDroppedItem`.
 - **Fluent Builder**: `SchematicBuilder` for quick programmatic structure generation.
 - **Fluent Builder Code Generation**: Automatically generate C# source code using `SchematicBuilder` from any schematic file (`.schem`, `.schematic`, `.litematic`) with greedy 3D cuboid fill optimization, strongly-typed block constants, semantic property call emission (`WithDelay`, `WithFacing`, `WithSubtractMode`), dedicated container/sign/pot/crafter/item frame calls, and multiple output modes (`Statement`, `File`, `Method`, `Expression`).
 - **Async I/O**: Sync and async `Read`/`Write` methods for files, streams, and byte arrays.
@@ -114,7 +114,51 @@ builder.AddItemFrame(1.5, 2.0, 3.5, Direction.North, new ItemStack(Minecraft.Ite
 builder.AddItemFrame(5.5, 2.0, 5.5, Direction.East);
 ```
 
-### 4. Writing a Schematic
+### 4. Adding Entities & Coordinate Positioning
+
+Entities (mobs, armor stands, minecarts, dropped items, item frames) can be added using `AddEntity` or specialized helpers (`AddMinecart`, `AddItemFrame`, `AddDroppedItem`):
+
+```csharp
+// Fluent entity configuration with exact floating-point coordinates
+builder.AddEntity(new Entity(Minecraft.Entities.Allay, 2.5, 1.0, 2.5)
+    .WithNoGravity()
+    .WithMainHand(new ItemStack(Minecraft.Items.Bamboo))
+    .WithCustomName("Collector")
+    .WithRotation(90f));
+
+// Convenience methods for common entities
+builder.AddMinecart(1.5, 0.0625, 1.5, new Entity(Minecraft.Entities.Villager).WithCustomName("Driver"));
+builder.AddDroppedItem(3.5, 1.1, 3.5, new ItemStack(Minecraft.Items.Diamond, count: 4));
+```
+
+#### Special Entity Positioning vs. Setting Blocks
+
+Unlike blocks and block entities, entities do not sit on an integer grid and interact differently with schematic offsets:
+
+1. **Sub-block floating-point coordinates**: `SetBlock(int x, int y, int z, ...)` places blocks at integer grid coordinates (`0..Width-1`, `0..Height-1`, `0..Length-1`). Entities use `double` coordinates `(X, Y, Z)`: passing raw integers `(x, y, z)` places the entity on the northwest corner edge of that block, which can cause entities to clip into adjacent walls or blocks. Centering an entity horizontally inside a block requires `x + 0.5` and `z + 0.5`.
+2. **Schematic `Offset`**: When `.WithOffset(offsetX, offsetY, offsetZ)` is configured (for example `.WithOffset(-Width, -SoilLevel, 0)`), block and block-entity coordinates stay in local schematic grid space `(0..Width-1, 0..Height-1, 0..Length-1)` and are shifted by `Offset` when pasted. In `.schem` files, entity `Pos` coordinates are relative to the offset paste origin `(x + Offset.X, y + Offset.Y, z + Offset.Z)`.
+
+#### Adding Entities with Block Coordinates
+
+To place an entity using the exact same block coordinates `(x, y, z)` or `BlockPosition` as `SetBlock`, use the block-coordinate `AddEntity` overloads. They validate that `(x, y, z)` is inside the schematic bounds, apply the schematic's `Offset`, and center the entity horizontally at `(x + Offset.X + 0.5, y + Offset.Y, z + Offset.Z + 0.5)`:
+
+```csharp
+// Always call .WithOffset(...) before block-coordinate AddEntity calls
+var schematic = SchematicBuilder.Create(width: 10, height: 8, length: 10)
+    .WithOffset(-10, -5, 0)
+    .SetBlock(1, 5, 1, Minecraft.Blocks.NoteBlock)
+    // Placed inside block (1, 6, 1) -> entity coordinates (-8.5, 1.0, 1.5)
+    .AddEntity(1, 6, 1, new Entity(Minecraft.Entities.Allay)
+        .WithNoGravity()
+        .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)))
+    // Also supports BlockPosition and optional customName
+    .AddEntity(new BlockPosition(5, 6, 5), Minecraft.Entities.Sheep, customName: "jeb_")
+    .Build();
+```
+
+> **Note:** Block-coordinate `AddEntity` overloads read the current `Offset` at the time they are called, so configure `.WithOffset(...)` first. For fine-grained sub-block placement (for example item frames flush against a wall face or exact floating-point coordinates), continue using the `double` coordinate overloads `AddEntity(new Entity(id, x, y, z))` or `AddItemFrame(x, y, z, ...)`.
+
+### 5. Writing a Schematic
 
 ```csharp
 // Auto-detects format from extension:
@@ -126,7 +170,7 @@ SchematicFile.Write(schematic, "tower.litematic");
 SchematicFile.Write(schematic, "tower.schematic");
 ```
 
-### 5. Reading a Schematic
+### 6. Reading a Schematic
 
 ```csharp
 // Format is auto-detected from NBT structure and/or extension
@@ -137,14 +181,14 @@ BlockState block = loaded[2, 1, 2];
 Console.WriteLine($"Block at (2, 1, 2): {block}");
 ```
 
-### 6. Async I/O
+### 7. Async I/O
 
 ```csharp
 Schematic loaded = await SchematicFile.ReadAsync("tower.schem");
 await SchematicFile.WriteAsync(loaded, "tower_copy.schem");
 ```
 
-### 7. Generating Fluent Builder Source Code from a Schematic
+### 8. Generating Fluent Builder Source Code from a Schematic
 
 Convert any `.schem`, `.schematic`, or `.litematic` file into clean, strongly-typed C# fluent builder code:
 

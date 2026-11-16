@@ -212,5 +212,61 @@ public class SchematicTests
         Assert.DoesNotContain("Minecraft.Items.Diamond", code);
         Assert.Contains("Minecraft.Items.Emerald", code);
     }
+
+    [Fact]
+    public void AddEntity_WithBlockCoordinates_CentersHorizontallyAndAppliesOffset()
+    {
+        var schematic = new Schematic(10, 10, 10)
+        {
+            Offset = new BlockPosition(-10, -5, 2)
+        };
+
+        var allay = new Entity(Minecraft.Entities.Allay).WithNoGravity();
+        schematic.AddEntity(1, 6, 3, allay);
+
+        Assert.Single(schematic.Entities);
+        Assert.Equal(-8.5, allay.X);
+        Assert.Equal(1.0, allay.Y);
+        Assert.Equal(5.5, allay.Z);
+
+        var sheep = schematic.AddEntity(new BlockPosition(4, 7, 5), Minecraft.Entities.Sheep, customName: "jeb_");
+        Assert.Equal(2, schematic.Entities.Count);
+        Assert.Equal(-5.5, sheep.X);
+        Assert.Equal(2.0, sheep.Y);
+        Assert.Equal(7.5, sheep.Z);
+        Assert.Equal("jeb_", sheep.CustomName);
+    }
+
+    [Fact]
+    public void AddEntity_WithBlockCoordinates_WithoutOffset_CentersWithinBlock()
+    {
+        var schematic = new Schematic(5, 5, 5);
+        var pig = new Entity(Minecraft.Entities.Pig);
+
+        schematic.AddEntity(2, 1, 3, pig);
+
+        Assert.Equal(2.5, pig.X);
+        Assert.Equal(1.0, pig.Y);
+        Assert.Equal(3.5, pig.Z);
+
+        var namedCow = schematic.AddEntity(0, 0, 0, Minecraft.Entities.Cow, customName: "Bessie");
+        Assert.Equal(0.5, namedCow.X);
+        Assert.Equal(0.0, namedCow.Y);
+        Assert.Equal(0.5, namedCow.Z);
+        Assert.Equal("Bessie", namedCow.CustomName);
+    }
+
+    [Fact]
+    public void AddEntity_WithBlockCoordinates_ValidatesArgumentsAndBounds()
+    {
+        var schematic = new Schematic(3, 3, 3);
+
+        Assert.Throws<ArgumentNullException>(() => schematic.AddEntity(0, 0, 0, (Entity)null!));
+        Assert.Throws<ArgumentNullException>(() => schematic.AddEntity(new BlockPosition(0, 0, 0), (Entity)null!));
+        Assert.Throws<ArgumentOutOfRangeException>(() => schematic.AddEntity(-1, 0, 0, new Entity(Minecraft.Entities.Pig)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => schematic.AddEntity(3, 0, 0, new Entity(Minecraft.Entities.Pig)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => schematic.AddEntity(0, 3, 0, Minecraft.Entities.Pig));
+        Assert.Throws<ArgumentOutOfRangeException>(() => schematic.AddEntity(new BlockPosition(0, 0, 3), Minecraft.Entities.Pig));
+    }
 }
 

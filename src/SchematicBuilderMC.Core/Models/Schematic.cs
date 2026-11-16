@@ -733,6 +733,54 @@ public sealed class Schematic
     }
 
     /// <summary>
+    /// Adds an entity to the schematic using block coordinates (x, y, z).
+    /// Applies the schematic's <see cref="Offset"/> and centers the entity horizontally within the block
+    /// at (x + Offset.X + 0.5, y + Offset.Y, z + Offset.Z + 0.5).
+    /// </summary>
+    public Entity AddEntity(int x, int y, int z, Entity entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        EnsureInBounds(x, y, z);
+
+        entity.X = x + Offset.X + 0.5;
+        entity.Y = y + Offset.Y;
+        entity.Z = z + Offset.Z + 0.5;
+        entity.Data.Remove("Pos");
+
+        AddEntity(entity);
+        return entity;
+    }
+
+    /// <summary>
+    /// Adds an entity to the schematic at the specified block position.
+    /// Applies the schematic's <see cref="Offset"/> and centers the entity horizontally within the block
+    /// at (position.X + Offset.X + 0.5, position.Y + Offset.Y, position.Z + Offset.Z + 0.5).
+    /// </summary>
+    public Entity AddEntity(BlockPosition position, Entity entity) =>
+        AddEntity(position.X, position.Y, position.Z, entity);
+
+    /// <summary>
+    /// Adds an entity (optionally named, such as when renamed with a Name Tag) to the schematic using block coordinates (x, y, z).
+    /// Applies the schematic's <see cref="Offset"/> and centers the entity horizontally within the block.
+    /// </summary>
+    public Entity AddEntity(int x, int y, int z, string entityId, string? customName = null, bool customNameVisible = true, bool persistenceRequired = true)
+    {
+        var entity = new Entity(entityId);
+        if (!string.IsNullOrWhiteSpace(customName))
+        {
+            entity.WithCustomName(customName, customNameVisible, persistenceRequired);
+        }
+        return AddEntity(x, y, z, entity);
+    }
+
+    /// <summary>
+    /// Adds an entity (optionally named, such as when renamed with a Name Tag) to the schematic at the specified block position.
+    /// Applies the schematic's <see cref="Offset"/> and centers the entity horizontally within the block.
+    /// </summary>
+    public Entity AddEntity(BlockPosition position, string entityId, string? customName = null, bool customNameVisible = true, bool persistenceRequired = true) =>
+        AddEntity(position.X, position.Y, position.Z, entityId, customName, customNameVisible, persistenceRequired);
+
+    /// <summary>
     /// Adds a minecart entity to the schematic with an optional passenger.
     /// </summary>
     public Entity AddMinecart(

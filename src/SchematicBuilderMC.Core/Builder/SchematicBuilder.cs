@@ -560,6 +560,48 @@ public sealed class SchematicBuilder
     }
 
     /// <summary>
+    /// Adds an entity to the schematic using block coordinates (x, y, z).
+    /// Applies the schematic's current offset and centers the entity horizontally within the block
+    /// at (x + Offset.X + 0.5, y + Offset.Y, z + Offset.Z + 0.5).
+    /// </summary>
+    public SchematicBuilder AddEntity(int x, int y, int z, Entity entity)
+    {
+        _schematic.AddEntity(x, y, z, entity);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an entity to the schematic at the specified block position.
+    /// Applies the schematic's current offset and centers the entity horizontally within the block
+    /// at (position.X + Offset.X + 0.5, position.Y + Offset.Y, position.Z + Offset.Z + 0.5).
+    /// </summary>
+    public SchematicBuilder AddEntity(BlockPosition position, Entity entity)
+    {
+        _schematic.AddEntity(position, entity);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an entity (optionally named, such as when renamed with a Name Tag) to the schematic using block coordinates (x, y, z).
+    /// Applies the schematic's current offset and centers the entity horizontally within the block.
+    /// </summary>
+    public SchematicBuilder AddEntity(int x, int y, int z, string entityId, string? customName = null, bool customNameVisible = true, bool persistenceRequired = true)
+    {
+        _schematic.AddEntity(x, y, z, entityId, customName, customNameVisible, persistenceRequired);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an entity (optionally named, such as when renamed with a Name Tag) to the schematic at the specified block position.
+    /// Applies the schematic's current offset and centers the entity horizontally within the block.
+    /// </summary>
+    public SchematicBuilder AddEntity(BlockPosition position, string entityId, string? customName = null, bool customNameVisible = true, bool persistenceRequired = true)
+    {
+        _schematic.AddEntity(position, entityId, customName, customNameVisible, persistenceRequired);
+        return this;
+    }
+
+    /// <summary>
     /// Adds a minecart entity to the schematic with an optional passenger.
     /// </summary>
     public SchematicBuilder AddMinecart(
