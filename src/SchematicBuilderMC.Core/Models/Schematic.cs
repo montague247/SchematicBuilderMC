@@ -11,29 +11,29 @@ namespace SchematicBuilderMC.Models;
 /// </summary>
 public sealed class Schematic
 {
-    private readonly BlockState[] _blocks;
+    private BlockState[] _blocks;
     private readonly Dictionary<BlockPosition, BlockEntity> _blockEntities = [];
     private readonly List<Entity> _entities = [];
 
     /// <summary>
     /// Size along the X axis.
     /// </summary>
-    public int Width { get; }
+    public int Width { get; private set; }
 
     /// <summary>
     /// Size along the Y axis.
     /// </summary>
-    public int Height { get; }
+    public int Height { get; private set; }
 
     /// <summary>
     /// Size along the Z axis.
     /// </summary>
-    public int Length { get; }
+    public int Length { get; private set; }
 
     /// <summary>
     /// Total block count (Width * Height * Length).
     /// </summary>
-    public int TotalBlocks { get; }
+    public int TotalBlocks { get; private set; }
 
     /// <summary>
     /// Placement offset relative to origin.
@@ -62,6 +62,133 @@ public sealed class Schematic
 
     public Schematic(int width, int height, int length)
     {
+        int totalBlocks = ValidateDimensionsAndVolume(width, height, length);
+
+        Width = width;
+        Height = height;
+        Length = length;
+        TotalBlocks = totalBlocks;
+
+        _blocks = new BlockState[totalBlocks];
+        Array.Fill(_blocks, BlockState.Air);
+    }
+
+    /// <summary>
+    /// Ensures this schematic is at least <paramref name="minWidth"/> x <paramref name="minHeight"/> x <paramref name="minLength"/>,
+    /// expanding its dimensions while preserving existing blocks, block entities, and entities.
+    /// </summary>
+    public void EnsureDimensions(int minWidth, int minHeight, int minLength)
+    {
+        if (minWidth <= 0) throw new ArgumentOutOfRangeException(nameof(minWidth), minWidth, "Minimum width must be greater than zero.");
+        if (minHeight <= 0) throw new ArgumentOutOfRangeException(nameof(minHeight), minHeight, "Minimum height must be greater than zero.");
+        if (minLength <= 0) throw new ArgumentOutOfRangeException(nameof(minLength), minLength, "Minimum length must be greater than zero.");
+
+        int newWidth = Math.Max(Width, minWidth);
+        int newHeight = Math.Max(Height, minHeight);
+        int newLength = Math.Max(Length, minLength);
+
+        if (newWidth == Width && newHeight == Height && newLength == Length)
+        {
+            return;
+        }
+
+        int newTotalBlocks = ValidateDimensionsAndVolume(newWidth, newHeight, newLength);
+        var newBlocks = new BlockState[newTotalBlocks];
+        Array.Fill(newBlocks, BlockState.Air);
+
+        for (int y = 0; y < Height; y++)
+        {
+            for (int z = 0; z < Length; z++)
+            {
+                int oldRowStart = (y * Length + z) * Width;
+                int newRowStart = (y * newLength + z) * newWidth;
+                Array.Copy(_blocks, oldRowStart, newBlocks, newRowStart, Width);
+            }
+        }
+
+        _blocks = newBlocks;
+        Width = newWidth;
+        Height = newHeight;
+        Length = newLength;
+        TotalBlocks = newTotalBlocks;
+    }
+
+    /// <summary>
+    /// Places an existing <paramref name="schematic"/> into this schematic starting at (startX, startY, startZ),
+    /// automatically extending dimensions if the placed schematic exceeds the current bounds.
+    /// </summary>
+    public void Place(Schematic schematic, int startX = 0, int startY = 0, int startZ = 0, bool includeAir = false)
+    {
+        ArgumentNullException.ThrowIfNull(schematic);
+        if (startX < 0) throw new ArgumentOutOfRangeException(nameof(startX), startX, "StartX must be zero or greater.");
+        if (startY < 0) throw new ArgumentOutOfRangeException(nameof(startY), startY, "StartY must be zero or greater.");
+        if (startZ < 0) throw new ArgumentOutOfRangeException(nameof(startZ), startZ, "StartZ must be zero or greater.");
+
+        var source = ReferenceEquals(this, schematic) ? schematic.Clone() : schematic;
+        EnsureDimensions(checked(startX + source.Width), checked(startY + source.Height), checked(startZ + source.Length));
+
+        for (int y = 0; y < source.Height; y++)
+        {
+            for (int z = 0; z < source.Length; z++)
+            {
+                for (int x = 0; x < source.Width; x++)
+                {
+                    var state = source.GetBlock(x, y, z);
+                    if (!state.IsAir || includeAir)
+                    {
+                        SetBlock(startX + x, startY + y, startZ + z, state);
+                    }
+                }
+            }
+        }
+
+        foreach (var be in source.BlockEntities)
+        {
+            var beClone = be.Clone();
+            beClone.Position = new BlockPosition(startX + be.Position.X, startY + be.Position.Y, startZ + be.Position.Z);
+            SetBlockEntity(beClone);
+        }
+
+        bool targetUsesOffsetSpace = Offset != BlockPosition.Zero;
+        foreach (var ent in source.Entities)
+        {
+            var entClone = ent.Clone();
+            entClone.Data.Remove("Pos");
+
+            bool sourceUsesOffsetSpace = source.Offset != BlockPosition.Zero &&
+                                         (entClone.X < 0 || entClone.X > source.Width ||
+                                          entClone.Y < 0 || entClone.Y > source.Height ||
+                                          entClone.Z < 0 || entClone.Z > source.Length);
+
+            double localX = sourceUsesOffsetSpace ? entClone.X - source.Offset.X : entClone.X;
+            double localY = sourceUsesOffsetSpace ? entClone.Y - source.Offset.Y : entClone.Y;
+            double localZ = sourceUsesOffsetSpace ? entClone.Z - source.Offset.Z : entClone.Z;
+
+            entClone.X = localX + startX + (targetUsesOffsetSpace ? Offset.X : 0);
+            entClone.Y = localY + startY + (targetUsesOffsetSpace ? Offset.Y : 0);
+            entClone.Z = localZ + startZ + (targetUsesOffsetSpace ? Offset.Z : 0);
+            _entities.Add(entClone);
+        }
+
+        foreach (string modId in source.Metadata.RequiredMods)
+        {
+            if (!string.IsNullOrWhiteSpace(modId) &&
+                !Metadata.RequiredMods.Contains(modId, StringComparer.Ordinal))
+            {
+                Metadata.RequiredMods.Add(modId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places an existing <paramref name="schematic"/> into this schematic starting at <paramref name="start"/>,
+    /// automatically extending dimensions if the placed schematic exceeds the current bounds.
+    /// </summary>
+    public void Place(Schematic schematic, BlockPosition start, bool includeAir = false) =>
+        Place(schematic, start.X, start.Y, start.Z, includeAir);
+
+    private static int ValidateDimensionsAndVolume(int width, int height, int length)
+    {
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width), width, "Width must be greater than zero.");
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height), height, "Height must be greater than zero.");
         if (length <= 0) throw new ArgumentOutOfRangeException(nameof(length), length, "Length must be greater than zero.");
@@ -86,13 +213,7 @@ public sealed class Schematic
                 $"Schematic volume ({totalBlocks}) exceeds the maximum supported array capacity ({Array.MaxLength}).");
         }
 
-        Width = width;
-        Height = height;
-        Length = length;
-        TotalBlocks = totalBlocks;
-
-        _blocks = new BlockState[totalBlocks];
-        Array.Fill(_blocks, BlockState.Air);
+        return totalBlocks;
     }
 
     /// <summary>

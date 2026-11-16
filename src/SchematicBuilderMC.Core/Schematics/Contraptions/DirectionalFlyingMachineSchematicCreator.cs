@@ -62,22 +62,14 @@ public sealed class DirectionalFlyingMachineSchematicCreator : SchematicCreator
     public int Length => TravelDirection is Direction.North or Direction.South ? TravelSpan : 2;
 
     /// <summary>
-    /// Places the directional flying machine into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ).
+    /// Places the directional flying machine into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
     /// </summary>
-    public SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    public override SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
-
-        if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + Width > builder.Width ||
-            startY + Height > builder.Height ||
-            startZ + Length > builder.Length)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(startX),
-                $"A flying machine traveling {TravelDirection} ({Width}x{Height}x{Length}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
-        }
+        EnsurePlacementBounds(builder, startX, startY, startZ, Width, Height, Length);
 
         Direction oppositeDirection = GetOppositeDirection(TravelDirection);
         string slimeOrHoney = UseHoneyBlocks ? Minecraft.Blocks.HoneyBlock : Minecraft.Blocks.SlimeBlock;

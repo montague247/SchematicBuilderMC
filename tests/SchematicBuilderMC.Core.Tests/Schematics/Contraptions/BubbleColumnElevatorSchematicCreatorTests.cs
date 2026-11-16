@@ -126,14 +126,20 @@ public sealed class BubbleColumnElevatorSchematicCreatorTests
     }
 
     [Fact]
-    public void Place_IntoLargerSchematic_ValidatesBounds()
+    public void Place_IntoSmallerOrOffsetSchematic_ExtendsDimensionsAndValidatesNegativeCoordinates()
     {
         var elevator = new BubbleColumnElevatorSchematicCreator { ShaftHeight = 5, Facing = Direction.North };
-        var builder = SchematicBuilder.Create(8, 8, 8).Create(elevator, 1, 1, 1);
-        var schematic = builder.Build();
+        var builder = SchematicBuilder.Create(8, 8, 8)
+            .Create(elevator, 1, 1, 1)
+            .Create(elevator, 5, 1, 1);
 
+        var schematic = builder.Build();
+        Assert.Equal(10, schematic.Width);
+        Assert.Equal(8, schematic.Height);
+        Assert.Equal(8, schematic.Length);
         Assert.Equal(Minecraft.Blocks.SoulSand, schematic[2, 1, 3].Identifier);
-        Assert.Throws<ArgumentOutOfRangeException>(() => builder.Create(elevator, 5, 1, 1));
+        Assert.Equal(Minecraft.Blocks.SoulSand, schematic[6, 1, 3].Identifier);
+        Assert.Throws<ArgumentOutOfRangeException>(() => builder.Create(elevator, -1, 1, 1));
     }
 
     [Fact]

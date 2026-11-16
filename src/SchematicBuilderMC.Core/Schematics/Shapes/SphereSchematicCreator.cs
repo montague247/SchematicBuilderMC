@@ -6,7 +6,7 @@ namespace SchematicBuilderMC.Schematics.Shapes;
 /// <summary>
 /// Generates a filled or hollow 3D sphere schematic.
 /// </summary>
-public sealed class SphereSchematicCreator : SchematicCreator
+public sealed class SphereSchematicCreator : ShapesSchematicCreator
 {
     /// <summary>
     /// Sphere radius in blocks (0 or greater).
@@ -24,24 +24,17 @@ public sealed class SphereSchematicCreator : SchematicCreator
     public bool Filled { get; set; } = false;
 
     /// <summary>
-    /// Places the sphere into an existing <see cref="SchematicBuilder"/> with its bounding box starting at (startX, startY, startZ).
+    /// Places the sphere into an existing <see cref="SchematicBuilder"/> with its bounding box starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
     /// </summary>
-    public SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    public override SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
         int effectiveRadius = GetEffectiveRadius();
         int diameter = 2 * effectiveRadius + 1;
-        if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + diameter > builder.Width ||
-            startY + diameter > builder.Height ||
-            startZ + diameter > builder.Length)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(startX),
-                $"A sphere ({diameter}x{diameter}x{diameter}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
-        }
+        EnsurePlacementBounds(builder, startX, startY, startZ, diameter, diameter, diameter);
 
         return builder.SetSphere(startX + effectiveRadius, startY + effectiveRadius, startZ + effectiveRadius, effectiveRadius, Block, Filled, SmoothnessFactor);
     }

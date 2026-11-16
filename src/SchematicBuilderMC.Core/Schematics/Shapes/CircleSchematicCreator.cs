@@ -7,7 +7,7 @@ namespace SchematicBuilderMC.Schematics.Shapes;
 /// <summary>
 /// Generates a filled or hollow circle schematic in the plane perpendicular to <see cref="NormalAxis"/>.
 /// </summary>
-public sealed class CircleSchematicCreator : SchematicCreator
+public sealed class CircleSchematicCreator : ShapesSchematicCreator
 {
     /// <summary>
     /// Circle radius in blocks (0 or greater).
@@ -30,24 +30,17 @@ public sealed class CircleSchematicCreator : SchematicCreator
     public Axis NormalAxis { get; set; } = Axis.Y;
 
     /// <summary>
-    /// Places the circle into an existing <see cref="SchematicBuilder"/> with its bounding box starting at (startX, startY, startZ).
+    /// Places the circle into an existing <see cref="SchematicBuilder"/> with its bounding box starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
     /// </summary>
-    public SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    public override SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
         int effectiveRadius = GetEffectiveRadius();
         var (width, height, length) = GetDimensions(effectiveRadius);
-        if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + width > builder.Width ||
-            startY + height > builder.Height ||
-            startZ + length > builder.Length)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(startX),
-                $"A circle ({width}x{height}x{length}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
-        }
+        EnsurePlacementBounds(builder, startX, startY, startZ, width, height, length);
 
         var (cx, cy, cz) = NormalAxis switch
         {

@@ -144,7 +144,10 @@ public sealed class AutomaticSmelterSchematicCreatorTests
             }.Create());
 
         var smelter = new AutomaticSmelterSchematicCreator();
-        var builder = SchematicBuilder.Create(3, 4, 3);
-        Assert.Throws<ArgumentOutOfRangeException>(() => builder.Create(smelter, 2, 0, 0));
+        var builder = SchematicBuilder.Create(3, 4, 3).Create(smelter, 2, 0, 0);
+        Assert.Equal(4, builder.Width);
+        Assert.Equal(4, builder.Height);
+        Assert.Equal(3, builder.Length);
+        Assert.Throws<ArgumentOutOfRangeException>(() => builder.Create(smelter, -1, 0, 0));
     }
 }

@@ -2,6 +2,7 @@ using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.Generators;
 using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
+using SchematicBuilderMC.Schematics;
 
 namespace SchematicBuilderMC.Builder;
 
@@ -973,6 +974,81 @@ public sealed class SchematicBuilder
         _schematic.AddDroppedItem(position, itemId, count, age, pickupDelay);
         return this;
     }
+
+    /// <summary>
+    /// Ensures the schematic being built is at least <paramref name="minWidth"/> x <paramref name="minHeight"/> x <paramref name="minLength"/>,
+    /// expanding its dimensions while preserving existing contents.
+    /// </summary>
+    public SchematicBuilder EnsureDimensions(int minWidth, int minHeight, int minLength)
+    {
+        _schematic.EnsureDimensions(minWidth, minHeight, minLength);
+        return this;
+    }
+
+    /// <summary>
+    /// Places an existing <paramref name="schematic"/> into this schematic starting at (startX, startY, startZ),
+    /// extending dimensions automatically if needed.
+    /// </summary>
+    public SchematicBuilder Place(Schematic schematic, int startX = 0, int startY = 0, int startZ = 0, bool includeAir = false)
+    {
+        _schematic.Place(schematic, startX, startY, startZ, includeAir);
+        return this;
+    }
+
+    /// <summary>
+    /// Places an existing <paramref name="schematic"/> into this schematic starting at <paramref name="start"/>,
+    /// extending dimensions automatically if needed.
+    /// </summary>
+    public SchematicBuilder Place(Schematic schematic, BlockPosition start, bool includeAir = false)
+    {
+        _schematic.Place(schematic, start, includeAir);
+        return this;
+    }
+
+    /// <summary>
+    /// Places a <see cref="SchematicCreator"/> into this schematic starting at (startX, startY, startZ),
+    /// extending dimensions automatically if needed.
+    /// </summary>
+    public SchematicBuilder Place(SchematicCreator creator, int startX = 0, int startY = 0, int startZ = 0)
+    {
+        ArgumentNullException.ThrowIfNull(creator);
+        return creator.Place(this, startX, startY, startZ);
+    }
+
+    /// <summary>
+    /// Places a <see cref="SchematicCreator"/> into this schematic starting at <paramref name="start"/>,
+    /// extending dimensions automatically if needed.
+    /// </summary>
+    public SchematicBuilder Place(SchematicCreator creator, BlockPosition start) =>
+        Place(creator, start.X, start.Y, start.Z);
+
+    /// <summary>
+    /// Places an existing <paramref name="schematic"/> into this schematic starting at (startX, startY, startZ),
+    /// extending dimensions automatically if needed.
+    /// </summary>
+    public SchematicBuilder Create(Schematic schematic, int startX = 0, int startY = 0, int startZ = 0, bool includeAir = false) =>
+        Place(schematic, startX, startY, startZ, includeAir);
+
+    /// <summary>
+    /// Places an existing <paramref name="schematic"/> into this schematic starting at <paramref name="start"/>,
+    /// extending dimensions automatically if needed.
+    /// </summary>
+    public SchematicBuilder Create(Schematic schematic, BlockPosition start, bool includeAir = false) =>
+        Place(schematic, start, includeAir);
+
+    /// <summary>
+    /// Places a <see cref="SchematicCreator"/> into this schematic starting at (startX, startY, startZ),
+    /// extending dimensions automatically if needed.
+    /// </summary>
+    public SchematicBuilder Create(SchematicCreator creator, int startX = 0, int startY = 0, int startZ = 0) =>
+        Place(creator, startX, startY, startZ);
+
+    /// <summary>
+    /// Places a <see cref="SchematicCreator"/> into this schematic starting at <paramref name="start"/>,
+    /// extending dimensions automatically if needed.
+    /// </summary>
+    public SchematicBuilder Create(SchematicCreator creator, BlockPosition start) =>
+        Place(creator, start);
 
     /// <summary>
     /// Builds and returns the finished schematic, applying <see cref="Rotation"/> if configured.

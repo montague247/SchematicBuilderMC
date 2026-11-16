@@ -119,7 +119,7 @@ public sealed class DirectionalFlyingMachineSchematicCreatorTests
     }
 
     [Fact]
-    public void Create_InvalidStopDistanceOrOutOfBoundsPlacement_ThrowsArgumentOutOfRangeException()
+    public void Create_InvalidStopDistance_ThrowsAndOffsetPlacement_ExtendsDimensions()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new DirectionalFlyingMachineSchematicCreator { StopDistance = 0 }.Create());
@@ -129,8 +129,11 @@ public sealed class DirectionalFlyingMachineSchematicCreatorTests
             TravelDirection = Direction.South,
             IncludeStarter = true
         };
-        var builder = SchematicBuilder.Create(4, 2, 4);
-        Assert.Throws<ArgumentOutOfRangeException>(() => builder.Create(machine, 0, 0, 1));
+        var builder = SchematicBuilder.Create(4, 2, 4).Create(machine, 0, 0, 1);
+        Assert.Equal(4, builder.Width);
+        Assert.Equal(2, builder.Height);
+        Assert.Equal(5, builder.Length);
+        Assert.Throws<ArgumentOutOfRangeException>(() => builder.Create(machine, -1, 0, 1));
     }
 
     [Fact]

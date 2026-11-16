@@ -67,22 +67,14 @@ public sealed class CompactCropFarmSchematicCreator : SchematicCreator
     public int Length => Facing is Direction.North or Direction.South ? DepthSpan : LateralSpan;
 
     /// <summary>
-    /// Places the compact crop farm into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ).
+    /// Places the compact crop farm into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
     /// </summary>
-    public SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    public override SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
-
-        if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + Width > builder.Width ||
-            startY + Height > builder.Height ||
-            startZ + Length > builder.Length)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(startX),
-                $"A compact {Crop} farm ({Width}x{Height}x{Length}) facing {Facing} placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
-        }
+        EnsurePlacementBounds(builder, startX, startY, startZ, Width, Height, Length);
 
         int centerU = LateralSpan / 2;
         int leftCropU = centerU - 1;

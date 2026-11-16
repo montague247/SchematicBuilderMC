@@ -118,7 +118,7 @@ public sealed class CompactPistonDoorSchematicCreatorTests
     }
 
     [Fact]
-    public void Place_IntoLargerSchematic_PreservesUnrelatedBlocksAndRejectsOutOfBounds()
+    public void Place_IntoSchematic_PreservesUnrelatedBlocksAndExtendsDimensions()
     {
         var door = new CompactPistonDoorSchematicCreator
         {
@@ -136,8 +136,14 @@ public sealed class CompactPistonDoorSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.GoldBlock, schematic[9, 5, 7].Identifier);
         Assert.Equal(Minecraft.Blocks.Lever, schematic[door.GetTriggerPosition(2, 1, 2)].Identifier);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => builder.Create(door, startX: 6, startY: 1, startZ: 2));
-        Assert.Equal(Minecraft.Blocks.GoldBlock, schematic[9, 5, 7].Identifier);
+        builder.Create(door, startX: 10, startY: 1, startZ: 2);
+        var extended = builder.Build();
+        Assert.Equal(10 + door.Width, extended.Width);
+        Assert.Equal(Minecraft.Blocks.DiamondBlock, extended[0, 0, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.GoldBlock, extended[9, 5, 7].Identifier);
+        Assert.Equal(Minecraft.Blocks.Lever, extended[door.GetTriggerPosition(10, 1, 2)].Identifier);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => builder.Create(door, startX: -1, startY: 1, startZ: 2));
     }
 
     [Theory]

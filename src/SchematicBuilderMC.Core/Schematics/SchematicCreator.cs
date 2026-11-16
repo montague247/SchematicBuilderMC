@@ -12,11 +12,6 @@ public abstract class SchematicCreator
     public Rotation Rotation { get; set; } = Rotation.None;
 
     /// <summary>
-    /// Resolution and smoothness multiplier applied to procedural shapes (&gt; 0). Higher values produce finer, rounder forms.
-    /// </summary>
-    public double SmoothnessFactor { get; set; } = 1.0;
-
-    /// <summary>
     /// Sets <see cref="Rotation"/> before creating the schematic and returns this creator instance.
     /// </summary>
     public SchematicCreator WithRotation(Rotation rotation)
@@ -30,42 +25,41 @@ public abstract class SchematicCreator
         return this;
     }
 
-    /// <summary>
-    /// Sets <see cref="SmoothnessFactor"/> before creating the schematic and returns this creator instance.
-    /// </summary>
-    public SchematicCreator WithSmoothnessFactor(double smoothnessFactor)
-    {
-        ValidateSmoothnessFactorValue(smoothnessFactor);
-        SmoothnessFactor = smoothnessFactor;
-        return this;
-    }
-
-    protected void ValidateSmoothnessFactor() => ValidateSmoothnessFactorValue(SmoothnessFactor);
-
-    protected int ScaleDimension(int value, int minimum = 0)
-    {
-        ValidateSmoothnessFactor();
-        int scaled = (int)Math.Round(value * SmoothnessFactor, MidpointRounding.AwayFromZero);
-        return Math.Max(minimum, scaled);
-    }
-
-    private static void ValidateSmoothnessFactorValue(double smoothnessFactor)
-    {
-        if (!double.IsFinite(smoothnessFactor) || smoothnessFactor <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(smoothnessFactor), smoothnessFactor, "SmoothnessFactor must be finite and greater than zero.");
-        }
-    }
-
     public abstract SchematicBuilder Create();
+
+    /// <summary>
+    /// Places this schematic into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
+    /// </summary>
+    public virtual SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.Place(Build(), startX, startY, startZ);
+    }
+
+    protected static void EnsurePlacementBounds(SchematicBuilder builder, int startX, int startY, int startZ, int width, int height, int length)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        if (startX < 0)
+            throw new ArgumentOutOfRangeException(nameof(startX), startX, "StartX must be zero or greater.");
+        if (startY < 0)
+            throw new ArgumentOutOfRangeException(nameof(startY), startY, "StartY must be zero or greater.");
+        if (startZ < 0)
+            throw new ArgumentOutOfRangeException(nameof(startZ), startZ, "StartZ must be zero or greater.");
+
+        builder.EnsureDimensions(checked(startX + width), checked(startY + height), checked(startZ + length));
+    }
 
     public Schematic Build()
     {
         var builder = Create();
-        if (Rotation != Rotation.None && builder.Rotation == Rotation.None)
+
+        if (Rotation != Rotation.None &&
+            builder.Rotation == Rotation.None)
         {
             builder.WithRotation(Rotation);
         }
+
         return builder.Build();
     }
 }

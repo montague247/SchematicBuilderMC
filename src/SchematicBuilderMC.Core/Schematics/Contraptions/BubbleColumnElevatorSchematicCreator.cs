@@ -65,25 +65,17 @@ public sealed class BubbleColumnElevatorSchematicCreator : SchematicCreator
     public int Length => Facing is Direction.North or Direction.South ? 4 : 5;
 
     /// <summary>
-    /// Places the bubble-column elevator into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ).
+    /// Places the bubble-column elevator into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
     /// </summary>
-    public SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    public override SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
         ArgumentException.ThrowIfNullOrWhiteSpace(WallBlock);
         ArgumentException.ThrowIfNullOrWhiteSpace(BaseBlock);
         ArgumentException.ThrowIfNullOrWhiteSpace(DoorBlock);
-
-        if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + Width > builder.Width ||
-            startY + Height > builder.Height ||
-            startZ + Length > builder.Length)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(startX),
-                $"A bubble-column elevator facing {Facing} ({Width}x{Height}x{Length}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
-        }
+        EnsurePlacementBounds(builder, startX, startY, startZ, Width, Height, Length);
 
         // Base layer (y = 0)
         for (int v = 0; v <= 3; v++)

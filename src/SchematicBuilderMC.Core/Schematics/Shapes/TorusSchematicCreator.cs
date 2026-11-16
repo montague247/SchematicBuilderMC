@@ -7,7 +7,7 @@ namespace SchematicBuilderMC.Schematics.Shapes;
 /// <summary>
 /// Generates a filled or hollow 3D torus schematic oriented around <see cref="Axis"/>.
 /// </summary>
-public sealed class TorusSchematicCreator : SchematicCreator
+public sealed class TorusSchematicCreator : ShapesSchematicCreator
 {
     /// <summary>
     /// Distance from the center of the torus to the center of the tube (greater than 0).
@@ -35,24 +35,17 @@ public sealed class TorusSchematicCreator : SchematicCreator
     public Axis Axis { get; set; } = Axis.Y;
 
     /// <summary>
-    /// Places the torus into an existing <see cref="SchematicBuilder"/> with its bounding box starting at (startX, startY, startZ).
+    /// Places the torus into an existing <see cref="SchematicBuilder"/> with its bounding box starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
     /// </summary>
-    public SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    public override SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
         var (effectiveMajorRadius, effectiveMinorRadius) = GetEffectiveRadii();
         var (width, height, length) = GetDimensions(effectiveMajorRadius, effectiveMinorRadius);
-        if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + width > builder.Width ||
-            startY + height > builder.Height ||
-            startZ + length > builder.Length)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(startX),
-                $"A torus ({width}x{height}x{length}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
-        }
+        EnsurePlacementBounds(builder, startX, startY, startZ, width, height, length);
 
         int outerExtent = effectiveMajorRadius + effectiveMinorRadius;
         var (cx, cy, cz) = Axis switch

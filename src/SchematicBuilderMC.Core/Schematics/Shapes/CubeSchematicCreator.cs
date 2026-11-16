@@ -6,7 +6,7 @@ namespace SchematicBuilderMC.Schematics.Shapes;
 /// <summary>
 /// Generates a filled or hollow 3D cube schematic.
 /// </summary>
-public sealed class CubeSchematicCreator : SchematicCreator
+public sealed class CubeSchematicCreator : ShapesSchematicCreator
 {
     /// <summary>
     /// Edge length of the cube in blocks (greater than 0).
@@ -24,23 +24,16 @@ public sealed class CubeSchematicCreator : SchematicCreator
     public bool Filled { get; set; } = true;
 
     /// <summary>
-    /// Places the cube into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ).
+    /// Places the cube into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
     /// </summary>
-    public SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    public override SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
         int effectiveSize = GetEffectiveSize();
-        if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + effectiveSize > builder.Width ||
-            startY + effectiveSize > builder.Height ||
-            startZ + effectiveSize > builder.Length)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(startX),
-                $"A cube ({effectiveSize}x{effectiveSize}x{effectiveSize}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
-        }
+        EnsurePlacementBounds(builder, startX, startY, startZ, effectiveSize, effectiveSize, effectiveSize);
 
         return builder.SetCube(startX, startY, startZ, effectiveSize, Block, Filled);
     }

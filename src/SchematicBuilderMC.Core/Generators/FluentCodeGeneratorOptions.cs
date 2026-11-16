@@ -63,7 +63,7 @@ public sealed class FluentCodeGeneratorOptions
     public bool OptimizeFills { get; set; } = true;
 
     /// <summary>
-    /// Whether to omit air blocks from generation, since <see cref="SchematicBuilder.Create"/> initializes all blocks to Air. Default is true.
+    /// Whether to omit air blocks from generation, since <see cref="SchematicBuilder.Create(int, int, int, SchematicBuilderMC.Enums.Rotation)"/> initializes all blocks to Air. Default is true.
     /// </summary>
     public bool OmitAir { get; set; } = true;
 

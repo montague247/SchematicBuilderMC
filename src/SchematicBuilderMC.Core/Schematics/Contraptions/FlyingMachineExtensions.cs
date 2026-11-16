@@ -29,6 +29,10 @@ public static class FlyingMachineExtensions
             return builder;
         }
 
+        int requiredHeight = checked(startY + (endZ.HasValue ? 3 : 2));
+        int requiredLength = Math.Max(checked(startZ + 2), endZ.HasValue && fillBlockId != null ? checked(endZ.Value + 2) : checked(startZ + 2));
+        builder.EnsureDimensions(checked(startX + width), requiredHeight, requiredLength);
+
         var leftWidth = width / 2;
 
         // build left side of flying machine

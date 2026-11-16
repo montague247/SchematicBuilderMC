@@ -6,7 +6,7 @@ namespace SchematicBuilderMC.Schematics.Shapes;
 /// <summary>
 /// Generates a filled or hollow square-base pyramid schematic.
 /// </summary>
-public sealed class PyramidSchematicCreator : SchematicCreator
+public sealed class PyramidSchematicCreator : ShapesSchematicCreator
 {
     /// <summary>
     /// Edge length of the square pyramid base in blocks (greater than 0).
@@ -34,24 +34,17 @@ public sealed class PyramidSchematicCreator : SchematicCreator
     public string? StairBlock { get; set; } = Minecraft.Blocks.SandstoneStairs;
 
     /// <summary>
-    /// Places the pyramid into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ).
+    /// Places the pyramid into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
     /// </summary>
-    public SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    public override SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
         int effectiveBaseSize = GetEffectiveBaseSize();
         int pyramidHeight = (effectiveBaseSize + 1) / 2;
-        if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + effectiveBaseSize > builder.Width ||
-            startY + pyramidHeight > builder.Height ||
-            startZ + effectiveBaseSize > builder.Length)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(startX),
-                $"A pyramid ({effectiveBaseSize}x{pyramidHeight}x{effectiveBaseSize}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
-        }
+        EnsurePlacementBounds(builder, startX, startY, startZ, effectiveBaseSize, pyramidHeight, effectiveBaseSize);
 
         return builder.SetPyramid(startX, startY, startZ, effectiveBaseSize, Block, Filled, UseStairs, StairBlock);
     }

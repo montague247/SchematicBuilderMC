@@ -191,8 +191,11 @@ public sealed class CompactCropFarmSchematicCreatorTests
             }.Create());
 
         var farm = new CompactCropFarmSchematicCreator { RowLength = 4 };
-        var builder = SchematicBuilder.Create(6, 4, 6);
-        Assert.Throws<ArgumentOutOfRangeException>(() => builder.Create(farm, 0, 0, 0));
+        var builder = SchematicBuilder.Create(6, 4, 6).Create(farm, 0, 0, 0);
+        Assert.Equal(6, builder.Width);
+        Assert.Equal(farm.Height, builder.Height);
+        Assert.Equal(farm.Length, builder.Length);
+        Assert.Throws<ArgumentOutOfRangeException>(() => builder.Create(farm, -1, 0, 0));
     }
 
     [Fact]

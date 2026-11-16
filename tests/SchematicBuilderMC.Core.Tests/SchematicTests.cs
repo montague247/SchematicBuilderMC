@@ -3,6 +3,8 @@ using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.IO;
 using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
+using SchematicBuilderMC.Schematics.Contraptions;
+using SchematicBuilderMC.Schematics.Shapes;
 
 namespace SchematicBuilderMC.Core.Tests;
 
@@ -267,6 +269,124 @@ public class SchematicTests
         Assert.Throws<ArgumentOutOfRangeException>(() => schematic.AddEntity(3, 0, 0, new Entity(Minecraft.Entities.Pig)));
         Assert.Throws<ArgumentOutOfRangeException>(() => schematic.AddEntity(0, 3, 0, Minecraft.Entities.Pig));
         Assert.Throws<ArgumentOutOfRangeException>(() => schematic.AddEntity(new BlockPosition(0, 0, 3), Minecraft.Entities.Pig));
+    }
+
+    [Fact]
+    public void Place_ExistingSchematicBeyondBounds_ExtendsDimensionsAndPreservesContents()
+    {
+        var target = new Schematic(2, 2, 2);
+        target.SetBlock(0, 0, 0, Minecraft.Blocks.DiamondBlock);
+        target.SetChest(1, 0, 1, new ItemStack(Minecraft.Items.Apple, count: 3, slot: 0));
+        target.AddEntity(0, 1, 0, new Entity(Minecraft.Entities.Cow));
+
+        var source = new Schematic(3, 4, 2);
+        source.SetBlock(0, 0, 0, Minecraft.Blocks.Stone);
+        source.SetBlock(2, 3, 1, Minecraft.Blocks.GoldBlock);
+        source.SetChest(1, 1, 0, new ItemStack(Minecraft.Items.Diamond, count: 5, slot: 1));
+        source.AddEntity(new Entity(Minecraft.Entities.Sheep, 1.5, 1.0, 0.5));
+        source.Metadata.RequiredMods.Add("create");
+
+        target.Place(source, startX: 4, startY: 2, startZ: 3);
+
+        Assert.Equal(7, target.Width);
+        Assert.Equal(6, target.Height);
+        Assert.Equal(5, target.Length);
+
+        Assert.Equal(Minecraft.Blocks.DiamondBlock, target[0, 0, 0].Identifier);
+        Assert.Equal(Minecraft.Items.Apple, target.GetItems(1, 0, 1)[0].Id);
+        Assert.Equal(Minecraft.Blocks.Stone, target[4, 2, 3].Identifier);
+        Assert.Equal(Minecraft.Blocks.GoldBlock, target[6, 5, 4].Identifier);
+        Assert.Equal(Minecraft.Items.Diamond, target.GetItems(5, 3, 3)[0].Id);
+        Assert.Equal(5, target.GetItems(5, 3, 3)[0].Count);
+
+        Assert.Equal(2, target.Entities.Count);
+        Assert.Equal(Minecraft.Entities.Sheep, target.Entities[1].Id);
+        Assert.Equal(5.5, target.Entities[1].X, precision: 5);
+        Assert.Equal(3.0, target.Entities[1].Y, precision: 5);
+        Assert.Equal(3.5, target.Entities[1].Z, precision: 5);
+        Assert.Contains("create", target.Metadata.RequiredMods);
+
+        var selfPlace = new Schematic(2, 1, 1);
+        selfPlace.SetBlock(0, 0, 0, Minecraft.Blocks.EmeraldBlock);
+        selfPlace.Place(selfPlace, 2, 0, 0);
+        Assert.Equal(4, selfPlace.Width);
+        Assert.Equal(Minecraft.Blocks.EmeraldBlock, selfPlace[0, 0, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.EmeraldBlock, selfPlace[2, 0, 0].Identifier);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => target.EnsureDimensions(0, 1, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => target.Place(source, -1, 0, 0));
+    }
+
+    [Fact]
+    public void Place_ExistingSchematic_IncludeAirControlsOverwriteBehavior()
+    {
+        var target = new Schematic(3, 1, 3);
+        target.Fill(Minecraft.Blocks.Stone);
+
+        var source = new Schematic(2, 1, 2);
+        source.SetBlock(1, 0, 1, Minecraft.Blocks.GoldBlock);
+
+        target.Place(source, 0, 0, 0, includeAir: false);
+        Assert.Equal(Minecraft.Blocks.Stone, target[0, 0, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.GoldBlock, target[1, 0, 1].Identifier);
+
+        target.Place(source, 0, 0, 0, includeAir: true);
+        Assert.Equal(BlockState.Air, target[0, 0, 0]);
+        Assert.Equal(Minecraft.Blocks.GoldBlock, target[1, 0, 1].Identifier);
+    }
+
+    [Fact]
+    public void Place_ExistingSchematicWithOffsetEntities_TranslatesIntoTargetCoordinateSpace()
+    {
+        var source = SchematicBuilder.Create(4, 4, 4)
+            .WithOffset(-4, -1, 0)
+            .AddEntity(1, 2, 1, new Entity(Minecraft.Entities.Allay))
+            .Build();
+
+        var localTarget = new Schematic(2, 2, 2);
+        localTarget.Place(source, new BlockPosition(2, 3, 4));
+        Assert.Equal(3.5, localTarget.Entities[0].X, precision: 5);
+        Assert.Equal(5.0, localTarget.Entities[0].Y, precision: 5);
+        Assert.Equal(5.5, localTarget.Entities[0].Z, precision: 5);
+
+        var offsetTarget = new Schematic(2, 2, 2)
+        {
+            Offset = new BlockPosition(-10, 0, -2)
+        };
+        offsetTarget.Place(source, 2, 3, 4);
+        Assert.Equal(-6.5, offsetTarget.Entities[0].X, precision: 5);
+        Assert.Equal(5.0, offsetTarget.Entities[0].Y, precision: 5);
+        Assert.Equal(3.5, offsetTarget.Entities[0].Z, precision: 5);
+    }
+
+    [Fact]
+    public void SchematicBuilder_PlaceExistingSchematicAndCreators_IntoSmallerBuilder_ExtendsDimensions()
+    {
+        var cube = new CubeSchematicCreator { Size = 3 }.Build();
+        var circle = new CircleSchematicCreator { Radius = 3 };
+        var flyingMachine = new FlatFylingMachineSchematicCreator { Width = 4 };
+
+        var builder = SchematicBuilder.Create(1, 1, 1)
+            .SetBlock(0, 0, 0, Minecraft.Blocks.Bedrock)
+            .Place(cube, 1, 2, 3);
+
+        Assert.Equal(4, builder.Width);
+        Assert.Equal(5, builder.Height);
+        Assert.Equal(6, builder.Length);
+
+        builder.Place(circle, 2, 0, 2);
+        Assert.Equal(9, builder.Width);
+        Assert.Equal(5, builder.Height);
+        Assert.Equal(9, builder.Length);
+
+        builder.Create(flyingMachine, 0, 5, 0);
+        var built = builder.Build();
+        Assert.Equal(9, built.Width);
+        Assert.Equal(7, built.Height);
+        Assert.Equal(9, built.Length);
+        Assert.Equal(Minecraft.Blocks.Bedrock, built[0, 0, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.StoneBricks, built[1, 2, 3].Identifier);
+        Assert.Equal(Minecraft.Blocks.StoneBricks, built[5, 0, 5].Identifier);
     }
 }
 

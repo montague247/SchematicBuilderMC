@@ -7,7 +7,7 @@ namespace SchematicBuilderMC.Schematics.Shapes;
 /// <summary>
 /// Generates a filled or hollow rectangle schematic in the plane perpendicular to <see cref="NormalAxis"/>.
 /// </summary>
-public sealed class RectangleSchematicCreator : SchematicCreator
+public sealed class RectangleSchematicCreator : ShapesSchematicCreator
 {
     /// <summary>
     /// Rectangle span along its first planar axis (greater than 0).
@@ -35,24 +35,17 @@ public sealed class RectangleSchematicCreator : SchematicCreator
     public Axis NormalAxis { get; set; } = Axis.Y;
 
     /// <summary>
-    /// Places the rectangle into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ).
+    /// Places the rectangle into an existing <see cref="SchematicBuilder"/> starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
     /// </summary>
-    public SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    public override SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
         var (effectiveWidth, effectiveLength) = GetEffectiveSpan();
         var (width, height, length) = GetDimensions(effectiveWidth, effectiveLength);
-        if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + width > builder.Width ||
-            startY + height > builder.Height ||
-            startZ + length > builder.Length)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(startX),
-                $"A rectangle ({width}x{height}x{length}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
-        }
+        EnsurePlacementBounds(builder, startX, startY, startZ, width, height, length);
 
         return builder.SetRectangle(startX, startY, startZ, effectiveWidth, effectiveLength, Block, Filled, NormalAxis);
     }

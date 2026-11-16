@@ -7,7 +7,7 @@ namespace SchematicBuilderMC.Schematics.Shapes;
 /// <summary>
 /// Generates a filled or hollow 3D cylinder schematic extruded along <see cref="Axis"/>.
 /// </summary>
-public sealed class CylinderSchematicCreator : SchematicCreator
+public sealed class CylinderSchematicCreator : ShapesSchematicCreator
 {
     /// <summary>
     /// Cylinder cross-section radius in blocks (0 or greater).
@@ -35,24 +35,17 @@ public sealed class CylinderSchematicCreator : SchematicCreator
     public Axis Axis { get; set; } = Axis.Y;
 
     /// <summary>
-    /// Places the cylinder into an existing <see cref="SchematicBuilder"/> with its bounding box starting at (startX, startY, startZ).
+    /// Places the cylinder into an existing <see cref="SchematicBuilder"/> with its bounding box starting at (startX, startY, startZ),
+    /// extending its dimensions automatically if needed.
     /// </summary>
-    public SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
+    public override SchematicBuilder Place(SchematicBuilder builder, int startX = 0, int startY = 0, int startZ = 0)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
         int effectiveRadius = GetEffectiveRadius();
         var (width, height, length) = GetDimensions(effectiveRadius);
-        if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + width > builder.Width ||
-            startY + height > builder.Height ||
-            startZ + length > builder.Length)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(startX),
-                $"A cylinder ({width}x{height}x{length}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
-        }
+        EnsurePlacementBounds(builder, startX, startY, startZ, width, height, length);
 
         var (bx, by, bz) = Axis switch
         {
