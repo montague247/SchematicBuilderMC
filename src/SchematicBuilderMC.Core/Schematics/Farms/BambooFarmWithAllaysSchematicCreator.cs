@@ -6,7 +6,7 @@ using SchematicBuilderMC.Schematics.Contraptions;
 
 namespace SchematicBuilderMC.Schematics.Farms;
 
-public sealed class BambooFarmWithAllaysSchematicCreator
+public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
 {
     public int Width { get; set; } = 35; // best (max): 35, chunk: 16
 
@@ -28,7 +28,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator
         Width = 16 * 2 + 1 + 2;
     }
 
-    public SchematicBuilder Create()
+    public override SchematicBuilder Create()
     {
         Width = Math.Max(Width, 4); // Ensure a minimum width of 4 for the farm (2 for walls and 2 for flying machine)
         Width = Math.Min(Width, 35); // Ensure a maximum width of 35 to ensure allays can reach the noteblocks (16 blocks range, so 16 * 2 + 1 + 2 for walls)
@@ -107,11 +107,6 @@ public sealed class BambooFarmWithAllaysSchematicCreator
         }
 
         return builder;
-    }
-
-    public Schematic Build()
-    {
-        return Create().Build();
     }
 
     private int GetMaxHeight(int soilLevel, int wallHeight)
