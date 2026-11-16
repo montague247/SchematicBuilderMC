@@ -11,7 +11,7 @@ public sealed class FlatFylingMachineSchematicCreator : SchematicCreator
 
     public override SchematicBuilder Create()
     {
-        var builder = SchematicBuilder.Create(Width, _flyingMachine.Height, 2)
+        var builder = SchematicBuilder.Create(Width, _flyingMachine.Height, 2, Rotation)
                 .WithOffset(0, 0, 0)
                 .WithName("Flat Flying Machine")
                 .WithAuthor("Dirk Helbig")

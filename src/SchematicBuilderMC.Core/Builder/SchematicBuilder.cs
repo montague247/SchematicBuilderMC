@@ -12,16 +12,56 @@ public sealed class SchematicBuilder
 {
     private readonly Schematic _schematic;
 
-    private SchematicBuilder(int width, int height, int length)
+    /// <summary>
+    /// Gets the unrotated schematic width along the X axis.
+    /// </summary>
+    public int Width => _schematic.Width;
+
+    /// <summary>
+    /// Gets the unrotated schematic height along the Y axis.
+    /// </summary>
+    public int Height => _schematic.Height;
+
+    /// <summary>
+    /// Gets the unrotated schematic length along the Z axis.
+    /// </summary>
+    public int Length => _schematic.Length;
+
+    /// <summary>
+    /// Gets the rotation applied when <see cref="Build"/> is called.
+    /// </summary>
+    public Rotation Rotation { get; private set; } = Rotation.None;
+
+    private SchematicBuilder(int width, int height, int length, Rotation rotation = Rotation.None)
     {
+        if (!Enum.IsDefined(rotation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(rotation), rotation, "Unsupported rotation value.");
+        }
+
         _schematic = new Schematic(width, height, length);
+        Rotation = rotation;
     }
 
     /// <summary>
-    /// Begins building a schematic with the specified dimensions.
+    /// Begins building a schematic with the specified dimensions and optional rotation applied on <see cref="Build"/>.
     /// </summary>
-    public static SchematicBuilder Create(int width, int height, int length) =>
-        new(width, height, length);
+    public static SchematicBuilder Create(int width, int height, int length, Rotation rotation = Rotation.None) =>
+        new(width, height, length, rotation);
+
+    /// <summary>
+    /// Configures the clockwise rotation applied to the schematic when <see cref="Build"/> is called.
+    /// </summary>
+    public SchematicBuilder WithRotation(Rotation rotation)
+    {
+        if (!Enum.IsDefined(rotation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(rotation), rotation, "Unsupported rotation value.");
+        }
+
+        Rotation = rotation;
+        return this;
+    }
 
     public SchematicBuilder WithOffset(int x, int y, int z)
     {
@@ -743,13 +783,14 @@ public sealed class SchematicBuilder
     }
 
     /// <summary>
-    /// Builds and returns the finished schematic.
+    /// Builds and returns the finished schematic, applying <see cref="Rotation"/> if configured.
     /// </summary>
-    public Schematic Build() => _schematic;
+    public Schematic Build() =>
+        Rotation == Rotation.None ? _schematic : _schematic.Rotate(Rotation);
 
     /// <summary>
     /// Generates C# fluent builder source code that reconstructs the schematic currently configured.
     /// </summary>
     public string ToFluentBuilderCode(FluentCodeGeneratorOptions? options = null) =>
-        _schematic.ToFluentBuilderCode(options);
+        Build().ToFluentBuilderCode(options);
 }

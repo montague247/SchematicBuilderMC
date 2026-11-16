@@ -665,5 +665,33 @@ public static class BlockStateExtensions
     /// </summary>
     public static string ToStateString(this Axis axis) => axis.ToString().ToLowerInvariant();
 
+    /// <summary>
+    /// Rotates a <see cref="Direction"/> clockwise around the vertical Y axis.
+    /// Vertical directions (<see cref="Direction.Up"/> and <see cref="Direction.Down"/>) are returned unchanged.
+    /// </summary>
+    public static Direction Rotate(this Direction direction, Rotation rotation)
+    {
+        if (!Enum.IsDefined(rotation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(rotation), rotation, "Unsupported rotation value.");
+        }
+
+        int steps = (int)rotation / 90;
+        Direction current = direction;
+        for (int i = 0; i < steps; i++)
+        {
+            current = current switch
+            {
+                Direction.North => Direction.East,
+                Direction.East => Direction.South,
+                Direction.South => Direction.West,
+                Direction.West => Direction.North,
+                _ => current
+            };
+        }
+
+        return current;
+    }
+
     #endregion
 }

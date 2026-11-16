@@ -69,15 +69,14 @@ public sealed class ItemSortingModuleSchematicCreator : SchematicCreator
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
-        var schematic = builder.Build();
         if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + Width > schematic.Width ||
-            startY + Height > schematic.Height ||
-            startZ + Length > schematic.Length)
+            startX + Width > builder.Width ||
+            startY + Height > builder.Height ||
+            startZ + Length > builder.Length)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(startX),
-                $"An item-sorting row ({Width}x{Height}x{Length}) facing {Facing} placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({schematic.Width}x{schematic.Height}x{schematic.Length}).");
+                $"An item-sorting row ({Width}x{Height}x{Length}) facing {Facing} placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
         }
 
         Direction oppositeFacing = GetOppositeFacing(Facing);
@@ -147,6 +146,7 @@ public sealed class ItemSortingModuleSchematicCreator : SchematicCreator
         ValidateConfiguration();
 
         var builder = SchematicBuilder.Create(Width, Height, Length)
+            .WithRotation(Rotation)
             .WithOffset(0, 0, 0)
             .WithName("Item-Sorting Module")
             .WithAuthor("SchematicBuilderMC")

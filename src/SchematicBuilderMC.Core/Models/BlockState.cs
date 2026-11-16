@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Text;
+using SchematicBuilderMC.Enums;
 
 namespace SchematicBuilderMC.Models;
 
@@ -151,6 +152,120 @@ public sealed class BlockState : IEquatable<BlockState>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         return Properties.TryGetValue(key, out var val) ? val : null;
+    }
+
+    /// <summary>
+    /// Returns a new <see cref="BlockState"/> with directional properties rotated clockwise around the Y axis.
+    /// </summary>
+    public BlockState Rotate(Rotation rotation)
+    {
+        if (!Enum.IsDefined(rotation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(rotation), rotation, "Unsupported rotation value.");
+        }
+
+        if (rotation == Rotation.None || Properties.Count == 0)
+        {
+            return this;
+        }
+
+        int steps = (int)rotation / 90;
+        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (key, value) in Properties)
+        {
+            string lowerKey = key.ToLowerInvariant();
+            switch (lowerKey)
+            {
+                case "facing":
+                    dict[key] = RotateCardinalToken(value, steps);
+                    break;
+
+                case "axis":
+                    if (steps % 2 == 1)
+                    {
+                        dict[key] = value.ToLowerInvariant() switch
+                        {
+                            "x" => "z",
+                            "z" => "x",
+                            _ => value
+                        };
+                    }
+                    else
+                    {
+                        dict[key] = value;
+                    }
+                    break;
+
+                case "rotation":
+                    if (int.TryParse(value, out int rotVal))
+                    {
+                        dict[key] = ((rotVal + steps * 4) & 15).ToString();
+                    }
+                    else
+                    {
+                        dict[key] = value;
+                    }
+                    break;
+
+                case "shape":
+                    dict[key] = RotateShapeValue(value, steps);
+                    break;
+
+                case "north":
+                case "east":
+                case "south":
+                case "west":
+                    dict[RotateCardinalToken(lowerKey, steps)] = value;
+                    break;
+
+                default:
+                    dict[key] = value;
+                    break;
+            }
+        }
+
+        return new BlockState(Identifier, dict);
+    }
+
+    private static string RotateCardinalToken(string value, int steps)
+    {
+        string current = value.ToLowerInvariant();
+        for (int i = 0; i < steps; i++)
+        {
+            current = current switch
+            {
+                "north" => "east",
+                "east" => "south",
+                "south" => "west",
+                "west" => "north",
+                _ => value
+            };
+        }
+        return current;
+    }
+
+    private static string RotateShapeValue(string shape, int steps)
+    {
+        string lower = shape.ToLowerInvariant();
+        for (int i = 0; i < steps; i++)
+        {
+            lower = lower switch
+            {
+                "north_south" => "east_west",
+                "east_west" => "north_south",
+                "north_east" => "south_east",
+                "south_east" => "south_west",
+                "south_west" => "north_west",
+                "north_west" => "north_east",
+                "ascending_north" => "ascending_east",
+                "ascending_east" => "ascending_south",
+                "ascending_south" => "ascending_west",
+                "ascending_west" => "ascending_north",
+                _ => lower
+            };
+        }
+        return lower;
     }
 
     private static string NormalizeIdentifier(string identifier)

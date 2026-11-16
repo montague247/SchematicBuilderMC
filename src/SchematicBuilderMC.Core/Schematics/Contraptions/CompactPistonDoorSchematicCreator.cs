@@ -78,15 +78,14 @@ public sealed class CompactPistonDoorSchematicCreator : SchematicCreator
         ArgumentException.ThrowIfNullOrWhiteSpace(DoorBlock);
         ArgumentException.ThrowIfNullOrWhiteSpace(CircuitBlock);
 
-        var schematic = builder.Build();
         if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + Width > schematic.Width ||
-            startY + Height > schematic.Height ||
-            startZ + Length > schematic.Length)
+            startX + Width > builder.Width ||
+            startY + Height > builder.Height ||
+            startZ + Length > builder.Length)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(startX),
-                $"A {Size} piston door facing {Facing} ({Width}x{Height}x{Length}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({schematic.Width}x{schematic.Height}x{schematic.Length}).");
+                $"A {Size} piston door facing {Facing} ({Width}x{Height}x{Length}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
         }
 
         int span = DoorSpan;
@@ -161,6 +160,7 @@ public sealed class CompactPistonDoorSchematicCreator : SchematicCreator
         ValidateConfiguration();
 
         var builder = SchematicBuilder.Create(Width, Height, Length)
+            .WithRotation(Rotation)
             .WithOffset(0, 0, 0)
             .WithName("Compact Piston Door")
             .WithAuthor("SchematicBuilderMC")

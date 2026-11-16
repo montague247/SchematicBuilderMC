@@ -1007,6 +1007,131 @@ public sealed class Schematic
     }
 
     /// <summary>
+    /// Returns a new <see cref="Schematic"/> rotated clockwise around the vertical Y axis.
+    /// </summary>
+    public Schematic Rotate(Rotation rotation)
+    {
+        if (!Enum.IsDefined(rotation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(rotation), rotation, "Unsupported rotation value.");
+        }
+
+        if (rotation == Rotation.None)
+        {
+            return Clone();
+        }
+
+        int newWidth = rotation is Rotation.Clockwise90 or Rotation.Clockwise270 ? Length : Width;
+        int newLength = rotation is Rotation.Clockwise90 or Rotation.Clockwise270 ? Width : Length;
+
+        BlockPosition newOffset = Offset == BlockPosition.Zero
+            ? BlockPosition.Zero
+            : rotation switch
+            {
+                Rotation.Clockwise90 => new BlockPosition(-(Offset.Z + Length - 1), Offset.Y, Offset.X),
+                Rotation.Clockwise180 => new BlockPosition(-(Offset.X + Width - 1), Offset.Y, -(Offset.Z + Length - 1)),
+                Rotation.Clockwise270 => new BlockPosition(Offset.Z, Offset.Y, -(Offset.X + Width - 1)),
+                _ => Offset
+            };
+
+        var rotated = new Schematic(newWidth, Height, newLength)
+        {
+            Offset = newOffset,
+            DataVersion = DataVersion,
+            Metadata = Metadata.Clone()
+        };
+
+        for (int y = 0; y < Height; y++)
+        {
+            for (int z = 0; z < Length; z++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    var state = GetBlock(x, y, z);
+                    if (!state.IsAir || state != BlockState.Air)
+                    {
+                        var (rx, ry, rz) = RotateBlockCoordinates(x, y, z, rotation);
+                        rotated._blocks[rotated.GetIndex(rx, ry, rz)] = state.Rotate(rotation);
+                    }
+                }
+            }
+        }
+
+        foreach (var be in _blockEntities.Values)
+        {
+            var (rx, ry, rz) = RotateBlockCoordinates(be.Position.X, be.Position.Y, be.Position.Z, rotation);
+            var beClone = be.Clone();
+            beClone.Position = new BlockPosition(rx, ry, rz);
+            rotated._blockEntities[beClone.Position] = beClone;
+        }
+
+        int steps = (int)rotation / 90;
+        foreach (var ent in _entities)
+        {
+            var entClone = ent.Clone();
+            entClone.Data.Remove("Pos");
+
+            bool useOffsetSpace = Offset != BlockPosition.Zero &&
+                                  (entClone.X < 0 || entClone.X > Width || entClone.Z < 0 || entClone.Z > Length);
+
+            double localX = useOffsetSpace ? entClone.X - Offset.X : entClone.X;
+            double localZ = useOffsetSpace ? entClone.Z - Offset.Z : entClone.Z;
+
+            var (rotLocalX, rotLocalZ) = rotation switch
+            {
+                Rotation.Clockwise90 => (Length - localZ, localX),
+                Rotation.Clockwise180 => (Width - localX, Length - localZ),
+                Rotation.Clockwise270 => (localZ, Width - localX),
+                _ => (localX, localZ)
+            };
+
+            entClone.X = useOffsetSpace ? rotLocalX + newOffset.X : rotLocalX;
+            entClone.Z = useOffsetSpace ? rotLocalZ + newOffset.Z : rotLocalZ;
+
+            if (entClone.Data["Rotation"] is fNbt.NbtList rotList && rotList.Count >= 2)
+            {
+                float yaw = rotList[0].FloatValue;
+                float pitch = rotList[1].FloatValue;
+                float newYaw = ((yaw + steps * 90f) % 360f + 360f) % 360f;
+                entClone.WithRotation(newYaw, pitch);
+            }
+
+            if (entClone.IsItemFrame && (entClone.Data.Contains("Facing") || entClone.Data.Contains("facing")))
+            {
+                byte facingByte = (byte)(entClone.Data["Facing"]?.IntValue ?? entClone.Data["facing"]?.IntValue ?? 2);
+                Direction rotatedFacing = Entity.DirectionFromFacingByte(facingByte).Rotate(rotation);
+                entClone.Data["Facing"] = new fNbt.NbtByte("Facing", Entity.FacingByteFromDirection(rotatedFacing));
+                entClone.Data.Remove("facing");
+            }
+
+            if (entClone.Data["Motion"] is fNbt.NbtList motionList && motionList.Count >= 3)
+            {
+                var (mx, my, mz) = entClone.GetMotion();
+                var (rotMx, rotMz) = rotation switch
+                {
+                    Rotation.Clockwise90 => (-mz, mx),
+                    Rotation.Clockwise180 => (-mx, -mz),
+                    Rotation.Clockwise270 => (mz, -mx),
+                    _ => (mx, mz)
+                };
+                entClone.SetMotion(rotMx, my, rotMz);
+            }
+
+            rotated._entities.Add(entClone);
+        }
+
+        return rotated;
+    }
+
+    private (int X, int Y, int Z) RotateBlockCoordinates(int x, int y, int z, Rotation rotation) => rotation switch
+    {
+        Rotation.Clockwise90 => (Length - 1 - z, y, x),
+        Rotation.Clockwise180 => (Width - 1 - x, y, Length - 1 - z),
+        Rotation.Clockwise270 => (z, y, Width - 1 - x),
+        _ => (x, y, z)
+    };
+
+    /// <summary>
     /// Computes the flat 1D index from 3D coordinates.
     /// Sponge &amp; Classic indexing convention: (y * Length + z) * Width + x.
     /// </summary>

@@ -39,7 +39,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         var wallHeight = Math.Max(MaxBambooHeight, 5);
         var flyingMachine = new FlatFlyingMachine();
 
-        var builder = SchematicBuilder.Create(Width, GetMaxHeight(SoilLevel, wallHeight), Length)
+        var builder = SchematicBuilder.Create(Width, GetMaxHeight(SoilLevel, wallHeight), Length, Rotation)
                 .WithOffset(-Width, -SoilLevel, 0)
                 .WithName("Bamboo Farm with Allays")
                 .WithAuthor("Dirk Helbig")
