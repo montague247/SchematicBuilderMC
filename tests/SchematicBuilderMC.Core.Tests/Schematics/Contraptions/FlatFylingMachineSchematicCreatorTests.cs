@@ -20,7 +20,7 @@ public sealed class FlatFylingMachineSchematicCreatorTests
         Assert.Equal(2, schematic.Height);
 
         // Write to file
-        string spongePath = Path.Combine(Path.GetFullPath("."), $"{schematic.Metadata.Name}.schem");
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
         SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
     }
 }

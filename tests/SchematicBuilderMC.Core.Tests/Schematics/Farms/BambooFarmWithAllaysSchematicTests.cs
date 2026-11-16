@@ -35,7 +35,7 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(30.5, secondAllay.Z);
 
         // Write to file
-        string spongePath = Path.Combine(Path.GetFullPath("."), $"{schematic.Metadata.Name}.schem");
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
         SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
     }
 }
