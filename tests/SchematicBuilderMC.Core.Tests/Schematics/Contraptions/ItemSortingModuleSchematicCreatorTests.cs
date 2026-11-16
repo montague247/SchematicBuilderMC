@@ -149,6 +149,10 @@ public sealed class ItemSortingModuleSchematicCreatorTests
         Assert.Equal(Minecraft.Items.Diamond, schematic.GetItems(0, 2, 1)[0].Id);
         Assert.Equal(Minecraft.Items.GoldIngot, schematic.GetItems(1, 2, 1)[0].Id);
         Assert.Equal(Minecraft.Items.IronIngot, schematic.GetItems(2, 2, 1)[0].Id);
+
+        // Write to file
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
+        SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
     }
 
     [Fact]

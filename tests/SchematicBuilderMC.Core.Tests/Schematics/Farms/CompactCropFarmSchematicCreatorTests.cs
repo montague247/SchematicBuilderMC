@@ -169,6 +169,10 @@ public sealed class CompactCropFarmSchematicCreatorTests
         Assert.Equal("west", schematic[5, 3, 2].GetProperty("facing"));
         Assert.Equal("west", schematic[5, 4, 2].GetProperty("facing"));
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[6, 4, 2].Identifier);
+
+        // Write to file
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
+        SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
     }
 
     [Fact]
@@ -212,5 +216,9 @@ public sealed class CompactCropFarmSchematicCreatorTests
         Assert.Equal(Minecraft.Items.Potato, loaded.GetItems(7, 1, 2)[0].Id);
         Assert.Equal(Minecraft.Items.WaterBucket, loaded.GetItems(1, 2, 1)[0].Id);
         Assert.Equal(Minecraft.Items.WaterBucket, loaded.GetItems(1, 2, 3)[0].Id);
+
+        // Write to file
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
+        SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
     }
 }

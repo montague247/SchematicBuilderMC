@@ -125,6 +125,10 @@ public sealed class AutomaticSmelterSchematicCreatorTests
 
         Assert.Equal(Minecraft.Items.Beef, loaded.GetItems(1, 3, 0)[0].Id);
         Assert.Equal(64, loaded.GetItems(1, 3, 0)[0].Count);
+
+        // Write to file
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
+        SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
     }
 
     [Fact]

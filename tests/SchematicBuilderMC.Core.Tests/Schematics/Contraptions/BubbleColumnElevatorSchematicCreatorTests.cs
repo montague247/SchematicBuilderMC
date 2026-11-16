@@ -155,5 +155,9 @@ public sealed class BubbleColumnElevatorSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.SoulSand, loaded[1, 0, 1].Identifier);
         Assert.Equal("0", loaded[1, 5, 1].GetProperty("level"));
         Assert.Equal("east", loaded[2, 1, 1].GetProperty("facing"));
+
+        // Write to file
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
+        SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
     }
 }

@@ -170,5 +170,9 @@ public sealed class CompactPistonDoorSchematicCreatorTests
         var triggerPos = creator.GetTriggerPosition();
         Assert.Equal(schematic[triggerPos], loaded[triggerPos]);
         Assert.Equal("true", loaded[triggerPos].GetProperty("powered"));
+
+        // Write to file
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
+        SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
     }
 }

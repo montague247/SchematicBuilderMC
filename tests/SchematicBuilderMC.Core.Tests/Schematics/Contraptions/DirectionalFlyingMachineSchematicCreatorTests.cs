@@ -164,5 +164,9 @@ public sealed class DirectionalFlyingMachineSchematicCreatorTests
         Assert.Equal("west", loaded[5, 0, 0].GetProperty("facing"));
         Assert.Equal(Minecraft.Blocks.NoteBlock, loaded[6, 1, 0].Identifier);
         Assert.Equal(Minecraft.Blocks.Obsidian, loaded[0, 0, 0].Identifier);
+
+        // Write to file
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
+        SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
     }
 }
