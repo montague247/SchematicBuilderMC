@@ -1,4 +1,5 @@
 using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Extensions;
 using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 
@@ -68,14 +69,26 @@ public sealed class BambooFarmWithAllays
         // set the noteblock for the allay to collect the bamboo
         builder.SetBlock(centerX, SoilLevel + 4, centerZ, Minecraft.Blocks.NoteBlock);
 
-        builder.SetBlock(centerX, SoilLevel + 5, centerZ, Minecraft.Blocks.Stone);
+        // add trapdoors above the noteblock to prevent the allay to drop the bamboo on top of the noteblock
+        builder.SetBlock(centerX, SoilLevel + 5, centerZ + 1, Minecraft.Blocks.BambooTrapdoor.FacingSouth().WithHalf("top").WithOpen(true));
+        builder.SetBlock(centerX, SoilLevel + 5, centerZ - 1, Minecraft.Blocks.BambooTrapdoor.FacingNorth().WithHalf("top").WithOpen(true));
+        builder.SetBlock(centerX + 1, SoilLevel + 5, centerZ, Minecraft.Blocks.BambooTrapdoor.FacingEast().WithHalf("top").WithOpen(true));
+        builder.SetBlock(centerX - 1, SoilLevel + 5, centerZ, Minecraft.Blocks.BambooTrapdoor.FacingWest().WithHalf("top").WithOpen(true)); //
 
-        var rootHeight = SoilLevel + wallHeight + 1;
+        // add allays to the schematic, each with a bamboo in their main hand
+        builder.AddEntity(new Entity(Minecraft.Entities.Allay, 1, SoilLevel + 4, 1)
+                .WithNoGravity()
+                .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
+        builder.AddEntity(new Entity(Minecraft.Entities.Allay, -1, SoilLevel + 4, -1)
+                .WithNoGravity()
+                .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
+
+        var roofHeight = SoilLevel + wallHeight + 1;
 
         // set the roof if specified
         if (RoofBlock != null)
         {
-            builder.Fill(1, rootHeight, 1, Width - 2, rootHeight, Length - 2, RoofBlock);
+            builder.Fill(1, roofHeight, 1, Width - 2, roofHeight, Length - 2, RoofBlock);
         }
 
         // set the light in a square pattern if specified
@@ -87,7 +100,7 @@ public sealed class BambooFarmWithAllays
             {
                 for (int z = 2; z < Length - 1; z += LightSpacing)
                 {
-                    builder.SetBlock(x, rootHeight, z, LightBlock);
+                    builder.SetBlock(x, roofHeight, z, LightBlock);
                 }
             }
         }
