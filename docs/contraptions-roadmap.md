@@ -2,7 +2,7 @@
 
 SchematicBuilderMC creates Minecraft schematic files; these tasks add reusable builder recipes that generate contraption schematics. They do not simulate redstone behavior. Each task should expose a fluent builder API (or a small recipe helper consistent with the existing API), document dimensions/orientation/inputs, and include tests that verify blocks, block states, and any block-entity data.
 
-## 1. Compact Piston Door
+## 1. Compact Piston Door ([#5](https://github.com/montague247/SchematicBuilderMC/issues/5))
 
 **Task:** Add a configurable 2×2 or 3×3 piston door schematic recipe.
 
@@ -12,7 +12,7 @@ SchematicBuilderMC creates Minecraft schematic files; these tasks add reusable b
 - Add tests for both sizes and each supported orientation, asserting piston facing, block placement, and schematic bounds.
 - Add a README example that writes the result as `.schem`.
 
-## 2. Bubble-Column Elevator
+## 2. Bubble-Column Elevator ([#6](https://github.com/montague247/SchematicBuilderMC/issues/6))
 
 **Task:** Add a two-way bubble-column elevator schematic recipe.
 
@@ -21,7 +21,7 @@ SchematicBuilderMC creates Minecraft schematic files; these tasks add reusable b
 - Document any water-source placement assumptions and required player setup.
 - Test minimum/typical heights, orientations, and the resulting block states and bounds.
 
-## 3. Item-Sorting Module
+## 3. Item-Sorting Module ([#7](https://github.com/montague247/SchematicBuilderMC/issues/7))
 
 **Task:** Add a single-item filter module, with an option to compose multiple modules into a row.
 
@@ -30,7 +30,7 @@ SchematicBuilderMC creates Minecraft schematic files; these tasks add reusable b
 - Store the chest inventory through the existing block-entity/item-stack APIs.
 - Test block positions/facing, comparator and redstone states, filter inventory NBT, and multi-module spacing.
 
-## 4. Automatic Smelter
+## 4. Automatic Smelter ([#8](https://github.com/montague247/SchematicBuilderMC/issues/8))
 
 **Task:** Add a configurable furnace, blast-furnace, or smoker feed-and-fuel schematic.
 
@@ -39,7 +39,7 @@ SchematicBuilderMC creates Minecraft schematic files; these tasks add reusable b
 - Populate optional chest inventories using existing container helpers without imposing a particular recipe.
 - Test all machine types, orientations, hopper directions, inventory serialization, and schematic bounds.
 
-## 5. Compact Crop Farm
+## 5. Compact Crop Farm ([#9](https://github.com/montague247/SchematicBuilderMC/issues/9))
 
 **Task:** Add a crop-farm schematic recipe for a selected supported crop.
 
@@ -48,7 +48,7 @@ SchematicBuilderMC creates Minecraft schematic files; these tasks add reusable b
 - Allow a configurable planting-row length and orientation.
 - Test crop-specific blocks/states, dimensions, and collection block placement.
 
-## 6. Flying Machine
+## 6. Flying Machine ([#10](https://github.com/montague247/SchematicBuilderMC/issues/10))
 
 **Task:** Add a compact, directional flying-machine schematic recipe.
 
