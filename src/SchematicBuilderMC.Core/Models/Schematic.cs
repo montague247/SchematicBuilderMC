@@ -33,7 +33,7 @@ public sealed class Schematic
     /// <summary>
     /// Total block count (Width * Height * Length).
     /// </summary>
-    public int TotalBlocks => Width * Height * Length;
+    public int TotalBlocks { get; }
 
     /// <summary>
     /// Placement offset relative to origin.
@@ -66,11 +66,32 @@ public sealed class Schematic
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height), height, "Height must be greater than zero.");
         if (length <= 0) throw new ArgumentOutOfRangeException(nameof(length), length, "Length must be greater than zero.");
 
+        int totalBlocks;
+        try
+        {
+            totalBlocks = checked(width * height * length);
+        }
+        catch (OverflowException ex)
+        {
+            throw new ArgumentOutOfRangeException(
+                $"Schematic volume ({width} x {height} x {length}) overflows Int32 and exceeds the maximum supported block count ({Array.MaxLength}).",
+                ex);
+        }
+
+        if (totalBlocks > Array.MaxLength)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(width),
+                totalBlocks,
+                $"Schematic volume ({totalBlocks}) exceeds the maximum supported array capacity ({Array.MaxLength}).");
+        }
+
         Width = width;
         Height = height;
         Length = length;
+        TotalBlocks = totalBlocks;
 
-        _blocks = new BlockState[width * height * length];
+        _blocks = new BlockState[totalBlocks];
         Array.Fill(_blocks, BlockState.Air);
     }
 
@@ -109,6 +130,16 @@ public sealed class Schematic
         ArgumentNullException.ThrowIfNull(blockState);
         EnsureInBounds(x, y, z);
         _blocks[GetIndex(x, y, z)] = blockState;
+
+        if (_blockEntities.Count > 0)
+        {
+            var pos = new BlockPosition(x, y, z);
+            if (_blockEntities.TryGetValue(pos, out var existingEntity) &&
+                !CanHostBlockEntity(blockState, existingEntity))
+            {
+                _blockEntities.Remove(pos);
+            }
+        }
     }
 
     /// <summary>
@@ -844,10 +875,7 @@ public sealed class Schematic
     {
         ArgumentNullException.ThrowIfNull(blockState);
         Array.Fill(_blocks, blockState);
-        if (blockState.IsAir)
-        {
-            _blockEntities.Clear();
-        }
+        RemoveIncompatibleBlockEntities(blockState);
     }
 
     /// <summary>
@@ -877,6 +905,8 @@ public sealed class Schematic
                 }
             }
         }
+
+        RemoveIncompatibleBlockEntitiesInRegion(startX, startY, startZ, endX, endY, endZ, blockState);
     }
 
     /// <summary>
@@ -958,5 +988,115 @@ public sealed class Schematic
             throw new ArgumentOutOfRangeException(nameof(y), y, $"Y coordinate must be between 0 and {Height - 1}.");
         if (z < 0 || z >= Length)
             throw new ArgumentOutOfRangeException(nameof(z), z, $"Z coordinate must be between 0 and {Length - 1}.");
+    }
+
+    private void RemoveIncompatibleBlockEntities(BlockState blockState)
+    {
+        if (_blockEntities.Count == 0)
+            return;
+
+        if (blockState.IsAir)
+        {
+            _blockEntities.Clear();
+            return;
+        }
+
+        RemoveIncompatibleBlockEntitiesInRegion(0, 0, 0, Width - 1, Height - 1, Length - 1, blockState);
+    }
+
+    private void RemoveIncompatibleBlockEntitiesInRegion(
+        int startX, int startY, int startZ,
+        int endX, int endY, int endZ,
+        BlockState blockState)
+    {
+        if (_blockEntities.Count == 0)
+            return;
+
+        List<BlockPosition>? toRemove = null;
+        foreach (var (pos, entity) in _blockEntities)
+        {
+            if (pos.X >= startX && pos.X <= endX &&
+                pos.Y >= startY && pos.Y <= endY &&
+                pos.Z >= startZ && pos.Z <= endZ &&
+                !CanHostBlockEntity(blockState, entity))
+            {
+                toRemove ??= [];
+                toRemove.Add(pos);
+            }
+        }
+
+        if (toRemove != null)
+        {
+            foreach (var pos in toRemove)
+            {
+                _blockEntities.Remove(pos);
+            }
+        }
+    }
+
+    internal static bool CanHostBlockEntity(BlockState blockState, BlockEntity blockEntity)
+    {
+        if (blockState.IsAir)
+            return false;
+
+        string blockId = blockState.Identifier;
+        string entityId = NormalizeEntityId(blockEntity.Id);
+
+        if (string.Equals(blockId, entityId, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (blockEntity.IsSign)
+        {
+            if (entityId.Equals("minecraft:hanging_sign", StringComparison.OrdinalIgnoreCase) ||
+                entityId.EndsWith("_hanging_sign", StringComparison.OrdinalIgnoreCase))
+            {
+                return blockId.EndsWith("_hanging_sign", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return blockId.EndsWith("_sign", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return entityId.ToLowerInvariant() switch
+        {
+            "minecraft:banner" => blockId.EndsWith("_banner", StringComparison.OrdinalIgnoreCase),
+            "minecraft:bed" => blockId.EndsWith("_bed", StringComparison.OrdinalIgnoreCase),
+            "minecraft:beehive" => blockId.Equals("minecraft:bee_nest", StringComparison.OrdinalIgnoreCase),
+            "minecraft:brushable_block" => blockId.Equals("minecraft:suspicious_sand", StringComparison.OrdinalIgnoreCase) ||
+                                           blockId.Equals("minecraft:suspicious_gravel", StringComparison.OrdinalIgnoreCase),
+            "minecraft:campfire" => blockId.EndsWith("_campfire", StringComparison.OrdinalIgnoreCase),
+            "minecraft:chest" => blockId.Equals("minecraft:copper_chest", StringComparison.OrdinalIgnoreCase) ||
+                                 blockId.EndsWith("_copper_chest", StringComparison.OrdinalIgnoreCase) ||
+                                 blockId.Equals("minecraft:trapped_chest", StringComparison.OrdinalIgnoreCase),
+            "minecraft:command_block" => blockId.EndsWith("_command_block", StringComparison.OrdinalIgnoreCase),
+            "minecraft:comparator" => blockId.EndsWith("_comparator", StringComparison.OrdinalIgnoreCase),
+            "minecraft:copper_golem_statue" => blockId.EndsWith("_copper_golem_statue", StringComparison.OrdinalIgnoreCase),
+            "minecraft:daylight_detector" => blockId.Equals("minecraft:daylight_detector_inverted", StringComparison.OrdinalIgnoreCase),
+            "minecraft:furnace" => blockId.Equals("minecraft:lit_furnace", StringComparison.OrdinalIgnoreCase),
+            "minecraft:hanging_sign" => blockId.EndsWith("_hanging_sign", StringComparison.OrdinalIgnoreCase),
+            "minecraft:mob_spawner" or "minecraft:spawner" => blockId.Equals("minecraft:spawner", StringComparison.OrdinalIgnoreCase) ||
+                                                              blockId.Equals("minecraft:mob_spawner", StringComparison.OrdinalIgnoreCase),
+            "minecraft:piston" => blockId.Equals("minecraft:moving_piston", StringComparison.OrdinalIgnoreCase) ||
+                                  blockId.Equals("minecraft:sticky_piston", StringComparison.OrdinalIgnoreCase) ||
+                                  blockId.Equals("minecraft:piston_head", StringComparison.OrdinalIgnoreCase),
+            "minecraft:shelf" => blockId.EndsWith("_shelf", StringComparison.OrdinalIgnoreCase),
+            "minecraft:shulker_box" => blockId.EndsWith("_shulker_box", StringComparison.OrdinalIgnoreCase),
+            "minecraft:sign" => blockId.EndsWith("_sign", StringComparison.OrdinalIgnoreCase),
+            "minecraft:skull" => blockId.EndsWith("_skull", StringComparison.OrdinalIgnoreCase) ||
+                                 blockId.EndsWith("_head", StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
+    }
+
+    private static string NormalizeEntityId(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            return string.Empty;
+
+        int bracket = id.IndexOf('[');
+        if (bracket >= 0)
+            id = id[..bracket];
+
+        id = id.Trim();
+        return id.Contains(':') ? id : "minecraft:" + id;
     }
 }
