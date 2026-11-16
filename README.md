@@ -225,6 +225,24 @@ dotnet run --project src/SchematicBuilderMC -- generate-code tower.schem -o Towe
 dotnet run --project src/SchematicBuilderMC -- generate-code tower.schem -m method --method CreateTower --raw-properties
 ```
 
+### 9. Contraption Recipes
+
+Use built-in contraption creators such as `CompactPistonDoorSchematicCreator` to generate reusable schematics and export them as `.schem`:
+
+```csharp
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.IO;
+using SchematicBuilderMC.Schematics.Contraptions;
+
+var door = new CompactPistonDoorSchematicCreator
+{
+    Size = PistonDoorSize.ThreeByThree,
+    Facing = Direction.North
+}.Build();
+
+SchematicFile.Write(door, "piston_door.schem");
+```
+
 ## Running Tests
 
 ```bash
