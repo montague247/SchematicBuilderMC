@@ -1,5 +1,6 @@
 using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Schematics.Shapes;
@@ -47,7 +48,8 @@ public sealed class RectangleSchematicCreator : ShapesSchematicCreator
         var (width, height, length) = GetDimensions(effectiveWidth, effectiveLength);
         EnsurePlacementBounds(builder, startX, startY, startZ, width, height, length);
 
-        return builder.SetRectangle(startX, startY, startZ, effectiveWidth, effectiveLength, Block, Filled, NormalAxis);
+        BlockGradient gradient = ResolveGradient(Block);
+        return builder.SetRectangle(startX, startY, startZ, effectiveWidth, effectiveLength, gradient, Filled, NormalAxis);
     }
 
     /// <summary>
@@ -89,6 +91,6 @@ public sealed class RectangleSchematicCreator : ShapesSchematicCreator
         ValidateSmoothnessFactor();
         if (!Enum.IsDefined(NormalAxis))
             throw new ArgumentOutOfRangeException(nameof(NormalAxis), NormalAxis, "Unsupported axis value.");
-        ArgumentException.ThrowIfNullOrWhiteSpace(Block);
+        _ = ResolveGradient(Block);
     }
 }

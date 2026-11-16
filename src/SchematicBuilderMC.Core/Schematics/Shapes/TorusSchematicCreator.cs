@@ -1,5 +1,6 @@
 using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Schematics.Shapes;
@@ -56,7 +57,8 @@ public sealed class TorusSchematicCreator : ShapesSchematicCreator
             _ => throw new ArgumentOutOfRangeException(nameof(Axis), Axis, "Unsupported axis value.")
         };
 
-        return builder.SetTorus(cx, cy, cz, effectiveMajorRadius, effectiveMinorRadius, Block, Filled, Axis, SmoothnessFactor);
+        BlockGradient gradient = ResolveGradient(Block);
+        return builder.SetTorus(cx, cy, cz, effectiveMajorRadius, effectiveMinorRadius, gradient, Filled, Axis, SmoothnessFactor);
     }
 
     /// <summary>
@@ -106,6 +108,6 @@ public sealed class TorusSchematicCreator : ShapesSchematicCreator
             throw new ArgumentOutOfRangeException(nameof(SmoothnessFactor), SmoothnessFactor, "Scaled MinorRadius must remain less than scaled MajorRadius.");
         if (!Enum.IsDefined(Axis))
             throw new ArgumentOutOfRangeException(nameof(Axis), Axis, "Unsupported axis value.");
-        ArgumentException.ThrowIfNullOrWhiteSpace(Block);
+        _ = ResolveGradient(Block);
     }
 }

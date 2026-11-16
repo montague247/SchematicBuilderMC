@@ -1,5 +1,6 @@
 using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Schematics.Shapes;
@@ -50,7 +51,8 @@ public sealed class CircleSchematicCreator : ShapesSchematicCreator
             _ => throw new ArgumentOutOfRangeException(nameof(NormalAxis), NormalAxis, "Unsupported axis value.")
         };
 
-        return builder.SetCircle(cx, cy, cz, effectiveRadius, Block, Filled, NormalAxis, SmoothnessFactor);
+        BlockGradient gradient = ResolveGradient(Block);
+        return builder.SetCircle(cx, cy, cz, effectiveRadius, gradient, Filled, NormalAxis, SmoothnessFactor);
     }
 
     /// <summary>
@@ -93,6 +95,6 @@ public sealed class CircleSchematicCreator : ShapesSchematicCreator
         ValidateSmoothnessFactor();
         if (!Enum.IsDefined(NormalAxis))
             throw new ArgumentOutOfRangeException(nameof(NormalAxis), NormalAxis, "Unsupported axis value.");
-        ArgumentException.ThrowIfNullOrWhiteSpace(Block);
+        _ = ResolveGradient(Block);
     }
 }

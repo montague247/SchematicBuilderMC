@@ -1,4 +1,5 @@
 using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Schematics.Shapes;
@@ -36,7 +37,8 @@ public sealed class SphereSchematicCreator : ShapesSchematicCreator
         int diameter = 2 * effectiveRadius + 1;
         EnsurePlacementBounds(builder, startX, startY, startZ, diameter, diameter, diameter);
 
-        return builder.SetSphere(startX + effectiveRadius, startY + effectiveRadius, startZ + effectiveRadius, effectiveRadius, Block, Filled, SmoothnessFactor);
+        BlockGradient gradient = ResolveGradient(Block);
+        return builder.SetSphere(startX + effectiveRadius, startY + effectiveRadius, startZ + effectiveRadius, effectiveRadius, gradient, Filled, SmoothnessFactor);
     }
 
     /// <summary>
@@ -65,6 +67,6 @@ public sealed class SphereSchematicCreator : ShapesSchematicCreator
         if (Radius < 0)
             throw new ArgumentOutOfRangeException(nameof(Radius), Radius, "Radius must be zero or greater.");
         ValidateSmoothnessFactor();
-        ArgumentException.ThrowIfNullOrWhiteSpace(Block);
+        _ = ResolveGradient(Block);
     }
 }

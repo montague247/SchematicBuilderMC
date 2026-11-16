@@ -1,4 +1,5 @@
 using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Schematics.Shapes;
@@ -46,7 +47,8 @@ public sealed class PyramidSchematicCreator : ShapesSchematicCreator
         int pyramidHeight = (effectiveBaseSize + 1) / 2;
         EnsurePlacementBounds(builder, startX, startY, startZ, effectiveBaseSize, pyramidHeight, effectiveBaseSize);
 
-        return builder.SetPyramid(startX, startY, startZ, effectiveBaseSize, Block, Filled, UseStairs, StairBlock);
+        BlockGradient gradient = ResolveGradient(Block);
+        return builder.SetPyramid(startX, startY, startZ, effectiveBaseSize, gradient, Filled, UseStairs, StairBlock);
     }
 
     /// <summary>
@@ -75,6 +77,6 @@ public sealed class PyramidSchematicCreator : ShapesSchematicCreator
         if (BaseSize <= 0)
             throw new ArgumentOutOfRangeException(nameof(BaseSize), BaseSize, "BaseSize must be greater than zero.");
         ValidateSmoothnessFactor();
-        ArgumentException.ThrowIfNullOrWhiteSpace(Block);
+        _ = ResolveGradient(Block);
     }
 }

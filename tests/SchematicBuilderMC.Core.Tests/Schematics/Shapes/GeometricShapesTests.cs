@@ -419,6 +419,211 @@ public sealed class GeometricShapesTests
         Assert.Equal(Minecraft.Blocks.Sandstone, defaultPyramid[5, 5, 5].Identifier);
     }
 
+    [Fact]
+    public void ShapeGradient_StrictTransition_EvenlyDistributesCylinderLayers()
+    {
+        var schematic = new CylinderSchematicCreator
+        {
+            Radius = 3,
+            Height = 9,
+            Filled = true
+        }
+        .WithGradient(
+            GradientTransition.Strict,
+            Minecraft.Blocks.RedConcrete,
+            Minecraft.Blocks.YellowConcrete,
+            Minecraft.Blocks.LimeConcrete)
+        .Build();
+
+        for (int y = 0; y < 9; y++)
+        {
+            string expected = y switch
+            {
+                < 3 => Minecraft.Blocks.RedConcrete,
+                < 6 => Minecraft.Blocks.YellowConcrete,
+                _ => Minecraft.Blocks.LimeConcrete
+            };
+
+            Assert.All(GetLayerNonAirIdentifiers(schematic, y), id => Assert.Equal(expected, id));
+        }
+    }
+
+    [Fact]
+    public void ShapeGradient_WeightedTransition_DistributesByPercentageAndRemainder_AndValidatesWeights()
+    {
+        string[] palette =
+        [
+            Minecraft.Blocks.WhiteConcrete,
+            Minecraft.Blocks.GrayConcrete,
+            Minecraft.Blocks.BlackConcrete
+        ];
+
+        var percentCreator = new CylinderSchematicCreator
+        {
+            Radius = 3,
+            Height = 10,
+            Filled = true
+        };
+        percentCreator.WithWeightedGradient(palette, 30, 60);
+        var schematic = percentCreator.Build();
+
+        for (int y = 0; y < 10; y++)
+        {
+            string expected = y switch
+            {
+                < 3 => Minecraft.Blocks.WhiteConcrete,
+                < 9 => Minecraft.Blocks.GrayConcrete,
+                _ => Minecraft.Blocks.BlackConcrete
+            };
+
+            Assert.All(GetLayerNonAirIdentifiers(schematic, y), id => Assert.Equal(expected, id));
+        }
+
+        var fractionGradient = BlockGradient.Weighted(palette, 0.3, 0.6);
+        var explicitGradient = BlockGradient.Weighted(palette, 30, 60, 10);
+        for (int step = 0; step < 10; step++)
+        {
+            Assert.Equal(fractionGradient.GetBlock(step, 10), explicitGradient.GetBlock(step, 10));
+        }
+
+        Assert.Throws<ArgumentException>(() => new BlockGradient(Array.Empty<string>()));
+        Assert.Throws<ArgumentException>(() => new BlockGradient(palette, GradientTransition.Weighted));
+        Assert.Throws<ArgumentException>(() => BlockGradient.Weighted(palette, 30));
+        Assert.Throws<ArgumentException>(() => BlockGradient.Weighted(palette, 10, 20, 30, 40));
+        Assert.Throws<ArgumentOutOfRangeException>(() => BlockGradient.Weighted(palette, 50, 60));
+        Assert.Throws<ArgumentOutOfRangeException>(() => BlockGradient.Weighted(palette, -5, 50));
+        Assert.Throws<ArgumentOutOfRangeException>(() => BlockGradient.Weighted(palette, double.NaN, 50));
+    }
+
+    [Fact]
+    public void ShapeGradient_FuzzyTransition_RandomizesBoundariesForStrictAndWeighted()
+    {
+        var fuzzyStrict = new CylinderSchematicCreator
+        {
+            Radius = 3,
+            Height = 9,
+            Filled = true,
+            RandomSeed = 42
+        }
+        .WithGradient(
+            GradientTransition.Fuzzy,
+            Minecraft.Blocks.RedConcrete,
+            Minecraft.Blocks.YellowConcrete,
+            Minecraft.Blocks.LimeConcrete)
+        .Build();
+
+        Assert.Equal([Minecraft.Blocks.RedConcrete], GetLayerNonAirIdentifiers(fuzzyStrict, 0).Distinct().ToArray());
+        Assert.Equal([Minecraft.Blocks.YellowConcrete], GetLayerNonAirIdentifiers(fuzzyStrict, 4).Distinct().ToArray());
+        Assert.Equal([Minecraft.Blocks.LimeConcrete], GetLayerNonAirIdentifiers(fuzzyStrict, 8).Distinct().ToArray());
+
+        var strictBoundaryDistinct = GetLayerNonAirIdentifiers(fuzzyStrict, 2)
+            .Concat(GetLayerNonAirIdentifiers(fuzzyStrict, 3))
+            .Distinct()
+            .ToHashSet();
+        Assert.Contains(Minecraft.Blocks.RedConcrete, strictBoundaryDistinct);
+        Assert.Contains(Minecraft.Blocks.YellowConcrete, strictBoundaryDistinct);
+
+        var fuzzyWeighted = new CylinderSchematicCreator
+        {
+            Radius = 4,
+            Height = 10,
+            Filled = true
+        }
+        .WithGradient(
+            [Minecraft.Blocks.WhiteConcrete, Minecraft.Blocks.GrayConcrete, Minecraft.Blocks.BlackConcrete],
+            GradientTransition.Weighted,
+            [30, 60],
+            fuzzy: true,
+            seed: 123)
+        .Build();
+
+        Assert.Equal([Minecraft.Blocks.WhiteConcrete], GetLayerNonAirIdentifiers(fuzzyWeighted, 0).Distinct().ToArray());
+        Assert.Equal([Minecraft.Blocks.GrayConcrete], GetLayerNonAirIdentifiers(fuzzyWeighted, 5).Distinct().ToArray());
+
+        var weightedBoundaryDistinct = GetLayerNonAirIdentifiers(fuzzyWeighted, 2)
+            .Concat(GetLayerNonAirIdentifiers(fuzzyWeighted, 3))
+            .Distinct()
+            .ToHashSet();
+        Assert.Contains(Minecraft.Blocks.WhiteConcrete, weightedBoundaryDistinct);
+        Assert.Contains(Minecraft.Blocks.GrayConcrete, weightedBoundaryDistinct);
+    }
+
+    [Fact]
+    public void ShapeGradient_OtherShapesAndStairPyramid_UseMultipleBlocks()
+    {
+        var circle = new CircleSchematicCreator { Radius = 6, Filled = true }
+            .WithGradient(GradientTransition.Strict, Minecraft.Blocks.RedConcrete, Minecraft.Blocks.YellowConcrete, Minecraft.Blocks.LimeConcrete)
+            .Build();
+        Assert.Equal(Minecraft.Blocks.RedConcrete, circle[6, 0, 6].Identifier);
+        Assert.Equal(Minecraft.Blocks.LimeConcrete, circle[12, 0, 6].Identifier);
+
+        var oval = new OvalSchematicCreator { RadiusU = 6, RadiusV = 4, Filled = true }
+            .WithBlocks(Minecraft.Blocks.RedConcrete, Minecraft.Blocks.LimeConcrete)
+            .Build();
+        Assert.Equal(Minecraft.Blocks.RedConcrete, oval[6, 0, 4].Identifier);
+        Assert.Equal(Minecraft.Blocks.LimeConcrete, oval[12, 0, 4].Identifier);
+
+        var rectangle = new RectangleSchematicCreator { Width = 6, Length = 6, Filled = true }
+            .WithBlocks(Minecraft.Blocks.RedConcrete, Minecraft.Blocks.LimeConcrete)
+            .Build();
+        Assert.Equal(Minecraft.Blocks.RedConcrete, rectangle[0, 0, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.LimeConcrete, rectangle[0, 0, 5].Identifier);
+
+        var cube = new CubeSchematicCreator { Size = 6, Filled = true }
+            .WithWeightedGradient([Minecraft.Blocks.WhiteConcrete, Minecraft.Blocks.BlackConcrete], 50)
+            .Build();
+        Assert.Equal(Minecraft.Blocks.WhiteConcrete, cube[0, 0, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.BlackConcrete, cube[0, 5, 0].Identifier);
+
+        var sphere = new SphereSchematicCreator { Radius = 4, Filled = true }
+            .WithBlocks(Minecraft.Blocks.RedConcrete, Minecraft.Blocks.LimeConcrete)
+            .Build();
+        Assert.Equal(Minecraft.Blocks.RedConcrete, sphere[4, 0, 4].Identifier);
+        Assert.Equal(Minecraft.Blocks.LimeConcrete, sphere[4, 8, 4].Identifier);
+
+        var torus = new TorusSchematicCreator { MajorRadius = 6, MinorRadius = 3, Filled = true }
+            .WithBlocks(Minecraft.Blocks.RedConcrete, Minecraft.Blocks.LimeConcrete)
+            .Build();
+        Assert.Equal(Minecraft.Blocks.RedConcrete, torus[15, 0, 9].Identifier);
+        Assert.Equal(Minecraft.Blocks.LimeConcrete, torus[15, 6, 9].Identifier);
+
+        var stairPyramid = new PyramidSchematicCreator { BaseSize = 9, UseStairs = true }
+            .WithBlocks(Minecraft.Blocks.Sandstone, Minecraft.Blocks.RedSandstone)
+            .Build();
+        AssertStair(stairPyramid[0, 0, 0], Minecraft.Blocks.SandstoneStairs, "south", "outer_left");
+        AssertStair(stairPyramid[3, 3, 3], Minecraft.Blocks.RedSandstoneStairs, "south", "outer_left");
+        Assert.Equal(Minecraft.Blocks.RedSandstone, stairPyramid[4, 4, 4].Identifier);
+
+        var gradientCylinder = new CylinderSchematicCreator { Radius = 5, Height = 12, Filled = true }
+            .WithGradient(
+                GradientTransition.Fuzzy,
+                Minecraft.Blocks.WhiteConcrete,
+                Minecraft.Blocks.LightGrayConcrete,
+                Minecraft.Blocks.GrayConcrete,
+                Minecraft.Blocks.BlackConcrete)
+            .Build();
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, "GradientCylinder.schem");
+        SchematicFile.Write(gradientCylinder, spongePath, SchematicFormat.SpongeV2);
+        Assert.True(File.Exists(spongePath));
+    }
+
+    private static IReadOnlyList<string> GetLayerNonAirIdentifiers(Schematic schematic, int y)
+    {
+        var ids = new List<string>();
+        for (int z = 0; z < schematic.Length; z++)
+        {
+            for (int x = 0; x < schematic.Width; x++)
+            {
+                var block = schematic[x, y, z];
+                if (!block.IsAir)
+                {
+                    ids.Add(block.Identifier);
+                }
+            }
+        }
+        return ids;
+    }
+
     private static void AssertStair(BlockState state, string expectedStairId, string expectedFacing, string expectedShape)
     {
         Assert.Equal(expectedStairId, state.Identifier);

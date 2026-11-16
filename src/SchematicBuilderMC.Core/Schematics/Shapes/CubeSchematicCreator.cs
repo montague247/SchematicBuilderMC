@@ -1,4 +1,5 @@
 using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Schematics.Shapes;
@@ -35,7 +36,8 @@ public sealed class CubeSchematicCreator : ShapesSchematicCreator
         int effectiveSize = GetEffectiveSize();
         EnsurePlacementBounds(builder, startX, startY, startZ, effectiveSize, effectiveSize, effectiveSize);
 
-        return builder.SetCube(startX, startY, startZ, effectiveSize, Block, Filled);
+        BlockGradient gradient = ResolveGradient(Block);
+        return builder.SetCube(startX, startY, startZ, effectiveSize, gradient, Filled);
     }
 
     /// <summary>
@@ -63,6 +65,6 @@ public sealed class CubeSchematicCreator : ShapesSchematicCreator
         if (Size <= 0)
             throw new ArgumentOutOfRangeException(nameof(Size), Size, "Size must be greater than zero.");
         ValidateSmoothnessFactor();
-        ArgumentException.ThrowIfNullOrWhiteSpace(Block);
+        _ = ResolveGradient(Block);
     }
 }

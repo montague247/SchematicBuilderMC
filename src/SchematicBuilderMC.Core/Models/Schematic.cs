@@ -1084,13 +1084,7 @@ public sealed class Schematic
     public void SetCircle(int centerX, int centerY, int centerZ, int radius, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(blockState);
-        if (radius < 0)
-            throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
-        ValidateAxis(normalAxis, nameof(normalAxis));
-        double radialPadding = CalculateRadialPadding(smoothnessFactor);
-
-        EnsureAxisBoxInBounds(centerX, centerY, centerZ, -radius, radius, -radius, radius, 0, 0, normalAxis);
-        SetEllipticalSlice(centerX, centerY, centerZ, radius, radius, blockState, filled, normalAxis, radialPadding);
+        SetCircle(centerX, centerY, centerZ, radius, new BlockGradient([blockState]), filled, normalAxis, smoothnessFactor);
     }
 
     /// <summary>
@@ -1112,42 +1106,33 @@ public sealed class Schematic
         SetCircle(center.X, center.Y, center.Z, radius, BlockState.Parse(blockStateString), filled, normalAxis, smoothnessFactor);
 
     /// <summary>
+    /// Places a filled or hollow circle centered at (centerX, centerY, centerZ) using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetCircle(int centerX, int centerY, int centerZ, int radius, BlockGradient gradient, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+        if (radius < 0)
+            throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
+        ValidateAxis(normalAxis, nameof(normalAxis));
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
+
+        EnsureAxisBoxInBounds(centerX, centerY, centerZ, -radius, radius, -radius, radius, 0, 0, normalAxis);
+        SetEllipticalSlice(centerX, centerY, centerZ, radius, radius, gradient, filled, normalAxis, radialPadding);
+    }
+
+    /// <summary>
+    /// Places a filled or hollow circle centered at <paramref name="center"/> using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetCircle(BlockPosition center, int radius, BlockGradient gradient, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetCircle(center.X, center.Y, center.Z, radius, gradient, filled, normalAxis, smoothnessFactor);
+
+    /// <summary>
     /// Places a filled or hollow sphere centered at (centerX, centerY, centerZ).
     /// </summary>
     public void SetSphere(int centerX, int centerY, int centerZ, int radius, BlockState blockState, bool filled = true, double smoothnessFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(blockState);
-        if (radius < 0)
-            throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
-        double radialPadding = CalculateRadialPadding(smoothnessFactor);
-
-        EnsureInBounds(centerX - radius, centerY - radius, centerZ - radius);
-        EnsureInBounds(centerX + radius, centerY + radius, centerZ + radius);
-
-        double outerRadiusSq = (radius + radialPadding) * (radius + radialPadding);
-        bool IsInside(int dx, int dy, int dz) => dx * dx + dy * dy + dz * dz <= outerRadiusSq;
-
-        for (int dy = -radius; dy <= radius; dy++)
-        {
-            for (int dz = -radius; dz <= radius; dz++)
-            {
-                for (int dx = -radius; dx <= radius; dx++)
-                {
-                    if (!IsInside(dx, dy, dz))
-                        continue;
-
-                    if (!filled &&
-                        IsInside(dx + 1, dy, dz) && IsInside(dx - 1, dy, dz) &&
-                        IsInside(dx, dy + 1, dz) && IsInside(dx, dy - 1, dz) &&
-                        IsInside(dx, dy, dz + 1) && IsInside(dx, dy, dz - 1))
-                    {
-                        continue;
-                    }
-
-                    SetBlock(centerX + dx, centerY + dy, centerZ + dz, blockState);
-                }
-            }
-        }
+        SetSphere(centerX, centerY, centerZ, radius, new BlockGradient([blockState]), filled, smoothnessFactor);
     }
 
     /// <summary>
@@ -1169,30 +1154,61 @@ public sealed class Schematic
         SetSphere(center.X, center.Y, center.Z, radius, BlockState.Parse(blockStateString), filled, smoothnessFactor);
 
     /// <summary>
+    /// Places a filled or hollow sphere centered at (centerX, centerY, centerZ) using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetSphere(int centerX, int centerY, int centerZ, int radius, BlockGradient gradient, bool filled = true, double smoothnessFactor = 1.0)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+        if (radius < 0)
+            throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
+
+        EnsureInBounds(centerX - radius, centerY - radius, centerZ - radius);
+        EnsureInBounds(centerX + radius, centerY + radius, centerZ + radius);
+
+        double outerRadiusSq = (radius + radialPadding) * (radius + radialPadding);
+        bool IsInside(int dx, int dy, int dz) => dx * dx + dy * dy + dz * dz <= outerRadiusSq;
+
+        int totalSteps = 2 * radius + 1;
+        Random? random = gradient.CreateRandom();
+
+        for (int dy = -radius; dy <= radius; dy++)
+        {
+            int stepIndex = dy + radius;
+            for (int dz = -radius; dz <= radius; dz++)
+            {
+                for (int dx = -radius; dx <= radius; dx++)
+                {
+                    if (!IsInside(dx, dy, dz))
+                        continue;
+
+                    if (!filled &&
+                        IsInside(dx + 1, dy, dz) && IsInside(dx - 1, dy, dz) &&
+                        IsInside(dx, dy + 1, dz) && IsInside(dx, dy - 1, dz) &&
+                        IsInside(dx, dy, dz + 1) && IsInside(dx, dy, dz - 1))
+                    {
+                        continue;
+                    }
+
+                    SetBlock(centerX + dx, centerY + dy, centerZ + dz, gradient.GetBlock(stepIndex, totalSteps, random));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow sphere centered at <paramref name="center"/> using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetSphere(BlockPosition center, int radius, BlockGradient gradient, bool filled = true, double smoothnessFactor = 1.0) =>
+        SetSphere(center.X, center.Y, center.Z, radius, gradient, filled, smoothnessFactor);
+
+    /// <summary>
     /// Places a filled or hollow rectangle starting at (startX, startY, startZ) in the plane perpendicular to <paramref name="normalAxis"/>.
     /// </summary>
     public void SetRectangle(int startX, int startY, int startZ, int width, int length, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y)
     {
         ArgumentNullException.ThrowIfNull(blockState);
-        if (width <= 0)
-            throw new ArgumentOutOfRangeException(nameof(width), width, "Width must be greater than zero.");
-        if (length <= 0)
-            throw new ArgumentOutOfRangeException(nameof(length), length, "Length must be greater than zero.");
-        ValidateAxis(normalAxis, nameof(normalAxis));
-
-        EnsureAxisBoxInBounds(startX, startY, startZ, 0, width - 1, 0, length - 1, 0, 0, normalAxis);
-
-        for (int v = 0; v < length; v++)
-        {
-            for (int u = 0; u < width; u++)
-            {
-                if (filled || u == 0 || u == width - 1 || v == 0 || v == length - 1)
-                {
-                    var pos = MapAxisOffset(startX, startY, startZ, u, v, 0, normalAxis);
-                    SetBlock(pos.X, pos.Y, pos.Z, blockState);
-                }
-            }
-        }
+        SetRectangle(startX, startY, startZ, width, length, new BlockGradient([blockState]), filled, normalAxis);
     }
 
     /// <summary>
@@ -1214,38 +1230,50 @@ public sealed class Schematic
         SetRectangle(start.X, start.Y, start.Z, width, length, BlockState.Parse(blockStateString), filled, normalAxis);
 
     /// <summary>
+    /// Places a filled or hollow rectangle starting at (startX, startY, startZ) using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetRectangle(int startX, int startY, int startZ, int width, int length, BlockGradient gradient, bool filled = true, Axis normalAxis = Axis.Y)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+        if (width <= 0)
+            throw new ArgumentOutOfRangeException(nameof(width), width, "Width must be greater than zero.");
+        if (length <= 0)
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Length must be greater than zero.");
+        ValidateAxis(normalAxis, nameof(normalAxis));
+
+        EnsureAxisBoxInBounds(startX, startY, startZ, 0, width - 1, 0, length - 1, 0, 0, normalAxis);
+
+        bool useU = length == 1 && width > 1;
+        int totalSteps = useU ? width : length;
+        Random? random = gradient.CreateRandom();
+
+        for (int v = 0; v < length; v++)
+        {
+            for (int u = 0; u < width; u++)
+            {
+                if (filled || u == 0 || u == width - 1 || v == 0 || v == length - 1)
+                {
+                    int stepIndex = useU ? u : v;
+                    var pos = MapAxisOffset(startX, startY, startZ, u, v, 0, normalAxis);
+                    SetBlock(pos.X, pos.Y, pos.Z, gradient.GetBlock(stepIndex, totalSteps, random));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow rectangle starting at <paramref name="start"/> using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetRectangle(BlockPosition start, int width, int length, BlockGradient gradient, bool filled = true, Axis normalAxis = Axis.Y) =>
+        SetRectangle(start.X, start.Y, start.Z, width, length, gradient, filled, normalAxis);
+
+    /// <summary>
     /// Places a filled or hollow cube starting at (startX, startY, startZ) with edge length <paramref name="size"/>.
     /// </summary>
     public void SetCube(int startX, int startY, int startZ, int size, BlockState blockState, bool filled = true)
     {
         ArgumentNullException.ThrowIfNull(blockState);
-        if (size <= 0)
-            throw new ArgumentOutOfRangeException(nameof(size), size, "Cube size must be greater than zero.");
-
-        EnsureInBounds(startX, startY, startZ);
-        EnsureInBounds(startX + size - 1, startY + size - 1, startZ + size - 1);
-
-        if (filled)
-        {
-            Fill(startX, startY, startZ, startX + size - 1, startY + size - 1, startZ + size - 1, blockState);
-            return;
-        }
-
-        for (int dy = 0; dy < size; dy++)
-        {
-            for (int dz = 0; dz < size; dz++)
-            {
-                for (int dx = 0; dx < size; dx++)
-                {
-                    if (dx == 0 || dx == size - 1 ||
-                        dy == 0 || dy == size - 1 ||
-                        dz == 0 || dz == size - 1)
-                    {
-                        SetBlock(startX + dx, startY + dy, startZ + dz, blockState);
-                    }
-                }
-            }
-        }
+        SetCube(startX, startY, startZ, size, new BlockGradient([blockState]), filled);
     }
 
     /// <summary>
@@ -1267,20 +1295,55 @@ public sealed class Schematic
         SetCube(start.X, start.Y, start.Z, size, BlockState.Parse(blockStateString), filled);
 
     /// <summary>
+    /// Places a filled or hollow cube starting at (startX, startY, startZ) using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetCube(int startX, int startY, int startZ, int size, BlockGradient gradient, bool filled = true)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+        if (size <= 0)
+            throw new ArgumentOutOfRangeException(nameof(size), size, "Cube size must be greater than zero.");
+
+        EnsureInBounds(startX, startY, startZ);
+        EnsureInBounds(startX + size - 1, startY + size - 1, startZ + size - 1);
+
+        if (filled && gradient.Blocks.Count == 1)
+        {
+            Fill(startX, startY, startZ, startX + size - 1, startY + size - 1, startZ + size - 1, gradient.Blocks[0]);
+            return;
+        }
+
+        Random? random = gradient.CreateRandom();
+        for (int dy = 0; dy < size; dy++)
+        {
+            for (int dz = 0; dz < size; dz++)
+            {
+                for (int dx = 0; dx < size; dx++)
+                {
+                    if (filled ||
+                        dx == 0 || dx == size - 1 ||
+                        dy == 0 || dy == size - 1 ||
+                        dz == 0 || dz == size - 1)
+                    {
+                        SetBlock(startX + dx, startY + dy, startZ + dz, gradient.GetBlock(dy, size, random));
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow cube starting at <paramref name="start"/> using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetCube(BlockPosition start, int size, BlockGradient gradient, bool filled = true) =>
+        SetCube(start.X, start.Y, start.Z, size, gradient, filled);
+
+    /// <summary>
     /// Places a filled or hollow oval (ellipse) centered at (centerX, centerY, centerZ) in the plane perpendicular to <paramref name="normalAxis"/>.
     /// </summary>
     public void SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(blockState);
-        if (radiusU < 0)
-            throw new ArgumentOutOfRangeException(nameof(radiusU), radiusU, "RadiusU must be zero or greater.");
-        if (radiusV < 0)
-            throw new ArgumentOutOfRangeException(nameof(radiusV), radiusV, "RadiusV must be zero or greater.");
-        ValidateAxis(normalAxis, nameof(normalAxis));
-        double radialPadding = CalculateRadialPadding(smoothnessFactor);
-
-        EnsureAxisBoxInBounds(centerX, centerY, centerZ, -radiusU, radiusU, -radiusV, radiusV, 0, 0, normalAxis);
-        SetEllipticalSlice(centerX, centerY, centerZ, radiusU, radiusV, blockState, filled, normalAxis, radialPadding);
+        SetOval(centerX, centerY, centerZ, radiusU, radiusV, new BlockGradient([blockState]), filled, normalAxis, smoothnessFactor);
     }
 
     /// <summary>
@@ -1302,25 +1365,35 @@ public sealed class Schematic
         SetOval(center.X, center.Y, center.Z, radiusU, radiusV, BlockState.Parse(blockStateString), filled, normalAxis, smoothnessFactor);
 
     /// <summary>
+    /// Places a filled or hollow oval centered at (centerX, centerY, centerZ) using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, BlockGradient gradient, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+        if (radiusU < 0)
+            throw new ArgumentOutOfRangeException(nameof(radiusU), radiusU, "RadiusU must be zero or greater.");
+        if (radiusV < 0)
+            throw new ArgumentOutOfRangeException(nameof(radiusV), radiusV, "RadiusV must be zero or greater.");
+        ValidateAxis(normalAxis, nameof(normalAxis));
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
+
+        EnsureAxisBoxInBounds(centerX, centerY, centerZ, -radiusU, radiusU, -radiusV, radiusV, 0, 0, normalAxis);
+        SetEllipticalSlice(centerX, centerY, centerZ, radiusU, radiusV, gradient, filled, normalAxis, radialPadding);
+    }
+
+    /// <summary>
+    /// Places a filled or hollow oval centered at <paramref name="center"/> using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetOval(BlockPosition center, int radiusU, int radiusV, BlockGradient gradient, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetOval(center.X, center.Y, center.Z, radiusU, radiusV, gradient, filled, normalAxis, smoothnessFactor);
+
+    /// <summary>
     /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) extending along <paramref name="axis"/>.
     /// </summary>
     public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockState blockState, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(blockState);
-        if (radius < 0)
-            throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
-        if (height <= 0)
-            throw new ArgumentOutOfRangeException(nameof(height), height, "Height must be greater than zero.");
-        ValidateAxis(axis, nameof(axis));
-        double radialPadding = CalculateRadialPadding(smoothnessFactor);
-
-        EnsureAxisBoxInBounds(centerX, startY, centerZ, -radius, radius, -radius, radius, 0, height - 1, axis);
-
-        for (int h = 0; h < height; h++)
-        {
-            var sliceCenter = MapAxisOffset(centerX, startY, centerZ, 0, 0, h, axis);
-            SetEllipticalSlice(sliceCenter.X, sliceCenter.Y, sliceCenter.Z, radius, radius, blockState, filled, axis, radialPadding);
-        }
+        SetCylinder(centerX, startY, centerZ, radius, height, new BlockGradient([blockState]), filled, axis, smoothnessFactor);
     }
 
     /// <summary>
@@ -1342,50 +1415,41 @@ public sealed class Schematic
         SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor);
 
     /// <summary>
+    /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockGradient gradient, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+        if (radius < 0)
+            throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
+        if (height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(height), height, "Height must be greater than zero.");
+        ValidateAxis(axis, nameof(axis));
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
+
+        EnsureAxisBoxInBounds(centerX, startY, centerZ, -radius, radius, -radius, radius, 0, height - 1, axis);
+
+        Random? random = gradient.CreateRandom();
+        for (int h = 0; h < height; h++)
+        {
+            var sliceCenter = MapAxisOffset(centerX, startY, centerZ, 0, 0, h, axis);
+            SetEllipticalSlice(sliceCenter.X, sliceCenter.Y, sliceCenter.Z, radius, radius, gradient, filled, axis, radialPadding, h, height, random);
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/> using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetCylinder(BlockPosition baseCenter, int radius, int height, BlockGradient gradient, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, gradient, filled, axis, smoothnessFactor);
+
+    /// <summary>
     /// Places a filled or hollow torus centered at (centerX, centerY, centerZ) oriented around <paramref name="axis"/>.
     /// </summary>
     public void SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, BlockState blockState, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(blockState);
-        if (majorRadius <= 0)
-            throw new ArgumentOutOfRangeException(nameof(majorRadius), majorRadius, "MajorRadius must be greater than zero.");
-        if (minorRadius < 0 || minorRadius >= majorRadius)
-            throw new ArgumentOutOfRangeException(nameof(minorRadius), minorRadius, "MinorRadius must be non-negative and less than MajorRadius.");
-        ValidateAxis(axis, nameof(axis));
-        double radialPadding = CalculateRadialPadding(smoothnessFactor);
-
-        int outerExtent = majorRadius + minorRadius;
-        EnsureAxisBoxInBounds(centerX, centerY, centerZ, -outerExtent, outerExtent, -outerExtent, outerExtent, -minorRadius, minorRadius, axis);
-
-        double minorSq = (minorRadius + radialPadding) * (minorRadius + radialPadding);
-        bool IsInside(int du, int dv, int dh)
-        {
-            double ringDelta = Math.Sqrt(du * du + dv * dv) - majorRadius;
-            return ringDelta * ringDelta + dh * dh <= minorSq;
-        }
-
-        for (int dh = -minorRadius; dh <= minorRadius; dh++)
-        {
-            for (int dv = -outerExtent; dv <= outerExtent; dv++)
-            {
-                for (int du = -outerExtent; du <= outerExtent; du++)
-                {
-                    if (!IsInside(du, dv, dh))
-                        continue;
-
-                    if (!filled &&
-                        IsInside(du + 1, dv, dh) && IsInside(du - 1, dv, dh) &&
-                        IsInside(du, dv + 1, dh) && IsInside(du, dv - 1, dh) &&
-                        IsInside(du, dv, dh + 1) && IsInside(du, dv, dh - 1))
-                    {
-                        continue;
-                    }
-
-                    var pos = MapAxisOffset(centerX, centerY, centerZ, du, dv, dh, axis);
-                    SetBlock(pos.X, pos.Y, pos.Z, blockState);
-                }
-            }
-        }
+        SetTorus(centerX, centerY, centerZ, majorRadius, minorRadius, new BlockGradient([blockState]), filled, axis, smoothnessFactor);
     }
 
     /// <summary>
@@ -1407,44 +1471,70 @@ public sealed class Schematic
         SetTorus(center.X, center.Y, center.Z, majorRadius, minorRadius, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor);
 
     /// <summary>
+    /// Places a filled or hollow torus centered at (centerX, centerY, centerZ) using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, BlockGradient gradient, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+        if (majorRadius <= 0)
+            throw new ArgumentOutOfRangeException(nameof(majorRadius), majorRadius, "MajorRadius must be greater than zero.");
+        if (minorRadius < 0 || minorRadius >= majorRadius)
+            throw new ArgumentOutOfRangeException(nameof(minorRadius), minorRadius, "MinorRadius must be non-negative and less than MajorRadius.");
+        ValidateAxis(axis, nameof(axis));
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
+
+        int outerExtent = majorRadius + minorRadius;
+        EnsureAxisBoxInBounds(centerX, centerY, centerZ, -outerExtent, outerExtent, -outerExtent, outerExtent, -minorRadius, minorRadius, axis);
+
+        double minorSq = (minorRadius + radialPadding) * (minorRadius + radialPadding);
+        bool IsInside(int du, int dv, int dh)
+        {
+            double ringDelta = Math.Sqrt(du * du + dv * dv) - majorRadius;
+            return ringDelta * ringDelta + dh * dh <= minorSq;
+        }
+
+        bool useAxialSteps = minorRadius > 0;
+        int totalSteps = useAxialSteps ? 2 * minorRadius + 1 : 2 * outerExtent + 1;
+        Random? random = gradient.CreateRandom();
+
+        for (int dh = -minorRadius; dh <= minorRadius; dh++)
+        {
+            for (int dv = -outerExtent; dv <= outerExtent; dv++)
+            {
+                for (int du = -outerExtent; du <= outerExtent; du++)
+                {
+                    if (!IsInside(du, dv, dh))
+                        continue;
+
+                    if (!filled &&
+                        IsInside(du + 1, dv, dh) && IsInside(du - 1, dv, dh) &&
+                        IsInside(du, dv + 1, dh) && IsInside(du, dv - 1, dh) &&
+                        IsInside(du, dv, dh + 1) && IsInside(du, dv, dh - 1))
+                    {
+                        continue;
+                    }
+
+                    int stepIndex = useAxialSteps ? dh + minorRadius : du + outerExtent;
+                    var pos = MapAxisOffset(centerX, centerY, centerZ, du, dv, dh, axis);
+                    SetBlock(pos.X, pos.Y, pos.Z, gradient.GetBlock(stepIndex, totalSteps, random));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow torus centered at <paramref name="center"/> using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetTorus(BlockPosition center, int majorRadius, int minorRadius, BlockGradient gradient, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetTorus(center.X, center.Y, center.Z, majorRadius, minorRadius, gradient, filled, axis, smoothnessFactor);
+
+    /// <summary>
     /// Places a filled or hollow square-base pyramid starting at (startX, startY, startZ) with base edge <paramref name="baseSize"/>.
     /// </summary>
     public void SetPyramid(int startX, int startY, int startZ, int baseSize, BlockState blockState, bool filled = true, bool useStairs = false, string? stairBlockId = null)
     {
         ArgumentNullException.ThrowIfNull(blockState);
-        if (baseSize <= 0)
-            throw new ArgumentOutOfRangeException(nameof(baseSize), baseSize, "BaseSize must be greater than zero.");
-
-        int pyramidHeight = (baseSize + 1) / 2;
-        EnsureInBounds(startX, startY, startZ);
-        EnsureInBounds(startX + baseSize - 1, startY + pyramidHeight - 1, startZ + baseSize - 1);
-
-        BlockState? stairBase = null;
-        if (useStairs)
-        {
-            string resolvedStairId = string.IsNullOrWhiteSpace(stairBlockId)
-                ? ResolveStairBlockId(blockState.Identifier)
-                : stairBlockId;
-            if (!resolvedStairId.Contains(':', StringComparison.Ordinal))
-                resolvedStairId = $"minecraft:{resolvedStairId}";
-            stairBase = BlockState.Parse(resolvedStairId);
-        }
-
-        for (int level = 0; level < pyramidHeight; level++)
-        {
-            int layerWidth = baseSize - 2 * level;
-            int layerStartX = startX + level;
-            int layerY = startY + level;
-            int layerStartZ = startZ + level;
-
-            if (stairBase is null || layerWidth == 1)
-            {
-                SetRectangle(layerStartX, layerY, layerStartZ, layerWidth, layerWidth, blockState, filled: filled, normalAxis: Axis.Y);
-                continue;
-            }
-
-            SetPyramidStairLayer(layerStartX, layerY, layerStartZ, layerWidth, blockState, stairBase, filled);
-        }
+        SetPyramid(startX, startY, startZ, baseSize, new BlockGradient([blockState]), filled, useStairs, stairBlockId);
     }
 
     /// <summary>
@@ -1465,17 +1555,139 @@ public sealed class Schematic
     public void SetPyramid(BlockPosition start, int baseSize, string blockStateString, bool filled = true, bool useStairs = false, string? stairBlockId = null) =>
         SetPyramid(start.X, start.Y, start.Z, baseSize, BlockState.Parse(blockStateString), filled, useStairs, stairBlockId);
 
-    private void SetPyramidStairLayer(int layerStartX, int layerY, int layerStartZ, int layerWidth, BlockState fillBlockState, BlockState stairBase, bool filled)
+    /// <summary>
+    /// Places a filled or hollow square-base pyramid starting at (startX, startY, startZ) using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetPyramid(int startX, int startY, int startZ, int baseSize, BlockGradient gradient, bool filled = true, bool useStairs = false, string? stairBlockId = null)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+        if (baseSize <= 0)
+            throw new ArgumentOutOfRangeException(nameof(baseSize), baseSize, "BaseSize must be greater than zero.");
+
+        int pyramidHeight = (baseSize + 1) / 2;
+        EnsureInBounds(startX, startY, startZ);
+        EnsureInBounds(startX + baseSize - 1, startY + pyramidHeight - 1, startZ + baseSize - 1);
+
+        Random? random = gradient.CreateRandom();
+        Dictionary<string, BlockState>? stairCache = useStairs ? [] : null;
+
+        for (int level = 0; level < pyramidHeight; level++)
+        {
+            int layerWidth = baseSize - 2 * level;
+            int layerStartX = startX + level;
+            int layerY = startY + level;
+            int layerStartZ = startZ + level;
+
+            if (!useStairs || layerWidth == 1)
+            {
+                if (!gradient.IsFuzzy)
+                {
+                    var layerBlock = gradient.GetBlock(level, pyramidHeight);
+                    SetRectangle(layerStartX, layerY, layerStartZ, layerWidth, layerWidth, layerBlock, filled: filled, normalAxis: Axis.Y);
+                }
+                else
+                {
+                    int max = layerWidth - 1;
+                    for (int dz = 0; dz < layerWidth; dz++)
+                    {
+                        for (int dx = 0; dx < layerWidth; dx++)
+                        {
+                            if (filled || dx == 0 || dx == max || dz == 0 || dz == max)
+                            {
+                                SetBlock(layerStartX + dx, layerY, layerStartZ + dz, gradient.GetBlock(level, pyramidHeight, random));
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
+
+            SetPyramidStairLayer(layerStartX, layerY, layerStartZ, layerWidth, gradient, level, pyramidHeight, stairBlockId, stairCache!, filled, random);
+        }
+    }
+
+    /// <summary>
+    /// Places a filled or hollow square-base pyramid starting at <paramref name="start"/> using a multi-block <paramref name="gradient"/>.
+    /// </summary>
+    public void SetPyramid(BlockPosition start, int baseSize, BlockGradient gradient, bool filled = true, bool useStairs = false, string? stairBlockId = null) =>
+        SetPyramid(start.X, start.Y, start.Z, baseSize, gradient, filled, useStairs, stairBlockId);
+
+    private void SetPyramidStairLayer(
+        int layerStartX,
+        int layerY,
+        int layerStartZ,
+        int layerWidth,
+        BlockGradient gradient,
+        int level,
+        int pyramidHeight,
+        string? stairBlockId,
+        Dictionary<string, BlockState> stairCache,
+        bool filled,
+        Random? random)
     {
         int max = layerWidth - 1;
-        BlockState nwCorner = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.OuterLeft);
-        BlockState neCorner = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.OuterRight);
-        BlockState swCorner = stairBase.BottomHalf().WithFacing(Direction.North).WithStairsShape(StairsShape.OuterRight);
-        BlockState seCorner = stairBase.BottomHalf().WithFacing(Direction.North).WithStairsShape(StairsShape.OuterLeft);
-        BlockState northEdge = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.Straight);
-        BlockState southEdge = stairBase.BottomHalf().WithFacing(Direction.North).WithStairsShape(StairsShape.Straight);
-        BlockState westEdge = stairBase.BottomHalf().WithFacing(Direction.East).WithStairsShape(StairsShape.Straight);
-        BlockState eastEdge = stairBase.BottomHalf().WithFacing(Direction.West).WithStairsShape(StairsShape.Straight);
+        bool useExplicitSingleStair = gradient.Blocks.Count == 1 && !string.IsNullOrWhiteSpace(stairBlockId);
+
+        BlockState ResolveStairBase(BlockState block)
+        {
+            if (useExplicitSingleStair)
+            {
+                string explicitId = stairBlockId!.Contains(':', StringComparison.Ordinal) ? stairBlockId : $"minecraft:{stairBlockId}";
+                if (!stairCache.TryGetValue(explicitId, out var explicitBase))
+                {
+                    explicitBase = BlockState.Parse(explicitId);
+                    stairCache[explicitId] = explicitBase;
+                }
+                return explicitBase;
+            }
+
+            if (!stairCache.TryGetValue(block.Identifier, out var cachedBase))
+            {
+                string resolvedStairId = ResolveStairBlockId(block.Identifier, stairBlockId);
+                cachedBase = BlockState.Parse(resolvedStairId);
+                stairCache[block.Identifier] = cachedBase;
+            }
+            return cachedBase;
+        }
+
+        if (!gradient.IsFuzzy)
+        {
+            BlockState fillBlock = gradient.GetBlock(level, pyramidHeight);
+            BlockState stairBase = ResolveStairBase(fillBlock);
+            BlockState nwCorner = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.OuterLeft);
+            BlockState neCorner = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.OuterRight);
+            BlockState swCorner = stairBase.BottomHalf().WithFacing(Direction.North).WithStairsShape(StairsShape.OuterRight);
+            BlockState seCorner = stairBase.BottomHalf().WithFacing(Direction.North).WithStairsShape(StairsShape.OuterLeft);
+            BlockState northEdge = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.Straight);
+            BlockState southEdge = stairBase.BottomHalf().WithFacing(Direction.North).WithStairsShape(StairsShape.Straight);
+            BlockState westEdge = stairBase.BottomHalf().WithFacing(Direction.East).WithStairsShape(StairsShape.Straight);
+            BlockState eastEdge = stairBase.BottomHalf().WithFacing(Direction.West).WithStairsShape(StairsShape.Straight);
+
+            for (int dz = 0; dz < layerWidth; dz++)
+            {
+                for (int dx = 0; dx < layerWidth; dx++)
+                {
+                    BlockState? placed = (dx == 0, dx == max, dz == 0, dz == max) switch
+                    {
+                        (true, false, true, false) => nwCorner,
+                        (false, true, true, false) => neCorner,
+                        (true, false, false, true) => swCorner,
+                        (false, true, false, true) => seCorner,
+                        (_, _, true, false) => northEdge,
+                        (_, _, false, true) => southEdge,
+                        (true, false, _, _) => westEdge,
+                        (false, true, _, _) => eastEdge,
+                        _ => filled ? fillBlock : null
+                    };
+
+                    if (placed is not null)
+                    {
+                        SetBlock(layerStartX + dx, layerY, layerStartZ + dz, placed);
+                    }
+                }
+            }
+            return;
+        }
 
         for (int dz = 0; dz < layerWidth; dz++)
         {
@@ -1485,33 +1697,45 @@ public sealed class Schematic
                 bool isMaxX = dx == max;
                 bool isMinZ = dz == 0;
                 bool isMaxZ = dz == max;
+                bool isPerimeter = isMinX || isMaxX || isMinZ || isMaxZ;
 
-                BlockState? placed = (isMinX, isMaxX, isMinZ, isMaxZ) switch
+                if (!isPerimeter)
                 {
-                    (true, false, true, false) => nwCorner,
-                    (false, true, true, false) => neCorner,
-                    (true, false, false, true) => swCorner,
-                    (false, true, false, true) => seCorner,
-                    (_, _, true, false) => northEdge,
-                    (_, _, false, true) => southEdge,
-                    (true, false, _, _) => westEdge,
-                    (false, true, _, _) => eastEdge,
-                    _ => filled ? fillBlockState : null
+                    if (filled)
+                    {
+                        SetBlock(layerStartX + dx, layerY, layerStartZ + dz, gradient.GetBlock(level, pyramidHeight, random));
+                    }
+                    continue;
+                }
+
+                (Direction facing, StairsShape shape) = (isMinX, isMaxX, isMinZ, isMaxZ) switch
+                {
+                    (true, false, true, false) => (Direction.South, StairsShape.OuterLeft),
+                    (false, true, true, false) => (Direction.South, StairsShape.OuterRight),
+                    (true, false, false, true) => (Direction.North, StairsShape.OuterRight),
+                    (false, true, false, true) => (Direction.North, StairsShape.OuterLeft),
+                    (_, _, true, false) => (Direction.South, StairsShape.Straight),
+                    (_, _, false, true) => (Direction.North, StairsShape.Straight),
+                    (true, false, _, _) => (Direction.East, StairsShape.Straight),
+                    _ => (Direction.West, StairsShape.Straight)
                 };
 
-                if (placed is not null)
-                {
-                    SetBlock(layerStartX + dx, layerY, layerStartZ + dz, placed);
-                }
+                BlockState chosen = gradient.GetBlock(level, pyramidHeight, random);
+                BlockState stair = ResolveStairBase(chosen).BottomHalf().WithFacing(facing).WithStairsShape(shape);
+                SetBlock(layerStartX + dx, layerY, layerStartZ + dz, stair);
             }
         }
     }
 
-    private static string ResolveStairBlockId(string blockIdentifier)
+    private static string ResolveStairBlockId(string blockIdentifier, string? fallbackStairBlockId = null)
     {
+        string fallback = !string.IsNullOrWhiteSpace(fallbackStairBlockId)
+            ? (fallbackStairBlockId.Contains(':', StringComparison.Ordinal) ? fallbackStairBlockId : $"minecraft:{fallbackStairBlockId}")
+            : Minecraft.Blocks.StoneStairs;
+
         if (string.IsNullOrWhiteSpace(blockIdentifier))
         {
-            return Minecraft.Blocks.StoneStairs;
+            return fallback;
         }
 
         string normalized = blockIdentifier.Contains(':', StringComparison.Ordinal)
@@ -1560,7 +1784,7 @@ public sealed class Schematic
             }
         }
 
-        return Minecraft.Blocks.StoneStairs;
+        return fallback;
     }
 
     private static double CalculateRadialPadding(double smoothnessFactor)
@@ -1573,11 +1797,25 @@ public sealed class Schematic
         return 0.5 / (1.0 + smoothnessFactor);
     }
 
-    private void SetEllipticalSlice(int cx, int cy, int cz, int radiusU, int radiusV, BlockState blockState, bool filled, Axis normalAxis, double radialPadding)
+    private void SetEllipticalSlice(
+        int cx,
+        int cy,
+        int cz,
+        int radiusU,
+        int radiusV,
+        BlockGradient gradient,
+        bool filled,
+        Axis normalAxis,
+        double radialPadding,
+        int? stepOverride = null,
+        int? totalStepsOverride = null,
+        Random? random = null)
     {
         double ruSq = (radiusU + radialPadding) * (radiusU + radialPadding);
         double rvSq = (radiusV + radialPadding) * (radiusV + radialPadding);
         bool isCircle = radiusU == radiusV;
+        int maxRadius = Math.Max(radiusU, radiusV);
+        Random? sliceRandom = random ?? gradient.CreateRandom();
 
         bool IsInside(int du, int dv) => isCircle
             ? du * du + dv * dv <= ruSq
@@ -1597,8 +1835,24 @@ public sealed class Schematic
                     continue;
                 }
 
+                int stepIndex;
+                int totalSteps;
+                if (stepOverride.HasValue)
+                {
+                    stepIndex = stepOverride.Value;
+                    totalSteps = totalStepsOverride ?? 1;
+                }
+                else
+                {
+                    totalSteps = maxRadius + 1;
+                    double norm = isCircle
+                        ? (radiusU == 0 ? 0.0 : Math.Sqrt(du * du + dv * dv) / Math.Max(1.0, radiusU + radialPadding))
+                        : Math.Sqrt((du * du) / ruSq + (dv * dv) / rvSq);
+                    stepIndex = Math.Clamp((int)Math.Round(norm * maxRadius), 0, maxRadius);
+                }
+
                 var pos = MapAxisOffset(cx, cy, cz, du, dv, 0, normalAxis);
-                SetBlock(pos.X, pos.Y, pos.Z, blockState);
+                SetBlock(pos.X, pos.Y, pos.Z, gradient.GetBlock(stepIndex, totalSteps, sliceRandom));
             }
         }
     }

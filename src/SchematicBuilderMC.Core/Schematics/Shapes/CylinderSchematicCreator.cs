@@ -1,5 +1,6 @@
 using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Schematics.Shapes;
@@ -55,7 +56,8 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
             _ => throw new ArgumentOutOfRangeException(nameof(Axis), Axis, "Unsupported axis value.")
         };
 
-        return builder.SetCylinder(bx, by, bz, effectiveRadius, Height, Block, Filled, Axis, SmoothnessFactor);
+        BlockGradient gradient = ResolveGradient(Block);
+        return builder.SetCylinder(bx, by, bz, effectiveRadius, Height, gradient, Filled, Axis, SmoothnessFactor);
     }
 
     /// <summary>
@@ -100,6 +102,6 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
         ValidateSmoothnessFactor();
         if (!Enum.IsDefined(Axis))
             throw new ArgumentOutOfRangeException(nameof(Axis), Axis, "Unsupported axis value.");
-        ArgumentException.ThrowIfNullOrWhiteSpace(Block);
+        _ = ResolveGradient(Block);
     }
 }
