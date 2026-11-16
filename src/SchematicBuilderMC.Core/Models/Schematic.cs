@@ -960,48 +960,50 @@ public sealed class Schematic
     /// <summary>
     /// Places a filled or hollow circle centered at (centerX, centerY, centerZ) in the plane perpendicular to <paramref name="normalAxis"/>.
     /// </summary>
-    public void SetCircle(int centerX, int centerY, int centerZ, int radius, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y)
+    public void SetCircle(int centerX, int centerY, int centerZ, int radius, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(blockState);
         if (radius < 0)
             throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
         ValidateAxis(normalAxis, nameof(normalAxis));
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
 
         EnsureAxisBoxInBounds(centerX, centerY, centerZ, -radius, radius, -radius, radius, 0, 0, normalAxis);
-        SetEllipticalSlice(centerX, centerY, centerZ, radius, radius, blockState, filled, normalAxis);
+        SetEllipticalSlice(centerX, centerY, centerZ, radius, radius, blockState, filled, normalAxis, radialPadding);
     }
 
     /// <summary>
     /// Places a filled or hollow circle centered at (centerX, centerY, centerZ) from a blockstate string.
     /// </summary>
-    public void SetCircle(int centerX, int centerY, int centerZ, int radius, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y) =>
-        SetCircle(centerX, centerY, centerZ, radius, BlockState.Parse(blockStateString), filled, normalAxis);
+    public void SetCircle(int centerX, int centerY, int centerZ, int radius, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetCircle(centerX, centerY, centerZ, radius, BlockState.Parse(blockStateString), filled, normalAxis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow circle centered at <paramref name="center"/>.
     /// </summary>
-    public void SetCircle(BlockPosition center, int radius, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y) =>
-        SetCircle(center.X, center.Y, center.Z, radius, blockState, filled, normalAxis);
+    public void SetCircle(BlockPosition center, int radius, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetCircle(center.X, center.Y, center.Z, radius, blockState, filled, normalAxis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow circle centered at <paramref name="center"/> from a blockstate string.
     /// </summary>
-    public void SetCircle(BlockPosition center, int radius, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y) =>
-        SetCircle(center.X, center.Y, center.Z, radius, BlockState.Parse(blockStateString), filled, normalAxis);
+    public void SetCircle(BlockPosition center, int radius, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetCircle(center.X, center.Y, center.Z, radius, BlockState.Parse(blockStateString), filled, normalAxis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow sphere centered at (centerX, centerY, centerZ).
     /// </summary>
-    public void SetSphere(int centerX, int centerY, int centerZ, int radius, BlockState blockState, bool filled = true)
+    public void SetSphere(int centerX, int centerY, int centerZ, int radius, BlockState blockState, bool filled = true, double smoothnessFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(blockState);
         if (radius < 0)
             throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be zero or greater.");
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
 
         EnsureInBounds(centerX - radius, centerY - radius, centerZ - radius);
         EnsureInBounds(centerX + radius, centerY + radius, centerZ + radius);
 
-        double outerRadiusSq = (radius + 0.5) * (radius + 0.5);
+        double outerRadiusSq = (radius + radialPadding) * (radius + radialPadding);
         bool IsInside(int dx, int dy, int dz) => dx * dx + dy * dy + dz * dz <= outerRadiusSq;
 
         for (int dy = -radius; dy <= radius; dy++)
@@ -1030,20 +1032,20 @@ public sealed class Schematic
     /// <summary>
     /// Places a filled or hollow sphere centered at (centerX, centerY, centerZ) from a blockstate string.
     /// </summary>
-    public void SetSphere(int centerX, int centerY, int centerZ, int radius, string blockStateString, bool filled = true) =>
-        SetSphere(centerX, centerY, centerZ, radius, BlockState.Parse(blockStateString), filled);
+    public void SetSphere(int centerX, int centerY, int centerZ, int radius, string blockStateString, bool filled = true, double smoothnessFactor = 1.0) =>
+        SetSphere(centerX, centerY, centerZ, radius, BlockState.Parse(blockStateString), filled, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow sphere centered at <paramref name="center"/>.
     /// </summary>
-    public void SetSphere(BlockPosition center, int radius, BlockState blockState, bool filled = true) =>
-        SetSphere(center.X, center.Y, center.Z, radius, blockState, filled);
+    public void SetSphere(BlockPosition center, int radius, BlockState blockState, bool filled = true, double smoothnessFactor = 1.0) =>
+        SetSphere(center.X, center.Y, center.Z, radius, blockState, filled, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow sphere centered at <paramref name="center"/> from a blockstate string.
     /// </summary>
-    public void SetSphere(BlockPosition center, int radius, string blockStateString, bool filled = true) =>
-        SetSphere(center.X, center.Y, center.Z, radius, BlockState.Parse(blockStateString), filled);
+    public void SetSphere(BlockPosition center, int radius, string blockStateString, bool filled = true, double smoothnessFactor = 1.0) =>
+        SetSphere(center.X, center.Y, center.Z, radius, BlockState.Parse(blockStateString), filled, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow rectangle starting at (startX, startY, startZ) in the plane perpendicular to <paramref name="normalAxis"/>.
@@ -1146,7 +1148,7 @@ public sealed class Schematic
     /// <summary>
     /// Places a filled or hollow oval (ellipse) centered at (centerX, centerY, centerZ) in the plane perpendicular to <paramref name="normalAxis"/>.
     /// </summary>
-    public void SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y)
+    public void SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(blockState);
         if (radiusU < 0)
@@ -1154,33 +1156,34 @@ public sealed class Schematic
         if (radiusV < 0)
             throw new ArgumentOutOfRangeException(nameof(radiusV), radiusV, "RadiusV must be zero or greater.");
         ValidateAxis(normalAxis, nameof(normalAxis));
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
 
         EnsureAxisBoxInBounds(centerX, centerY, centerZ, -radiusU, radiusU, -radiusV, radiusV, 0, 0, normalAxis);
-        SetEllipticalSlice(centerX, centerY, centerZ, radiusU, radiusV, blockState, filled, normalAxis);
+        SetEllipticalSlice(centerX, centerY, centerZ, radiusU, radiusV, blockState, filled, normalAxis, radialPadding);
     }
 
     /// <summary>
     /// Places a filled or hollow oval centered at (centerX, centerY, centerZ) from a blockstate string.
     /// </summary>
-    public void SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y) =>
-        SetOval(centerX, centerY, centerZ, radiusU, radiusV, BlockState.Parse(blockStateString), filled, normalAxis);
+    public void SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetOval(centerX, centerY, centerZ, radiusU, radiusV, BlockState.Parse(blockStateString), filled, normalAxis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow oval centered at <paramref name="center"/>.
     /// </summary>
-    public void SetOval(BlockPosition center, int radiusU, int radiusV, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y) =>
-        SetOval(center.X, center.Y, center.Z, radiusU, radiusV, blockState, filled, normalAxis);
+    public void SetOval(BlockPosition center, int radiusU, int radiusV, BlockState blockState, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetOval(center.X, center.Y, center.Z, radiusU, radiusV, blockState, filled, normalAxis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow oval centered at <paramref name="center"/> from a blockstate string.
     /// </summary>
-    public void SetOval(BlockPosition center, int radiusU, int radiusV, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y) =>
-        SetOval(center.X, center.Y, center.Z, radiusU, radiusV, BlockState.Parse(blockStateString), filled, normalAxis);
+    public void SetOval(BlockPosition center, int radiusU, int radiusV, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetOval(center.X, center.Y, center.Z, radiusU, radiusV, BlockState.Parse(blockStateString), filled, normalAxis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) extending along <paramref name="axis"/>.
     /// </summary>
-    public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockState blockState, bool filled = true, Axis axis = Axis.Y)
+    public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockState blockState, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(blockState);
         if (radius < 0)
@@ -1188,38 +1191,39 @@ public sealed class Schematic
         if (height <= 0)
             throw new ArgumentOutOfRangeException(nameof(height), height, "Height must be greater than zero.");
         ValidateAxis(axis, nameof(axis));
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
 
         EnsureAxisBoxInBounds(centerX, startY, centerZ, -radius, radius, -radius, radius, 0, height - 1, axis);
 
         for (int h = 0; h < height; h++)
         {
             var sliceCenter = MapAxisOffset(centerX, startY, centerZ, 0, 0, h, axis);
-            SetEllipticalSlice(sliceCenter.X, sliceCenter.Y, sliceCenter.Z, radius, radius, blockState, filled, axis);
+            SetEllipticalSlice(sliceCenter.X, sliceCenter.Y, sliceCenter.Z, radius, radius, blockState, filled, axis, radialPadding);
         }
     }
 
     /// <summary>
     /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) from a blockstate string.
     /// </summary>
-    public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y) =>
-        SetCylinder(centerX, startY, centerZ, radius, height, BlockState.Parse(blockStateString), filled, axis);
+    public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetCylinder(centerX, startY, centerZ, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/>.
     /// </summary>
-    public void SetCylinder(BlockPosition baseCenter, int radius, int height, BlockState blockState, bool filled = true, Axis axis = Axis.Y) =>
-        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, blockState, filled, axis);
+    public void SetCylinder(BlockPosition baseCenter, int radius, int height, BlockState blockState, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, blockState, filled, axis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/> from a blockstate string.
     /// </summary>
-    public void SetCylinder(BlockPosition baseCenter, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y) =>
-        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, BlockState.Parse(blockStateString), filled, axis);
+    public void SetCylinder(BlockPosition baseCenter, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow torus centered at (centerX, centerY, centerZ) oriented around <paramref name="axis"/>.
     /// </summary>
-    public void SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, BlockState blockState, bool filled = true, Axis axis = Axis.Y)
+    public void SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, BlockState blockState, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(blockState);
         if (majorRadius <= 0)
@@ -1227,11 +1231,12 @@ public sealed class Schematic
         if (minorRadius < 0 || minorRadius >= majorRadius)
             throw new ArgumentOutOfRangeException(nameof(minorRadius), minorRadius, "MinorRadius must be non-negative and less than MajorRadius.");
         ValidateAxis(axis, nameof(axis));
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
 
         int outerExtent = majorRadius + minorRadius;
         EnsureAxisBoxInBounds(centerX, centerY, centerZ, -outerExtent, outerExtent, -outerExtent, outerExtent, -minorRadius, minorRadius, axis);
 
-        double minorSq = (minorRadius + 0.5) * (minorRadius + 0.5);
+        double minorSq = (minorRadius + radialPadding) * (minorRadius + radialPadding);
         bool IsInside(int du, int dv, int dh)
         {
             double ringDelta = Math.Sqrt(du * du + dv * dv) - majorRadius;
@@ -1265,25 +1270,25 @@ public sealed class Schematic
     /// <summary>
     /// Places a filled or hollow torus centered at (centerX, centerY, centerZ) from a blockstate string.
     /// </summary>
-    public void SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, string blockStateString, bool filled = true, Axis axis = Axis.Y) =>
-        SetTorus(centerX, centerY, centerZ, majorRadius, minorRadius, BlockState.Parse(blockStateString), filled, axis);
+    public void SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetTorus(centerX, centerY, centerZ, majorRadius, minorRadius, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow torus centered at <paramref name="center"/>.
     /// </summary>
-    public void SetTorus(BlockPosition center, int majorRadius, int minorRadius, BlockState blockState, bool filled = true, Axis axis = Axis.Y) =>
-        SetTorus(center.X, center.Y, center.Z, majorRadius, minorRadius, blockState, filled, axis);
+    public void SetTorus(BlockPosition center, int majorRadius, int minorRadius, BlockState blockState, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetTorus(center.X, center.Y, center.Z, majorRadius, minorRadius, blockState, filled, axis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow torus centered at <paramref name="center"/> from a blockstate string.
     /// </summary>
-    public void SetTorus(BlockPosition center, int majorRadius, int minorRadius, string blockStateString, bool filled = true, Axis axis = Axis.Y) =>
-        SetTorus(center.X, center.Y, center.Z, majorRadius, minorRadius, BlockState.Parse(blockStateString), filled, axis);
+    public void SetTorus(BlockPosition center, int majorRadius, int minorRadius, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
+        SetTorus(center.X, center.Y, center.Z, majorRadius, minorRadius, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor);
 
     /// <summary>
     /// Places a filled or hollow square-base pyramid starting at (startX, startY, startZ) with base edge <paramref name="baseSize"/>.
     /// </summary>
-    public void SetPyramid(int startX, int startY, int startZ, int baseSize, BlockState blockState, bool filled = true)
+    public void SetPyramid(int startX, int startY, int startZ, int baseSize, BlockState blockState, bool filled = true, bool useStairs = false, string? stairBlockId = null)
     {
         ArgumentNullException.ThrowIfNull(blockState);
         if (baseSize <= 0)
@@ -1293,35 +1298,164 @@ public sealed class Schematic
         EnsureInBounds(startX, startY, startZ);
         EnsureInBounds(startX + baseSize - 1, startY + pyramidHeight - 1, startZ + baseSize - 1);
 
+        BlockState? stairBase = null;
+        if (useStairs)
+        {
+            string resolvedStairId = string.IsNullOrWhiteSpace(stairBlockId)
+                ? ResolveStairBlockId(blockState.Identifier)
+                : stairBlockId;
+            if (!resolvedStairId.Contains(':', StringComparison.Ordinal))
+                resolvedStairId = $"minecraft:{resolvedStairId}";
+            stairBase = BlockState.Parse(resolvedStairId);
+        }
+
         for (int level = 0; level < pyramidHeight; level++)
         {
             int layerWidth = baseSize - 2 * level;
-            SetRectangle(startX + level, startY + level, startZ + level, layerWidth, layerWidth, blockState, filled: filled, normalAxis: Axis.Y);
+            int layerStartX = startX + level;
+            int layerY = startY + level;
+            int layerStartZ = startZ + level;
+
+            if (stairBase is null || layerWidth == 1)
+            {
+                SetRectangle(layerStartX, layerY, layerStartZ, layerWidth, layerWidth, blockState, filled: filled, normalAxis: Axis.Y);
+                continue;
+            }
+
+            SetPyramidStairLayer(layerStartX, layerY, layerStartZ, layerWidth, blockState, stairBase, filled);
         }
     }
 
     /// <summary>
     /// Places a filled or hollow square-base pyramid starting at (startX, startY, startZ) from a blockstate string.
     /// </summary>
-    public void SetPyramid(int startX, int startY, int startZ, int baseSize, string blockStateString, bool filled = true) =>
-        SetPyramid(startX, startY, startZ, baseSize, BlockState.Parse(blockStateString), filled);
+    public void SetPyramid(int startX, int startY, int startZ, int baseSize, string blockStateString, bool filled = true, bool useStairs = false, string? stairBlockId = null) =>
+        SetPyramid(startX, startY, startZ, baseSize, BlockState.Parse(blockStateString), filled, useStairs, stairBlockId);
 
     /// <summary>
     /// Places a filled or hollow square-base pyramid starting at <paramref name="start"/>.
     /// </summary>
-    public void SetPyramid(BlockPosition start, int baseSize, BlockState blockState, bool filled = true) =>
-        SetPyramid(start.X, start.Y, start.Z, baseSize, blockState, filled);
+    public void SetPyramid(BlockPosition start, int baseSize, BlockState blockState, bool filled = true, bool useStairs = false, string? stairBlockId = null) =>
+        SetPyramid(start.X, start.Y, start.Z, baseSize, blockState, filled, useStairs, stairBlockId);
 
     /// <summary>
     /// Places a filled or hollow square-base pyramid starting at <paramref name="start"/> from a blockstate string.
     /// </summary>
-    public void SetPyramid(BlockPosition start, int baseSize, string blockStateString, bool filled = true) =>
-        SetPyramid(start.X, start.Y, start.Z, baseSize, BlockState.Parse(blockStateString), filled);
+    public void SetPyramid(BlockPosition start, int baseSize, string blockStateString, bool filled = true, bool useStairs = false, string? stairBlockId = null) =>
+        SetPyramid(start.X, start.Y, start.Z, baseSize, BlockState.Parse(blockStateString), filled, useStairs, stairBlockId);
 
-    private void SetEllipticalSlice(int cx, int cy, int cz, int radiusU, int radiusV, BlockState blockState, bool filled, Axis normalAxis)
+    private void SetPyramidStairLayer(int layerStartX, int layerY, int layerStartZ, int layerWidth, BlockState fillBlockState, BlockState stairBase, bool filled)
     {
-        double ruSq = (radiusU + 0.5) * (radiusU + 0.5);
-        double rvSq = (radiusV + 0.5) * (radiusV + 0.5);
+        int max = layerWidth - 1;
+        BlockState nwCorner = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.OuterLeft);
+        BlockState neCorner = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.OuterRight);
+        BlockState swCorner = stairBase.BottomHalf().WithFacing(Direction.North).WithStairsShape(StairsShape.OuterRight);
+        BlockState seCorner = stairBase.BottomHalf().WithFacing(Direction.North).WithStairsShape(StairsShape.OuterLeft);
+        BlockState northEdge = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.Straight);
+        BlockState southEdge = stairBase.BottomHalf().WithFacing(Direction.North).WithStairsShape(StairsShape.Straight);
+        BlockState westEdge = stairBase.BottomHalf().WithFacing(Direction.East).WithStairsShape(StairsShape.Straight);
+        BlockState eastEdge = stairBase.BottomHalf().WithFacing(Direction.West).WithStairsShape(StairsShape.Straight);
+
+        for (int dz = 0; dz < layerWidth; dz++)
+        {
+            for (int dx = 0; dx < layerWidth; dx++)
+            {
+                bool isMinX = dx == 0;
+                bool isMaxX = dx == max;
+                bool isMinZ = dz == 0;
+                bool isMaxZ = dz == max;
+
+                BlockState? placed = (isMinX, isMaxX, isMinZ, isMaxZ) switch
+                {
+                    (true, false, true, false) => nwCorner,
+                    (false, true, true, false) => neCorner,
+                    (true, false, false, true) => swCorner,
+                    (false, true, false, true) => seCorner,
+                    (_, _, true, false) => northEdge,
+                    (_, _, false, true) => southEdge,
+                    (true, false, _, _) => westEdge,
+                    (false, true, _, _) => eastEdge,
+                    _ => filled ? fillBlockState : null
+                };
+
+                if (placed is not null)
+                {
+                    SetBlock(layerStartX + dx, layerY, layerStartZ + dz, placed);
+                }
+            }
+        }
+    }
+
+    private static string ResolveStairBlockId(string blockIdentifier)
+    {
+        if (string.IsNullOrWhiteSpace(blockIdentifier))
+        {
+            return Minecraft.Blocks.StoneStairs;
+        }
+
+        string normalized = blockIdentifier.Contains(':', StringComparison.Ordinal)
+            ? blockIdentifier
+            : $"minecraft:{blockIdentifier}";
+
+        int colonIndex = normalized.IndexOf(':', StringComparison.Ordinal);
+        string prefix = normalized[..(colonIndex + 1)];
+        string name = normalized[(colonIndex + 1)..];
+
+        if (name.EndsWith("_stairs", StringComparison.OrdinalIgnoreCase))
+        {
+            return normalized;
+        }
+
+        string directCandidate = $"{prefix}{name}_stairs";
+        if (Minecraft.Blocks.IsValid(directCandidate))
+        {
+            return directCandidate;
+        }
+
+        if (name.EndsWith("s", StringComparison.OrdinalIgnoreCase))
+        {
+            string singularCandidate = $"{prefix}{name[..^1]}_stairs";
+            if (Minecraft.Blocks.IsValid(singularCandidate))
+            {
+                return singularCandidate;
+            }
+        }
+
+        if (name.EndsWith("_planks", StringComparison.OrdinalIgnoreCase))
+        {
+            string woodCandidate = $"{prefix}{name[..^"_planks".Length]}_stairs";
+            if (Minecraft.Blocks.IsValid(woodCandidate))
+            {
+                return woodCandidate;
+            }
+        }
+
+        if (name.EndsWith("_block", StringComparison.OrdinalIgnoreCase))
+        {
+            string blockCandidate = $"{prefix}{name[..^"_block".Length]}_stairs";
+            if (Minecraft.Blocks.IsValid(blockCandidate))
+            {
+                return blockCandidate;
+            }
+        }
+
+        return Minecraft.Blocks.StoneStairs;
+    }
+
+    private static double CalculateRadialPadding(double smoothnessFactor)
+    {
+        if (!double.IsFinite(smoothnessFactor) || smoothnessFactor < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(smoothnessFactor), smoothnessFactor, "SmoothnessFactor must be finite and zero or greater.");
+        }
+
+        return 0.5 / (1.0 + smoothnessFactor);
+    }
+
+    private void SetEllipticalSlice(int cx, int cy, int cz, int radiusU, int radiusV, BlockState blockState, bool filled, Axis normalAxis, double radialPadding)
+    {
+        double ruSq = (radiusU + radialPadding) * (radiusU + radialPadding);
+        double rvSq = (radiusV + radialPadding) * (radiusV + radialPadding);
         bool isCircle = radiusU == radiusV;
 
         bool IsInside(int du, int dv) => isCircle

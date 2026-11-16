@@ -12,12 +12,12 @@ public sealed class OvalSchematicCreator : SchematicCreator
     /// <summary>
     /// Semi-axis radius along the first planar axis (0 or greater).
     /// </summary>
-    public int RadiusU { get; set; } = 6;
+    public int RadiusU { get; set; } = 9;
 
     /// <summary>
     /// Semi-axis radius along the second planar axis (0 or greater).
     /// </summary>
-    public int RadiusV { get; set; } = 4;
+    public int RadiusV { get; set; } = 6;
 
     /// <summary>
     /// Block identifier used to build the oval.
@@ -42,7 +42,8 @@ public sealed class OvalSchematicCreator : SchematicCreator
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
-        var (width, height, length) = GetDimensions();
+        var (effectiveRadiusU, effectiveRadiusV) = GetEffectiveRadii();
+        var (width, height, length) = GetDimensions(effectiveRadiusU, effectiveRadiusV);
         if (startX < 0 || startY < 0 || startZ < 0 ||
             startX + width > builder.Width ||
             startY + height > builder.Height ||
@@ -55,13 +56,13 @@ public sealed class OvalSchematicCreator : SchematicCreator
 
         var (cx, cy, cz) = NormalAxis switch
         {
-            Axis.X => (startX, startY + RadiusU, startZ + RadiusV),
-            Axis.Y => (startX + RadiusU, startY, startZ + RadiusV),
-            Axis.Z => (startX + RadiusU, startY + RadiusV, startZ),
+            Axis.X => (startX, startY + effectiveRadiusU, startZ + effectiveRadiusV),
+            Axis.Y => (startX + effectiveRadiusU, startY, startZ + effectiveRadiusV),
+            Axis.Z => (startX + effectiveRadiusU, startY + effectiveRadiusV, startZ),
             _ => throw new ArgumentOutOfRangeException(nameof(NormalAxis), NormalAxis, "Unsupported axis value.")
         };
 
-        return builder.SetOval(cx, cy, cz, RadiusU, RadiusV, Block, Filled, NormalAxis);
+        return builder.SetOval(cx, cy, cz, effectiveRadiusU, effectiveRadiusV, Block, Filled, NormalAxis, SmoothnessFactor);
     }
 
     /// <summary>
@@ -71,21 +72,25 @@ public sealed class OvalSchematicCreator : SchematicCreator
     {
         ValidateConfiguration();
 
-        var (width, height, length) = GetDimensions();
+        var (effectiveRadiusU, effectiveRadiusV) = GetEffectiveRadii();
+        var (width, height, length) = GetDimensions(effectiveRadiusU, effectiveRadiusV);
         var builder = SchematicBuilder.Create(width, height, length)
             .WithRotation(Rotation)
             .WithOffset(0, 0, 0)
             .WithName("Oval")
             .WithAuthor("SchematicBuilderMC")
-            .WithDescription($"A {(Filled ? "filled" : "hollow")} oval with radii ({RadiusU}, {RadiusV}) on normal axis {NormalAxis}.");
+            .WithDescription($"A {(Filled ? "filled" : "hollow")} oval with radii ({effectiveRadiusU}, {effectiveRadiusV}) on normal axis {NormalAxis}.");
 
         return Place(builder, 0, 0, 0);
     }
 
-    private (int Width, int Height, int Length) GetDimensions()
+    private (int RadiusU, int RadiusV) GetEffectiveRadii() =>
+        (ScaleDimension(RadiusU, minimum: 0), ScaleDimension(RadiusV, minimum: 0));
+
+    private (int Width, int Height, int Length) GetDimensions(int effectiveRadiusU, int effectiveRadiusV)
     {
-        int spanU = 2 * RadiusU + 1;
-        int spanV = 2 * RadiusV + 1;
+        int spanU = 2 * effectiveRadiusU + 1;
+        int spanV = 2 * effectiveRadiusV + 1;
         return NormalAxis switch
         {
             Axis.X => (1, spanU, spanV),
@@ -101,6 +106,7 @@ public sealed class OvalSchematicCreator : SchematicCreator
             throw new ArgumentOutOfRangeException(nameof(RadiusU), RadiusU, "RadiusU must be zero or greater.");
         if (RadiusV < 0)
             throw new ArgumentOutOfRangeException(nameof(RadiusV), RadiusV, "RadiusV must be zero or greater.");
+        ValidateSmoothnessFactor();
         if (!Enum.IsDefined(NormalAxis))
             throw new ArgumentOutOfRangeException(nameof(NormalAxis), NormalAxis, "Unsupported axis value.");
         ArgumentException.ThrowIfNullOrWhiteSpace(Block);

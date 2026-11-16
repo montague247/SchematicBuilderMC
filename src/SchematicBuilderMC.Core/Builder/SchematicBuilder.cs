@@ -144,51 +144,51 @@ public sealed class SchematicBuilder
         return this;
     }
 
-    public SchematicBuilder SetCircle(int centerX, int centerY, int centerZ, int radius, BlockState block, bool filled = true, Axis normalAxis = Axis.Y)
+    public SchematicBuilder SetCircle(int centerX, int centerY, int centerZ, int radius, BlockState block, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetCircle(centerX, centerY, centerZ, radius, block, filled, normalAxis);
+        _schematic.SetCircle(centerX, centerY, centerZ, radius, block, filled, normalAxis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetCircle(int centerX, int centerY, int centerZ, int radius, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y)
+    public SchematicBuilder SetCircle(int centerX, int centerY, int centerZ, int radius, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetCircle(centerX, centerY, centerZ, radius, blockStateString, filled, normalAxis);
+        _schematic.SetCircle(centerX, centerY, centerZ, radius, blockStateString, filled, normalAxis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetCircle(BlockPosition center, int radius, BlockState block, bool filled = true, Axis normalAxis = Axis.Y)
+    public SchematicBuilder SetCircle(BlockPosition center, int radius, BlockState block, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetCircle(center, radius, block, filled, normalAxis);
+        _schematic.SetCircle(center, radius, block, filled, normalAxis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetCircle(BlockPosition center, int radius, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y)
+    public SchematicBuilder SetCircle(BlockPosition center, int radius, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetCircle(center, radius, blockStateString, filled, normalAxis);
+        _schematic.SetCircle(center, radius, blockStateString, filled, normalAxis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetSphere(int centerX, int centerY, int centerZ, int radius, BlockState block, bool filled = true)
+    public SchematicBuilder SetSphere(int centerX, int centerY, int centerZ, int radius, BlockState block, bool filled = true, double smoothnessFactor = 1.0)
     {
-        _schematic.SetSphere(centerX, centerY, centerZ, radius, block, filled);
+        _schematic.SetSphere(centerX, centerY, centerZ, radius, block, filled, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetSphere(int centerX, int centerY, int centerZ, int radius, string blockStateString, bool filled = true)
+    public SchematicBuilder SetSphere(int centerX, int centerY, int centerZ, int radius, string blockStateString, bool filled = true, double smoothnessFactor = 1.0)
     {
-        _schematic.SetSphere(centerX, centerY, centerZ, radius, blockStateString, filled);
+        _schematic.SetSphere(centerX, centerY, centerZ, radius, blockStateString, filled, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetSphere(BlockPosition center, int radius, BlockState block, bool filled = true)
+    public SchematicBuilder SetSphere(BlockPosition center, int radius, BlockState block, bool filled = true, double smoothnessFactor = 1.0)
     {
-        _schematic.SetSphere(center, radius, block, filled);
+        _schematic.SetSphere(center, radius, block, filled, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetSphere(BlockPosition center, int radius, string blockStateString, bool filled = true)
+    public SchematicBuilder SetSphere(BlockPosition center, int radius, string blockStateString, bool filled = true, double smoothnessFactor = 1.0)
     {
-        _schematic.SetSphere(center, radius, blockStateString, filled);
+        _schematic.SetSphere(center, radius, blockStateString, filled, smoothnessFactor);
         return this;
     }
 
@@ -240,99 +240,99 @@ public sealed class SchematicBuilder
         return this;
     }
 
-    public SchematicBuilder SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, BlockState block, bool filled = true, Axis normalAxis = Axis.Y)
+    public SchematicBuilder SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, BlockState block, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetOval(centerX, centerY, centerZ, radiusU, radiusV, block, filled, normalAxis);
+        _schematic.SetOval(centerX, centerY, centerZ, radiusU, radiusV, block, filled, normalAxis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y)
+    public SchematicBuilder SetOval(int centerX, int centerY, int centerZ, int radiusU, int radiusV, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetOval(centerX, centerY, centerZ, radiusU, radiusV, blockStateString, filled, normalAxis);
+        _schematic.SetOval(centerX, centerY, centerZ, radiusU, radiusV, blockStateString, filled, normalAxis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetOval(BlockPosition center, int radiusU, int radiusV, BlockState block, bool filled = true, Axis normalAxis = Axis.Y)
+    public SchematicBuilder SetOval(BlockPosition center, int radiusU, int radiusV, BlockState block, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetOval(center, radiusU, radiusV, block, filled, normalAxis);
+        _schematic.SetOval(center, radiusU, radiusV, block, filled, normalAxis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetOval(BlockPosition center, int radiusU, int radiusV, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y)
+    public SchematicBuilder SetOval(BlockPosition center, int radiusU, int radiusV, string blockStateString, bool filled = true, Axis normalAxis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetOval(center, radiusU, radiusV, blockStateString, filled, normalAxis);
+        _schematic.SetOval(center, radiusU, radiusV, blockStateString, filled, normalAxis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockState block, bool filled = true, Axis axis = Axis.Y)
+    public SchematicBuilder SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockState block, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, block, filled, axis);
+        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, block, filled, axis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetCylinder(int centerX, int startY, int centerZ, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y)
+    public SchematicBuilder SetCylinder(int centerX, int startY, int centerZ, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, blockStateString, filled, axis);
+        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, blockStateString, filled, axis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetCylinder(BlockPosition baseCenter, int radius, int height, BlockState block, bool filled = true, Axis axis = Axis.Y)
+    public SchematicBuilder SetCylinder(BlockPosition baseCenter, int radius, int height, BlockState block, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetCylinder(baseCenter, radius, height, block, filled, axis);
+        _schematic.SetCylinder(baseCenter, radius, height, block, filled, axis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetCylinder(BlockPosition baseCenter, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y)
+    public SchematicBuilder SetCylinder(BlockPosition baseCenter, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetCylinder(baseCenter, radius, height, blockStateString, filled, axis);
+        _schematic.SetCylinder(baseCenter, radius, height, blockStateString, filled, axis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, BlockState block, bool filled = true, Axis axis = Axis.Y)
+    public SchematicBuilder SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, BlockState block, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetTorus(centerX, centerY, centerZ, majorRadius, minorRadius, block, filled, axis);
+        _schematic.SetTorus(centerX, centerY, centerZ, majorRadius, minorRadius, block, filled, axis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, string blockStateString, bool filled = true, Axis axis = Axis.Y)
+    public SchematicBuilder SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetTorus(centerX, centerY, centerZ, majorRadius, minorRadius, blockStateString, filled, axis);
+        _schematic.SetTorus(centerX, centerY, centerZ, majorRadius, minorRadius, blockStateString, filled, axis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetTorus(BlockPosition center, int majorRadius, int minorRadius, BlockState block, bool filled = true, Axis axis = Axis.Y)
+    public SchematicBuilder SetTorus(BlockPosition center, int majorRadius, int minorRadius, BlockState block, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetTorus(center, majorRadius, minorRadius, block, filled, axis);
+        _schematic.SetTorus(center, majorRadius, minorRadius, block, filled, axis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetTorus(BlockPosition center, int majorRadius, int minorRadius, string blockStateString, bool filled = true, Axis axis = Axis.Y)
+    public SchematicBuilder SetTorus(BlockPosition center, int majorRadius, int minorRadius, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
-        _schematic.SetTorus(center, majorRadius, minorRadius, blockStateString, filled, axis);
+        _schematic.SetTorus(center, majorRadius, minorRadius, blockStateString, filled, axis, smoothnessFactor);
         return this;
     }
 
-    public SchematicBuilder SetPyramid(int startX, int startY, int startZ, int baseSize, BlockState block, bool filled = true)
+    public SchematicBuilder SetPyramid(int startX, int startY, int startZ, int baseSize, BlockState block, bool filled = true, bool useStairs = false, string? stairBlockId = null)
     {
-        _schematic.SetPyramid(startX, startY, startZ, baseSize, block, filled);
+        _schematic.SetPyramid(startX, startY, startZ, baseSize, block, filled, useStairs, stairBlockId);
         return this;
     }
 
-    public SchematicBuilder SetPyramid(int startX, int startY, int startZ, int baseSize, string blockStateString, bool filled = true)
+    public SchematicBuilder SetPyramid(int startX, int startY, int startZ, int baseSize, string blockStateString, bool filled = true, bool useStairs = false, string? stairBlockId = null)
     {
-        _schematic.SetPyramid(startX, startY, startZ, baseSize, blockStateString, filled);
+        _schematic.SetPyramid(startX, startY, startZ, baseSize, blockStateString, filled, useStairs, stairBlockId);
         return this;
     }
 
-    public SchematicBuilder SetPyramid(BlockPosition start, int baseSize, BlockState block, bool filled = true)
+    public SchematicBuilder SetPyramid(BlockPosition start, int baseSize, BlockState block, bool filled = true, bool useStairs = false, string? stairBlockId = null)
     {
-        _schematic.SetPyramid(start, baseSize, block, filled);
+        _schematic.SetPyramid(start, baseSize, block, filled, useStairs, stairBlockId);
         return this;
     }
 
-    public SchematicBuilder SetPyramid(BlockPosition start, int baseSize, string blockStateString, bool filled = true)
+    public SchematicBuilder SetPyramid(BlockPosition start, int baseSize, string blockStateString, bool filled = true, bool useStairs = false, string? stairBlockId = null)
     {
-        _schematic.SetPyramid(start, baseSize, blockStateString, filled);
+        _schematic.SetPyramid(start, baseSize, blockStateString, filled, useStairs, stairBlockId);
         return this;
     }
 

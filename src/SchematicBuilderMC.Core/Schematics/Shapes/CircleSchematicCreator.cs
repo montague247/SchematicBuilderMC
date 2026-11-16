@@ -12,7 +12,7 @@ public sealed class CircleSchematicCreator : SchematicCreator
     /// <summary>
     /// Circle radius in blocks (0 or greater).
     /// </summary>
-    public int Radius { get; set; } = 5;
+    public int Radius { get; set; } = 8;
 
     /// <summary>
     /// Block identifier used to build the circle.
@@ -37,7 +37,8 @@ public sealed class CircleSchematicCreator : SchematicCreator
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
-        var (width, height, length) = GetDimensions();
+        int effectiveRadius = GetEffectiveRadius();
+        var (width, height, length) = GetDimensions(effectiveRadius);
         if (startX < 0 || startY < 0 || startZ < 0 ||
             startX + width > builder.Width ||
             startY + height > builder.Height ||
@@ -50,13 +51,13 @@ public sealed class CircleSchematicCreator : SchematicCreator
 
         var (cx, cy, cz) = NormalAxis switch
         {
-            Axis.X => (startX, startY + Radius, startZ + Radius),
-            Axis.Y => (startX + Radius, startY, startZ + Radius),
-            Axis.Z => (startX + Radius, startY + Radius, startZ),
+            Axis.X => (startX, startY + effectiveRadius, startZ + effectiveRadius),
+            Axis.Y => (startX + effectiveRadius, startY, startZ + effectiveRadius),
+            Axis.Z => (startX + effectiveRadius, startY + effectiveRadius, startZ),
             _ => throw new ArgumentOutOfRangeException(nameof(NormalAxis), NormalAxis, "Unsupported axis value.")
         };
 
-        return builder.SetCircle(cx, cy, cz, Radius, Block, Filled, NormalAxis);
+        return builder.SetCircle(cx, cy, cz, effectiveRadius, Block, Filled, NormalAxis, SmoothnessFactor);
     }
 
     /// <summary>
@@ -66,20 +67,23 @@ public sealed class CircleSchematicCreator : SchematicCreator
     {
         ValidateConfiguration();
 
-        var (width, height, length) = GetDimensions();
+        int effectiveRadius = GetEffectiveRadius();
+        var (width, height, length) = GetDimensions(effectiveRadius);
         var builder = SchematicBuilder.Create(width, height, length)
             .WithRotation(Rotation)
             .WithOffset(0, 0, 0)
             .WithName("Circle")
             .WithAuthor("SchematicBuilderMC")
-            .WithDescription($"A {(Filled ? "filled" : "hollow")} circle of radius {Radius} on normal axis {NormalAxis}.");
+            .WithDescription($"A {(Filled ? "filled" : "hollow")} circle of radius {effectiveRadius} on normal axis {NormalAxis}.");
 
         return Place(builder, 0, 0, 0);
     }
 
-    private (int Width, int Height, int Length) GetDimensions()
+    private int GetEffectiveRadius() => ScaleDimension(Radius, minimum: 0);
+
+    private (int Width, int Height, int Length) GetDimensions(int effectiveRadius)
     {
-        int diameter = 2 * Radius + 1;
+        int diameter = 2 * effectiveRadius + 1;
         return NormalAxis switch
         {
             Axis.X => (1, diameter, diameter),
@@ -93,6 +97,7 @@ public sealed class CircleSchematicCreator : SchematicCreator
     {
         if (Radius < 0)
             throw new ArgumentOutOfRangeException(nameof(Radius), Radius, "Radius must be zero or greater.");
+        ValidateSmoothnessFactor();
         if (!Enum.IsDefined(NormalAxis))
             throw new ArgumentOutOfRangeException(nameof(NormalAxis), NormalAxis, "Unsupported axis value.");
         ArgumentException.ThrowIfNullOrWhiteSpace(Block);

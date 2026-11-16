@@ -12,12 +12,12 @@ public sealed class CylinderSchematicCreator : SchematicCreator
     /// <summary>
     /// Cylinder cross-section radius in blocks (0 or greater).
     /// </summary>
-    public int Radius { get; set; } = 4;
+    public int Radius { get; set; } = 6;
 
     /// <summary>
     /// Cylinder length along <see cref="Axis"/> (greater than 0).
     /// </summary>
-    public int Height { get; set; } = 8;
+    public int Height { get; set; } = 10;
 
     /// <summary>
     /// Block identifier used to build the cylinder.
@@ -42,7 +42,8 @@ public sealed class CylinderSchematicCreator : SchematicCreator
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
-        var (width, height, length) = GetDimensions();
+        int effectiveRadius = GetEffectiveRadius();
+        var (width, height, length) = GetDimensions(effectiveRadius);
         if (startX < 0 || startY < 0 || startZ < 0 ||
             startX + width > builder.Width ||
             startY + height > builder.Height ||
@@ -55,13 +56,13 @@ public sealed class CylinderSchematicCreator : SchematicCreator
 
         var (bx, by, bz) = Axis switch
         {
-            Axis.X => (startX, startY + Radius, startZ + Radius),
-            Axis.Y => (startX + Radius, startY, startZ + Radius),
-            Axis.Z => (startX + Radius, startY + Radius, startZ),
+            Axis.X => (startX, startY + effectiveRadius, startZ + effectiveRadius),
+            Axis.Y => (startX + effectiveRadius, startY, startZ + effectiveRadius),
+            Axis.Z => (startX + effectiveRadius, startY + effectiveRadius, startZ),
             _ => throw new ArgumentOutOfRangeException(nameof(Axis), Axis, "Unsupported axis value.")
         };
 
-        return builder.SetCylinder(bx, by, bz, Radius, Height, Block, Filled, Axis);
+        return builder.SetCylinder(bx, by, bz, effectiveRadius, Height, Block, Filled, Axis, SmoothnessFactor);
     }
 
     /// <summary>
@@ -71,20 +72,23 @@ public sealed class CylinderSchematicCreator : SchematicCreator
     {
         ValidateConfiguration();
 
-        var (width, height, length) = GetDimensions();
+        int effectiveRadius = GetEffectiveRadius();
+        var (width, height, length) = GetDimensions(effectiveRadius);
         var builder = SchematicBuilder.Create(width, height, length)
             .WithRotation(Rotation)
             .WithOffset(0, 0, 0)
             .WithName("Cylinder")
             .WithAuthor("SchematicBuilderMC")
-            .WithDescription($"A {(Filled ? "filled" : "hollow")} cylinder (radius {Radius}, height {Height}) along axis {Axis}.");
+            .WithDescription($"A {(Filled ? "filled" : "hollow")} cylinder (radius {effectiveRadius}, height {Height}) along axis {Axis}.");
 
         return Place(builder, 0, 0, 0);
     }
 
-    private (int Width, int Height, int Length) GetDimensions()
+    private int GetEffectiveRadius() => ScaleDimension(Radius, minimum: 0);
+
+    private (int Width, int Height, int Length) GetDimensions(int effectiveRadius)
     {
-        int diameter = 2 * Radius + 1;
+        int diameter = 2 * effectiveRadius + 1;
         return Axis switch
         {
             Axis.X => (Height, diameter, diameter),
@@ -100,6 +104,7 @@ public sealed class CylinderSchematicCreator : SchematicCreator
             throw new ArgumentOutOfRangeException(nameof(Radius), Radius, "Radius must be zero or greater.");
         if (Height <= 0)
             throw new ArgumentOutOfRangeException(nameof(Height), Height, "Height must be greater than zero.");
+        ValidateSmoothnessFactor();
         if (!Enum.IsDefined(Axis))
             throw new ArgumentOutOfRangeException(nameof(Axis), Axis, "Unsupported axis value.");
         ArgumentException.ThrowIfNullOrWhiteSpace(Block);

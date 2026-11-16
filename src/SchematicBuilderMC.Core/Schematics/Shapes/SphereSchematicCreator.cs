@@ -11,7 +11,7 @@ public sealed class SphereSchematicCreator : SchematicCreator
     /// <summary>
     /// Sphere radius in blocks (0 or greater).
     /// </summary>
-    public int Radius { get; set; } = 5;
+    public int Radius { get; set; } = 8;
 
     /// <summary>
     /// Block identifier used to build the sphere.
@@ -31,7 +31,8 @@ public sealed class SphereSchematicCreator : SchematicCreator
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
-        int diameter = 2 * Radius + 1;
+        int effectiveRadius = GetEffectiveRadius();
+        int diameter = 2 * effectiveRadius + 1;
         if (startX < 0 || startY < 0 || startZ < 0 ||
             startX + diameter > builder.Width ||
             startY + diameter > builder.Height ||
@@ -42,7 +43,7 @@ public sealed class SphereSchematicCreator : SchematicCreator
                 $"A sphere ({diameter}x{diameter}x{diameter}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
         }
 
-        return builder.SetSphere(startX + Radius, startY + Radius, startZ + Radius, Radius, Block, Filled);
+        return builder.SetSphere(startX + effectiveRadius, startY + effectiveRadius, startZ + effectiveRadius, effectiveRadius, Block, Filled, SmoothnessFactor);
     }
 
     /// <summary>
@@ -52,21 +53,25 @@ public sealed class SphereSchematicCreator : SchematicCreator
     {
         ValidateConfiguration();
 
-        int diameter = 2 * Radius + 1;
+        int effectiveRadius = GetEffectiveRadius();
+        int diameter = 2 * effectiveRadius + 1;
         var builder = SchematicBuilder.Create(diameter, diameter, diameter)
             .WithRotation(Rotation)
             .WithOffset(0, 0, 0)
             .WithName("Sphere")
             .WithAuthor("SchematicBuilderMC")
-            .WithDescription($"A {(Filled ? "filled" : "hollow")} sphere of radius {Radius}.");
+            .WithDescription($"A {(Filled ? "filled" : "hollow")} sphere of radius {effectiveRadius}.");
 
         return Place(builder, 0, 0, 0);
     }
+
+    private int GetEffectiveRadius() => ScaleDimension(Radius, minimum: 0);
 
     private void ValidateConfiguration()
     {
         if (Radius < 0)
             throw new ArgumentOutOfRangeException(nameof(Radius), Radius, "Radius must be zero or greater.");
+        ValidateSmoothnessFactor();
         ArgumentException.ThrowIfNullOrWhiteSpace(Block);
     }
 }

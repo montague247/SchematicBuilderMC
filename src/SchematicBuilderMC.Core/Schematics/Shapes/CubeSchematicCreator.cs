@@ -31,17 +31,18 @@ public sealed class CubeSchematicCreator : SchematicCreator
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
+        int effectiveSize = GetEffectiveSize();
         if (startX < 0 || startY < 0 || startZ < 0 ||
-            startX + Size > builder.Width ||
-            startY + Size > builder.Height ||
-            startZ + Size > builder.Length)
+            startX + effectiveSize > builder.Width ||
+            startY + effectiveSize > builder.Height ||
+            startZ + effectiveSize > builder.Length)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(startX),
-                $"A cube ({Size}x{Size}x{Size}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
+                $"A cube ({effectiveSize}x{effectiveSize}x{effectiveSize}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
         }
 
-        return builder.SetCube(startX, startY, startZ, Size, Block, Filled);
+        return builder.SetCube(startX, startY, startZ, effectiveSize, Block, Filled);
     }
 
     /// <summary>
@@ -51,20 +52,24 @@ public sealed class CubeSchematicCreator : SchematicCreator
     {
         ValidateConfiguration();
 
-        var builder = SchematicBuilder.Create(Size, Size, Size)
+        int effectiveSize = GetEffectiveSize();
+        var builder = SchematicBuilder.Create(effectiveSize, effectiveSize, effectiveSize)
             .WithRotation(Rotation)
             .WithOffset(0, 0, 0)
             .WithName("Cube")
             .WithAuthor("SchematicBuilderMC")
-            .WithDescription($"A {(Filled ? "filled" : "hollow")} {Size}x{Size}x{Size} cube.");
+            .WithDescription($"A {(Filled ? "filled" : "hollow")} {effectiveSize}x{effectiveSize}x{effectiveSize} cube.");
 
         return Place(builder, 0, 0, 0);
     }
+
+    private int GetEffectiveSize() => ScaleDimension(Size, minimum: 1);
 
     private void ValidateConfiguration()
     {
         if (Size <= 0)
             throw new ArgumentOutOfRangeException(nameof(Size), Size, "Size must be greater than zero.");
+        ValidateSmoothnessFactor();
         ArgumentException.ThrowIfNullOrWhiteSpace(Block);
     }
 }

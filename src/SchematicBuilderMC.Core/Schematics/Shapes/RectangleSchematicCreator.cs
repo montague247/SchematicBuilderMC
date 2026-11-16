@@ -42,7 +42,8 @@ public sealed class RectangleSchematicCreator : SchematicCreator
         ArgumentNullException.ThrowIfNull(builder);
         ValidateConfiguration();
 
-        var (width, height, length) = GetDimensions();
+        var (effectiveWidth, effectiveLength) = GetEffectiveSpan();
+        var (width, height, length) = GetDimensions(effectiveWidth, effectiveLength);
         if (startX < 0 || startY < 0 || startZ < 0 ||
             startX + width > builder.Width ||
             startY + height > builder.Height ||
@@ -53,7 +54,7 @@ public sealed class RectangleSchematicCreator : SchematicCreator
                 $"A rectangle ({width}x{height}x{length}) placed at ({startX}, {startY}, {startZ}) exceeds schematic bounds ({builder.Width}x{builder.Height}x{builder.Length}).");
         }
 
-        return builder.SetRectangle(startX, startY, startZ, Width, Length, Block, Filled, NormalAxis);
+        return builder.SetRectangle(startX, startY, startZ, effectiveWidth, effectiveLength, Block, Filled, NormalAxis);
     }
 
     /// <summary>
@@ -63,22 +64,26 @@ public sealed class RectangleSchematicCreator : SchematicCreator
     {
         ValidateConfiguration();
 
-        var (width, height, length) = GetDimensions();
+        var (effectiveWidth, effectiveLength) = GetEffectiveSpan();
+        var (width, height, length) = GetDimensions(effectiveWidth, effectiveLength);
         var builder = SchematicBuilder.Create(width, height, length)
             .WithRotation(Rotation)
             .WithOffset(0, 0, 0)
             .WithName("Rectangle")
             .WithAuthor("SchematicBuilderMC")
-            .WithDescription($"A {(Filled ? "filled" : "hollow")} {Width}x{Length} rectangle on normal axis {NormalAxis}.");
+            .WithDescription($"A {(Filled ? "filled" : "hollow")} {effectiveWidth}x{effectiveLength} rectangle on normal axis {NormalAxis}.");
 
         return Place(builder, 0, 0, 0);
     }
 
-    private (int Width, int Height, int Length) GetDimensions() => NormalAxis switch
+    private (int Width, int Length) GetEffectiveSpan() =>
+        (ScaleDimension(Width, minimum: 1), ScaleDimension(Length, minimum: 1));
+
+    private (int Width, int Height, int Length) GetDimensions(int effectiveWidth, int effectiveLength) => NormalAxis switch
     {
-        Axis.X => (1, Width, Length),
-        Axis.Y => (Width, 1, Length),
-        Axis.Z => (Width, Length, 1),
+        Axis.X => (1, effectiveWidth, effectiveLength),
+        Axis.Y => (effectiveWidth, 1, effectiveLength),
+        Axis.Z => (effectiveWidth, effectiveLength, 1),
         _ => throw new ArgumentOutOfRangeException(nameof(NormalAxis), NormalAxis, "Unsupported axis value.")
     };
 
@@ -88,6 +93,7 @@ public sealed class RectangleSchematicCreator : SchematicCreator
             throw new ArgumentOutOfRangeException(nameof(Width), Width, "Width must be greater than zero.");
         if (Length <= 0)
             throw new ArgumentOutOfRangeException(nameof(Length), Length, "Length must be greater than zero.");
+        ValidateSmoothnessFactor();
         if (!Enum.IsDefined(NormalAxis))
             throw new ArgumentOutOfRangeException(nameof(NormalAxis), NormalAxis, "Unsupported axis value.");
         ArgumentException.ThrowIfNullOrWhiteSpace(Block);
