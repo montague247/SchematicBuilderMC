@@ -44,16 +44,22 @@ public static class FlyingMachineExtensions
         // build right side of flying machine
         // set slime blocks
         builder.Fill(startX + leftWidth, startY, startZ, startX + width - 2, startY, startZ, Minecraft.Blocks.SlimeBlock);
-        // set furnaces to prevent sticking
-        builder.Fill(startX + leftWidth, startY, startZ - 1, startX + width - 2, startY, startZ - 1, Minecraft.Blocks.Furnace);
+        if (endZ.HasValue)
+        {
+            // set furnaces to prevent sticking
+            builder.Fill(startX + leftWidth, startY, startZ - 1, startX + width - 2, startY, startZ - 1, Minecraft.Blocks.Furnace);
+        }
         // set trapdoor at the end of the slime blocks
         builder.SetBlock(startX + width - 1, startY, startZ, Minecraft.Blocks.BambooTrapdoor.FacingEast().TopHalf().WithOpen());
         // set sticky piston
         builder.SetPiston(startX + leftWidth - 1, startY, startZ, Direction.South, true);
         // set observer
         builder.SetBlock(startX + leftWidth, startY + 1, startZ, Minecraft.Blocks.Observer.FacingUp());
-        // set trapdoor to start the machine
-        builder.SetBlock(startX + leftWidth, startY + 2, startZ, Minecraft.Blocks.BambooTrapdoor.FacingSouth());
+        if (endZ.HasValue)
+        {
+            // set trapdoor to start the machine
+            builder.SetBlock(startX + leftWidth, startY + 2, startZ, Minecraft.Blocks.BambooTrapdoor.FacingSouth());
+        }
 
         if (fillBlockId != null)
         {

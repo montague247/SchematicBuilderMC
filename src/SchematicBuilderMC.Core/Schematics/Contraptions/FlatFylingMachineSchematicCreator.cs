@@ -18,7 +18,7 @@ public sealed class FlatFylingMachineSchematicCreator
                 .WithDescription("A fyling machine contraption.");
 
         // create the flying machine(s)
-        builder.Create(_flyingMachine, 0, 0, 1, Width);
+        builder.Create(_flyingMachine, 0, 0, 0, Width);
 
         return builder;
     }
