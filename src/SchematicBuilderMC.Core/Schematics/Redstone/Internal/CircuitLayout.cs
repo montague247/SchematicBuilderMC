@@ -184,6 +184,31 @@ internal static class CircuitLayout
                 .WithPowered(powered));
     }
 
+    /// <summary>
+    /// Places a redstone repeater transmitting signal toward <paramref name="signalDirection"/>.
+    /// In Minecraft Java Edition, repeater <c>facing</c> points toward its input (opposite of signal flow).
+    /// </summary>
+    public static void SetRepeater(
+        SchematicBuilder builder,
+        BlockPosition position,
+        Direction signalDirection,
+        int delay = 1,
+        bool locked = false,
+        bool powered = false) =>
+        builder.SetRepeater(position, GetOpposite(signalDirection), delay, locked, powered);
+
+    /// <summary>
+    /// Places a redstone comparator transmitting signal toward <paramref name="signalDirection"/>.
+    /// In Minecraft Java Edition, comparator <c>facing</c> points toward its rear input (opposite of signal flow).
+    /// </summary>
+    public static void SetComparator(
+        SchematicBuilder builder,
+        BlockPosition position,
+        Direction signalDirection,
+        bool subtractMode = false,
+        bool powered = false) =>
+        builder.SetComparator(position, GetOpposite(signalDirection), subtractMode, powered);
+
     public static void SetCopperBulb(SchematicBuilder builder, BlockPosition position, bool lit = false, bool powered = false)
     {
         builder.SetBlock(

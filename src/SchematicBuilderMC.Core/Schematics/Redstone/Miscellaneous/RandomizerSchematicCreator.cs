@@ -103,7 +103,7 @@ public class RandomizerSchematicCreator : SchematicCreator
                 new ItemStack(StackableItemId, 1, 0),
                 new ItemStack(NonStackableItemId, 1, 1));
             CircuitLayout.SetHopper(builder, CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, c, maxU, maxV, Facing), reverse, enabled: true);
-            builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, c, maxU, maxV, Facing), Facing, subtractMode: false);
+            CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, c, maxU, maxV, Facing), Facing, subtractMode: false);
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, c, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
             if (IncludeOutputLamps)

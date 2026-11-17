@@ -169,7 +169,7 @@ public class SignalBridgeSchematicCreator : SchematicCreator
             var pos = CircuitLayout.Map(0, 0, 0, u, 1, mid, max, max, Facing);
             if (u == mid)
             {
-                builder.SetRepeater(pos, Facing, delay: repeaterDelay);
+                CircuitLayout.SetRepeater(builder, pos, Facing, delay: repeaterDelay);
             }
             else if (IncludeInputLevers && u == 0)
             {
@@ -192,7 +192,7 @@ public class SignalBridgeSchematicCreator : SchematicCreator
             if (v == mid)
             {
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, mid, 2, v, max, max, Facing), CircuitBlock);
-                builder.SetRepeater(CircuitLayout.Map(0, 0, 0, mid, 3, v, max, max, Facing), secondaryDir, delay: repeaterDelay);
+                CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, mid, 3, v, max, max, Facing), secondaryDir, delay: repeaterDelay);
             }
             else if (Math.Abs(v - mid) == 1)
             {

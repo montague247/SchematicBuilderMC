@@ -87,9 +87,9 @@ public class AbbaCircuitSchematicCreator : SchematicCreator
 
             // v=0: forward tap block, v=1: forward diode, v=2: shared output block/lamp, v=3: reverse diode, v=4: reverse tap block
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, tapU, 1, 0, maxU, maxV, Facing), CircuitBlock);
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, tapU, 1, 1, maxU, maxV, Facing), sideSouth, delay: 1);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, tapU, 1, 1, maxU, maxV, Facing), sideSouth, delay: 1);
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, tapU, 1, 2, maxU, maxV, Facing), CircuitBlock);
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, tapU, 1, 3, maxU, maxV, Facing), sideNorth, delay: 1);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, tapU, 1, 3, maxU, maxV, Facing), sideNorth, delay: 1);
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, tapU, 1, 4, maxU, maxV, Facing), CircuitBlock);
 
             if (IncludeOutputLamps)
@@ -107,8 +107,8 @@ public class AbbaCircuitSchematicCreator : SchematicCreator
                     remainingRt -= rt;
 
                     int stepU = tapU + 1 + r;
-                    builder.SetRepeater(CircuitLayout.Map(0, 0, 0, stepU, 1, 0, maxU, maxV, Facing), Facing, delay: rt);
-                    builder.SetRepeater(CircuitLayout.Map(0, 0, 0, stepU, 1, 4, maxU, maxV, Facing), reverse, delay: rt);
+                    CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, stepU, 1, 0, maxU, maxV, Facing), Facing, delay: rt);
+                    CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, stepU, 1, 4, maxU, maxV, Facing), reverse, delay: rt);
                 }
             }
         }

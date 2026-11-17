@@ -145,7 +145,7 @@ public class VerticalTransmissionSchematicCreator : SchematicCreator
             if (stepSinceRepeater >= 14)
             {
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, baseU, y, 0, maxU, 0, Facing), CircuitBlock);
-                builder.SetRepeater(CircuitLayout.Map(0, 0, 0, baseU, y + 1, 0, maxU, 0, Facing), Facing, delay: 1);
+                CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, baseU, y + 1, 0, maxU, 0, Facing), Facing, delay: 1);
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, baseU + 1, y, 0, maxU, 0, Facing), CircuitBlock);
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, baseU + 1, y + 1, 0, maxU, 0, Facing), CircuitLayout.CreateAxisWire(Facing, true));
                 baseU += 2;
@@ -199,7 +199,7 @@ public class VerticalTransmissionSchematicCreator : SchematicCreator
             var topPos = CircuitLayout.Map(0, 0, 0, u, step + 1, 0, maxU, 0, Facing);
             if (step > 0 && step % 15 == 0)
             {
-                builder.SetRepeater(topPos, Facing, delay: 1);
+                CircuitLayout.SetRepeater(builder, topPos, Facing, delay: 1);
             }
             else
             {

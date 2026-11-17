@@ -89,8 +89,8 @@ public class RepeaterClockSchematicCreator : SchematicCreator
             remainingRt -= rtB;
 
             int u = startU + 1 + r;
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, u, 1, 0, maxU, maxV, Facing), Facing, delay: rtA);
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, u, 1, 1, maxU, maxV, Facing), reverse, delay: rtB);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, u, 1, 0, maxU, maxV, Facing), Facing, delay: rtA);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, u, 1, 1, maxU, maxV, Facing), reverse, delay: rtB);
         }
 
         if (IncludeOutputLamp)

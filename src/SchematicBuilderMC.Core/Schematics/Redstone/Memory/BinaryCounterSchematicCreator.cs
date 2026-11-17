@@ -78,7 +78,7 @@ public class BinaryCounterSchematicCreator : SchematicCreator
             CircuitLayout.SetCopperBulb(builder, CircuitLayout.Map(0, 0, 0, bulbU, 1, 0, maxU, maxV, Facing));
 
             // Bit output tap along v=1 (+ optional lamp at v=2)
-            builder.SetComparator(CircuitLayout.Map(0, 0, 0, bulbU, 1, 1, maxU, maxV, Facing), tapDir, subtractMode: false);
+            CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, bulbU, 1, 1, maxU, maxV, Facing), tapDir, subtractMode: false);
             if (IncludeOutputLamps)
             {
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, bulbU, 1, 2, maxU, maxV, Facing), Minecraft.Blocks.RedstoneLamp);
@@ -86,7 +86,7 @@ public class BinaryCounterSchematicCreator : SchematicCreator
 
             if (b < BitCount - 1)
             {
-                builder.SetComparator(CircuitLayout.Map(0, 0, 0, bulbU + 1, 1, 0, maxU, maxV, Facing), Facing, subtractMode: false);
+                CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, bulbU + 1, 1, 0, maxU, maxV, Facing), Facing, subtractMode: false);
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, bulbU + 2, 1, 0, maxU, maxV, Facing), CircuitBlock);
                 builder.SetBlock(
                     CircuitLayout.Map(0, 0, 0, bulbU + 3, 1, 0, maxU, maxV, Facing),

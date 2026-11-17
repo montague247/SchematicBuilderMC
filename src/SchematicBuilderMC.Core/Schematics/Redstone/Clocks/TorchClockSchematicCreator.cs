@@ -150,7 +150,7 @@ public class TorchClockSchematicCreator : SchematicCreator
                 int left = repeaterCount - 1 - placed;
                 int rt = Math.Clamp(remainingRt - left, 1, 4);
                 remainingRt -= rt;
-                builder.SetRepeater(CircuitLayout.Map(0, 0, 0, u, 1, 1, maxU, maxV, Facing), reverse, delay: rt);
+                CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, u, 1, 1, maxU, maxV, Facing), reverse, delay: rt);
                 placed++;
             }
             else

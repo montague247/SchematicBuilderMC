@@ -128,7 +128,7 @@ public class TransmissionLineSchematicCreator : SchematicCreator
             var pos = CircuitLayout.Map(0, 0, 0, u, 1, 0, maxU, 0, Facing);
             if (repeaterDelays[i] > 0)
             {
-                builder.SetRepeater(pos, worldSignalDir, delay: repeaterDelays[i]);
+                CircuitLayout.SetRepeater(builder, pos, worldSignalDir, delay: repeaterDelays[i]);
             }
             else
             {

@@ -150,7 +150,7 @@ public class RsLatchSchematicCreator : SchematicCreator
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 3, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         // Output comparator reads Set dropper on v=1
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, 2, 1, 1, maxU, maxV, Facing), sideSouth, subtractMode: false);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, 2, 1, 1, maxU, maxV, Facing), sideSouth, subtractMode: false);
 
         if (IncludeInputButtons)
         {

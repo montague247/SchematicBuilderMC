@@ -75,7 +75,7 @@ public class BlockUpdateDetectorSchematicCreator : SchematicCreator
         }
 
         CircuitLayout.SetObserver(builder, CircuitLayout.Map(0, 0, 0, 0, 1, 0, maxU, 0, Facing), CircuitLayout.GetOpposite(Facing));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, 1, 1, 0, maxU, 0, Facing), Facing, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, 1, 1, 0, maxU, 0, Facing), Facing, delay: 1);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 2, 1, 0, maxU, 0, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         if (IncludeOutputLamp)
@@ -119,7 +119,7 @@ public class BlockUpdateDetectorSchematicCreator : SchematicCreator
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 4, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         // Reset branch along v=1
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, 3, 1, 1, maxU, maxV, Facing), CircuitLayout.GetOpposite(Facing), delay: 2);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, 3, 1, 1, maxU, maxV, Facing), CircuitLayout.GetOpposite(Facing), delay: 2);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 2, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 1, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: false, west: false));
 
@@ -150,7 +150,7 @@ public class BlockUpdateDetectorSchematicCreator : SchematicCreator
 
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 1, 1, 0, maxU, 0, Facing), Minecraft.Blocks.RedstoneBlock);
         CircuitLayout.SetDropper(builder, CircuitLayout.Map(0, 0, 0, 1, 2, 0, maxU, 0, Facing), Facing);
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, 2, 2, 0, maxU, 0, Facing), Facing, subtractMode: false);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, 2, 2, 0, maxU, 0, Facing), Facing, subtractMode: false);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 3, 1, 0, maxU, 0, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         if (IncludeOutputLamp)
@@ -180,7 +180,7 @@ public class BlockUpdateDetectorSchematicCreator : SchematicCreator
 
         // Strongly powered repeater at u=0 conducts through target block gap at u=1 ONLY when an opaque block is placed at u=1!
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 0, 1, 0, maxU, 0, Facing), Minecraft.Blocks.RedstoneTorch);
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, 0, 2, 0, maxU, 0, Facing), Facing, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, 0, 2, 0, maxU, 0, Facing), Facing, delay: 1);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 2, 2, 0, maxU, 0, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 3, 1, 0, maxU, 0, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 

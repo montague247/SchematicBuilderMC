@@ -87,7 +87,7 @@ public class TFlipFlopSchematicCreator : SchematicCreator
 
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, 0, maxU, 0, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         CircuitLayout.SetCopperBulb(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, 0, Facing));
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, 0, Facing), Facing, subtractMode: false);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, 0, Facing), Facing, subtractMode: false);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, 0, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         if (IncludeOutputLamp)
@@ -137,10 +137,10 @@ public class TFlipFlopSchematicCreator : SchematicCreator
 
         // Rising-edge 2-gt pulse limiter (u0..u0+2) feeds toggle sticky piston (u0+4) sliding RedstoneBlock between u0+5 and u0+6
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, maxV, Facing), Facing, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, maxV, Facing), Facing, delay: 1);
         builder.SetPiston(CircuitLayout.Map(0, 0, 0, inputLead + 2, 0, 0, maxU, maxV, Facing), Direction.Up, sticky: true);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, maxV, Facing), CircuitBlock);
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing), Facing, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing), Facing, delay: 1);
         builder.SetPiston(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 0, maxU, maxV, Facing), Facing, sticky: true);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 5, 1, 0, maxU, maxV, Facing), Minecraft.Blocks.RedstoneBlock);
 
@@ -196,7 +196,7 @@ public class TFlipFlopSchematicCreator : SchematicCreator
         CircuitLayout.SetDropper(builder, CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, maxV, Facing), sideSouth);
         CircuitLayout.SetHopper(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 1, maxU, maxV, Facing), Direction.Up, enabled: true);
         CircuitLayout.SetDropper(builder, CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 1, maxU, maxV, Facing), reverse);
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 1, maxU, maxV, Facing), Facing, subtractMode: false);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 1, maxU, maxV, Facing), Facing, subtractMode: false);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         if (IncludeOutputLamp)

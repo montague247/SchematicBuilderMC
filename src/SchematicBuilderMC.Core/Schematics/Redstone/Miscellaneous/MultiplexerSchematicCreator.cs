@@ -109,7 +109,7 @@ public class MultiplexerSchematicCreator : SchematicCreator
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, v0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, v0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, v0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
-                builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, v0, maxU, maxV, Facing), Facing, subtractMode: true);
+                CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, v0, maxU, maxV, Facing), Facing, subtractMode: true);
 
                 // Select bus along v0+1: S passes to (inputLead+3, v0) side directly, and inverter drives (inputLead+3, v0+2) via !S!
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, v0 + 1, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
@@ -123,7 +123,7 @@ public class MultiplexerSchematicCreator : SchematicCreator
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, v0 + 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, v0 + 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, v0 + 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
-                builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, v0 + 2, maxU, maxV, Facing), Facing, subtractMode: true);
+                CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, v0 + 2, maxU, maxV, Facing), Facing, subtractMode: true);
 
                 // Merged output at u = inputLead + 4 across v0..v0+2 exiting at v0+1
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, v0, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: false, south: true, west: true));
@@ -151,8 +151,8 @@ public class MultiplexerSchematicCreator : SchematicCreator
                     Minecraft.Blocks.RedstoneWallTorch.WithFacing(torchFacing).WithLit(true));
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, v0 + 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: false, south: false, west: true));
 
-                builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, v0, maxU, maxV, Facing), Facing, subtractMode: true);
-                builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, v0 + 2, maxU, maxV, Facing), Facing, subtractMode: false);
+                CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, v0, maxU, maxV, Facing), Facing, subtractMode: true);
+                CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, v0 + 2, maxU, maxV, Facing), Facing, subtractMode: false);
 
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, v0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
                 builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, v0 + 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));

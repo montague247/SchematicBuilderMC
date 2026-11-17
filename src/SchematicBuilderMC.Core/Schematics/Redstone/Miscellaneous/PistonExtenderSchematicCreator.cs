@@ -87,7 +87,7 @@ public class PistonExtenderSchematicCreator : SchematicCreator
             int p = u - u0;
             int delay = Math.Clamp(p + 1, 1, 4);
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, u, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: u < u0 + Reach - 1, south: false, west: true));
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, u, 1, 1, maxU, maxV, Facing), sideNorth, delay: delay);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, u, 1, 1, maxU, maxV, Facing), sideNorth, delay: delay);
         }
 
         return builder;

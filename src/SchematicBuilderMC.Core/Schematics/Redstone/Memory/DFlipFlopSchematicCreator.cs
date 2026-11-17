@@ -62,12 +62,12 @@ public class DFlipFlopSchematicCreator : SchematicCreator
 
         // Clock rail on v=0: direct lock at u0+1 (locks Master on Clock=1), inverted !Clock lock at u0+4 (unlocks Slave on Clock=1)
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: true, south: true, west: IncludeInputLevers));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, maxV, Facing), lockDir, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, maxV, Facing), lockDir, delay: 1);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, maxV, Facing), CircuitBlock);
         builder.SetBlock(
             CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing),
             Minecraft.Blocks.RedstoneWallTorch.WithFacing(torchFacing).WithLit(true));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 0, maxU, maxV, Facing), lockDir, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 0, maxU, maxV, Facing), lockDir, delay: 1);
 
         // Wait: Clock wire at (inputLead, 1, 0) also runs around via (inputLead, 1, 1) -> avoid D wire collision by routing Clock into u0+2 block directly via repeater/wire!
         // Specifically: u0=Clock wire, u0+1 = lock repeater (Master), so feed u0+2 block via side-step or keep Clock at u0+1 wire feeding u0+1? Wait (u0,1,0) powers (u0+1,1,0) repeater side? No: place Clock wire at u0=0..u0+1, wait then u0+1 can't be both wire and repeater.
@@ -127,16 +127,16 @@ public class DFlipFlopSchematicCreator : SchematicCreator
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 5, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: false, south: true, west: true));
 
         // v=1: Locking repeaters facing South into Master (u0+1) and Slave (u0+5)
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 1, maxU, maxV, Facing), lockSouth, delay: 1);
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 5, 1, 1, maxU, maxV, Facing), lockSouth, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 1, maxU, maxV, Facing), lockSouth, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 5, 1, 1, maxU, maxV, Facing), lockSouth, delay: 1);
 
         // v=2: Data path Master -> wire -> Slave -> Q
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 2, maxU, maxV, Facing), Facing, delay: 1, locked: false);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 2, maxU, maxV, Facing), Facing, delay: 1, locked: false);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 5, 1, 2, maxU, maxV, Facing), Facing, delay: 1, locked: true);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 5, 1, 2, maxU, maxV, Facing), Facing, delay: 1, locked: true);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 6, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         if (IncludeOutputLamp)

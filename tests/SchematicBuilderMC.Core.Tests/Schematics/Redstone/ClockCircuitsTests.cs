@@ -46,6 +46,7 @@ public sealed class ClockCircuitsTests
         var clock16s = new HopperClockSchematicCreator
         {
             Period = TimeSpan.FromSeconds(128), // 2560 gt -> 160 items @ 16 gt/item (3 stacks: 64 + 64 + 32)
+            IncludeToggleLever = true,
             IncludeOutputLamp = true
         };
         Assert.Equal(160, clock16s.GetItemCount());
@@ -55,7 +56,22 @@ public sealed class ClockCircuitsTests
         var hopper = schematic.BlockEntities.Single(be => be.Items.Count > 0);
         Assert.Equal(3, hopper.Items.Count);
         Assert.Equal(160, hopper.Items.Sum(i => i.Count));
-        Assert.Equal(Minecraft.Blocks.RedstoneBlock, schematic[2, 1, 1].Identifier);
+
+        // Comparators point away from the hoppers in Java blockstate convention (input facing = toward hopper)
+        Assert.Equal("east", schematic[1, 1, 0].Properties["facing"]);
+        Assert.Equal("west", schematic[4, 1, 0].Properties["facing"]);
+        Assert.Equal("true", schematic[1, 1, 0].Properties["powered"]);
+        Assert.Equal(Minecraft.Blocks.SmoothStone, schematic[0, 1, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.SmoothStone, schematic[5, 1, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[0, 1, 1].Identifier);
+        Assert.Equal("side", schematic[0, 1, 1].Properties["north"]);
+        Assert.Equal("side", schematic[0, 1, 1].Properties["east"]);
+
+        // Redstone block starts over the locked second hopper so the unlocked first hopper self-starts on paste
+        Assert.Equal(Minecraft.Blocks.RedstoneBlock, schematic[3, 1, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.Lever, schematic[0, 2, 0].Identifier);
+        Assert.Equal(Models.BlockState.Air, schematic[2, 2, 1]);
+        Assert.Equal(Models.BlockState.Air, schematic[3, 2, 1]);
         Assert.Equal(Minecraft.Blocks.RedstoneLamp, schematic[6, 1, 0].Identifier);
     }
 

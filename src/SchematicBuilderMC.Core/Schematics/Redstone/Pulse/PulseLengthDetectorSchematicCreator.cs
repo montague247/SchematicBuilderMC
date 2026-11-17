@@ -85,7 +85,7 @@ public class PulseLengthDetectorSchematicCreator : SchematicCreator
             int left = repeaterCount - 1 - r;
             int rt = Math.Clamp(remainingRt - left, 1, 4);
             remainingRt -= rt;
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 1 + r, 1, 0, maxU, maxV, Facing), Facing, delay: rt);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1 + r, 1, 0, maxU, maxV, Facing), Facing, delay: rt);
         }
 
         if (delaySpan > repeaterCount)
@@ -106,7 +106,7 @@ public class PulseLengthDetectorSchematicCreator : SchematicCreator
                 CircuitLayout.CreateWire(Facing, north: u == gateU, east: u < gateU, south: false, west: true));
         }
 
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, gateU, 1, 0, maxU, maxV, Facing), Facing, subtractMode: true);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, gateU, 1, 0, maxU, maxV, Facing), Facing, subtractMode: true);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, gateU + 1, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         if (IncludeOutputLamp)

@@ -18,6 +18,7 @@ public sealed class TransmissionCircuitsTests
         Assert.Equal(2, boostSchematic.Height);
         Assert.Equal(1, boostSchematic.Length);
         Assert.Equal(Minecraft.Blocks.Repeater, boostSchematic[15, 1, 0].Identifier);
+        Assert.Equal("west", boostSchematic[15, 1, 0].Properties["facing"]);
         Assert.Equal(Minecraft.Blocks.Repeater, boostSchematic[31, 1, 0].Identifier);
         Assert.Equal(4, boostOnly.GetTotalDelayTicks());
 

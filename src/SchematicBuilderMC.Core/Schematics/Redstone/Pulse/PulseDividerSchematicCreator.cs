@@ -98,7 +98,7 @@ public class PulseDividerSchematicCreator : SchematicCreator
         {
             int bulbU = inputLead + 1 + (s * 2);
             CircuitLayout.SetCopperBulb(builder, CircuitLayout.Map(0, 0, 0, bulbU, 1, 0, maxU, 0, Facing));
-            builder.SetComparator(CircuitLayout.Map(0, 0, 0, bulbU + 1, 1, 0, maxU, 0, Facing), Facing, subtractMode: false);
+            CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, bulbU + 1, 1, 0, maxU, 0, Facing), Facing, subtractMode: false);
         }
 
         if (IncludeOutputLamp)
@@ -147,8 +147,8 @@ public class PulseDividerSchematicCreator : SchematicCreator
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         CircuitLayout.SetDropper(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, maxV, Facing), Facing, stacks);
         CircuitLayout.SetHopper(builder, CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, maxV, Facing), reverse, enabled: false);
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing), Facing, subtractMode: false);
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 0, maxU, maxV, Facing), Facing, delay: 1);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing), Facing, subtractMode: false);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 0, maxU, maxV, Facing), Facing, delay: 1);
 
         // Reset line draining hopper once dropper empties
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: false, south: false, west: true));

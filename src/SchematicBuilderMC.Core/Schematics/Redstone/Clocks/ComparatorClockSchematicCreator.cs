@@ -74,7 +74,7 @@ public class ComparatorClockSchematicCreator : SchematicCreator
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, 0, 2, 0, maxU, maxV, Facing), Minecraft.Blocks.RedstoneTorch);
         }
 
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, 1, 1, 0, maxU, maxV, Facing), Facing, subtractMode: true);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, 1, 1, 0, maxU, maxV, Facing), Facing, subtractMode: true);
 
         int tailU = 2 + repeaterCount;
         for (int u = 2; u <= tailU; u++)
@@ -93,7 +93,7 @@ public class ComparatorClockSchematicCreator : SchematicCreator
             int left = repeaterCount - 1 - r;
             int rt = Math.Clamp(remainingRt - left, 1, 4);
             remainingRt -= rt;
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, tailU - 1 - r, 1, 1, maxU, maxV, Facing), reverse, delay: rt);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, tailU - 1 - r, 1, 1, maxU, maxV, Facing), reverse, delay: rt);
         }
 
         if (IncludeOutputLamp)

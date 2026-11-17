@@ -82,13 +82,13 @@ public class DLatchSchematicCreator : SchematicCreator
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         }
 
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing), lockDir, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing), lockDir, delay: 1);
 
         // Data lane on v=1
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 1, maxU, maxV, Facing), Facing, delay: 1, locked: ActiveHighWrite);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 1, maxU, maxV, Facing), Facing, delay: 1, locked: ActiveHighWrite);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         if (IncludeOutputLamp)

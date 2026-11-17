@@ -91,10 +91,10 @@ public class ShiftRegisterSchematicCreator : SchematicCreator
                 wireRun = 0;
             }
 
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, repU, 1, 1, maxU, maxV, Facing), lockDir, delay: 1);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, repU, 1, 1, maxU, maxV, Facing), lockDir, delay: 1);
 
             // Data shift stage + output tap onto v=3 lamp row
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, repU, 1, 2, maxU, maxV, Facing), Facing, delay: 1, locked: true);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, repU, 1, 2, maxU, maxV, Facing), Facing, delay: 1, locked: true);
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, tapU, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: true, south: IncludeOutputLamps, west: true));
 
             if (IncludeOutputLamps)

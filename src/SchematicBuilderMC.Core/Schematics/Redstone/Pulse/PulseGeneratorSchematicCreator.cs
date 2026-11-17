@@ -108,10 +108,10 @@ public class PulseGeneratorSchematicCreator : SchematicCreator
         }
 
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, 0, maxU, 0, Facing), CircuitLayout.CreateAxisWire(Facing, true));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, 0, Facing), Facing, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, 0, Facing), Facing, delay: 1);
         builder.SetPiston(CircuitLayout.Map(0, 0, 0, inputLead + 2, 0, 0, maxU, 0, Facing), Direction.Up, sticky: true);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, 0, Facing), CircuitBlock);
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, 0, Facing), Facing, delay: repeaterDelay);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, 0, Facing), Facing, delay: repeaterDelay);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 0, maxU, 0, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         if (IncludeOutputLamp)
@@ -154,7 +154,7 @@ public class PulseGeneratorSchematicCreator : SchematicCreator
             builder,
             CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, 0, Facing),
             CircuitLayout.RotateDirection(Direction.West, Facing));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, 0, Facing), Facing, delay: repeaterDelay);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, 0, Facing), Facing, delay: repeaterDelay);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, 0, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         if (IncludeOutputLamp)
@@ -201,9 +201,9 @@ public class PulseGeneratorSchematicCreator : SchematicCreator
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: false, west: false));
 
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 1, maxU, maxV, Facing), Facing, delay: repeaterDelay);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 1, maxU, maxV, Facing), Facing, delay: repeaterDelay);
 
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, maxV, Facing), Facing, subtractMode: true);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, maxV, Facing), Facing, subtractMode: true);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: false, south: false, west: true));
 
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));

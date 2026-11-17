@@ -86,7 +86,7 @@ public class PistonClockSchematicCreator : SchematicCreator
             int left = repeaterCount - 1 - r;
             int rt = Math.Clamp(remainingRt - left, 1, 4);
             remainingRt -= rt;
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, startU + 1 + r, 1, 1, maxU, maxV, Facing), reverse, delay: rt);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, startU + 1 + r, 1, 1, maxU, maxV, Facing), reverse, delay: rt);
         }
 
         for (int u = returnEndU + 1; u <= loopStartU + 1; u++)

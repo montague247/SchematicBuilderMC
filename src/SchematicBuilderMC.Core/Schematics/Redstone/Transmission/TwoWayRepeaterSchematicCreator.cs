@@ -97,7 +97,7 @@ public class TwoWayRepeaterSchematicCreator : SchematicCreator
 
         // v=0 lane (West -> East)
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 0, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: true, south: true, west: true));
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, 1, 1, 0, maxU, maxV, Facing), forward, subtractMode: false);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, 1, 1, 0, maxU, maxV, Facing), forward, subtractMode: false);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 2, 1, 0, maxU, maxV, Facing), CircuitBlock);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 3, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: true, south: true, west: true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 4, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: true, south: true, west: true));
@@ -106,7 +106,7 @@ public class TwoWayRepeaterSchematicCreator : SchematicCreator
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 0, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: false, west: false));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 1, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: false, west: true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 2, 1, 1, maxU, maxV, Facing), CircuitBlock);
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, 3, 1, 1, maxU, maxV, Facing), reverse, subtractMode: false);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, 3, 1, 1, maxU, maxV, Facing), reverse, subtractMode: false);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 4, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: false, south: false, west: true));
 
         if (IncludeInputLevers)
@@ -161,15 +161,15 @@ public class TwoWayRepeaterSchematicCreator : SchematicCreator
 
         // Forward path (v=0): wire -> repeater -> wire
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 1, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: true, south: true, west: true));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, 2, 1, 0, maxU, maxV, Facing), forward, delay: signalDelay);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, 2, 1, 0, maxU, maxV, Facing), forward, delay: signalDelay);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 3, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 
         // Locking middle row (v=1)
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, 1, 1, 1, maxU, maxV, Facing), sideSouth, delay: 1);
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, 2, 1, 1, maxU, maxV, Facing), sideNorth, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, 1, 1, 1, maxU, maxV, Facing), sideSouth, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, 2, 1, 1, maxU, maxV, Facing), sideNorth, delay: 1);
 
         // Reverse path (v=2): wire <- repeater <- wire
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, 1, 1, 2, maxU, maxV, Facing), reverse, delay: signalDelay);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, 1, 1, 2, maxU, maxV, Facing), reverse, delay: signalDelay);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 2, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: false, west: true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, 3, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
 

@@ -113,7 +113,7 @@ public class PulseMultiplierSchematicCreator : SchematicCreator
         for (int p = 0; p < PulseCount; p++)
         {
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, curU, 1, 0, maxU, maxV, Facing), CircuitBlock);
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, curU, 1, 1, maxU, maxV, Facing), sideSouth, delay: 1);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, curU, 1, 1, maxU, maxV, Facing), sideSouth, delay: 1);
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, curU, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: false, west: p > 0));
             curU++;
 
@@ -121,7 +121,7 @@ public class PulseMultiplierSchematicCreator : SchematicCreator
             {
                 for (int r = 0; r < repeatersPerGap; r++)
                 {
-                    builder.SetRepeater(CircuitLayout.Map(0, 0, 0, curU, 1, 0, maxU, maxV, Facing), Facing, delay: tapDelay);
+                    CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, curU, 1, 0, maxU, maxV, Facing), Facing, delay: tapDelay);
                     builder.SetBlock(CircuitLayout.Map(0, 0, 0, curU, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
                     curU++;
                 }
@@ -178,7 +178,7 @@ public class PulseMultiplierSchematicCreator : SchematicCreator
         CircuitLayout.SetHopper(builder, CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, maxV, Facing), reverse, enabled: true);
 
         // Comparator clock reads hopper contents & pulses dropper back while items remain
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing), Facing, subtractMode: true);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing), Facing, subtractMode: true);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: false, south: false, west: true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: false, west: false));

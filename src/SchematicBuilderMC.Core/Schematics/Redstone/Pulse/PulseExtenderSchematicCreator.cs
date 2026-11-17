@@ -138,16 +138,16 @@ public class PulseExtenderSchematicCreator : SchematicCreator
         Direction sideSouth = CircuitLayout.RotateDirection(Direction.South, Facing);
 
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: true, south: true, west: true));
-        builder.SetRepeater(CircuitLayout.Map(0, 0, 0, inputLead, 1, 1, maxU, maxV, Facing), sideSouth, delay: 1);
+        CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, inputLead, 1, 1, maxU, maxV, Facing), sideSouth, delay: 1);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: false, west: false));
 
         for (int t = 0; t < taps; t++)
         {
             int repU = inputLead + 1 + (t * 2);
             int blkU = repU + 1;
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, repU, 1, 0, maxU, maxV, Facing), Facing, delay: 4);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, repU, 1, 0, maxU, maxV, Facing), Facing, delay: 4);
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, blkU, 1, 0, maxU, maxV, Facing), CircuitBlock);
-            builder.SetRepeater(CircuitLayout.Map(0, 0, 0, blkU, 1, 1, maxU, maxV, Facing), sideSouth, delay: 1);
+            CircuitLayout.SetRepeater(builder, CircuitLayout.Map(0, 0, 0, blkU, 1, 1, maxU, maxV, Facing), sideSouth, delay: 1);
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, repU, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
             builder.SetBlock(CircuitLayout.Map(0, 0, 0, blkU, 1, 2, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: false, west: true));
         }
@@ -203,8 +203,8 @@ public class PulseExtenderSchematicCreator : SchematicCreator
         for (int s = 0; s < stages; s++)
         {
             int u = inputLead + 1 + s;
-            builder.SetComparator(CircuitLayout.Map(0, 0, 0, u, 1, 0, maxU, maxV, Facing), Facing, subtractMode: false);
-            builder.SetComparator(CircuitLayout.Map(0, 0, 0, u, 1, 1, maxU, maxV, Facing), reverse, subtractMode: false);
+            CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, u, 1, 0, maxU, maxV, Facing), Facing, subtractMode: false);
+            CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, u, 1, 1, maxU, maxV, Facing), reverse, subtractMode: false);
         }
 
         int tailU = inputLead + 1 + stages;
@@ -261,10 +261,10 @@ public class PulseExtenderSchematicCreator : SchematicCreator
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 0, maxU, maxV, Facing), CircuitBlock);
         CircuitLayout.SetHopper(builder, CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 0, maxU, maxV, Facing), Facing, enabled: false, stacks);
         CircuitLayout.SetHopper(builder, CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 0, maxU, maxV, Facing), reverse, enabled: true);
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 0, maxU, maxV, Facing), Facing, subtractMode: false);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 4, 1, 0, maxU, maxV, Facing), Facing, subtractMode: false);
 
         // Reset feedback wire returning items while secondary comparator on Hopper A is idle
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 1, maxU, maxV, Facing), reverse, subtractMode: false);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, inputLead + 1, 1, 1, maxU, maxV, Facing), reverse, subtractMode: false);
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 2, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateAxisWire(Facing, true));
         builder.SetBlock(CircuitLayout.Map(0, 0, 0, inputLead + 3, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: false, south: false, west: true));
 

@@ -68,23 +68,22 @@ public class HopperClockSchematicCreator : SchematicCreator
         Direction reverse = CircuitLayout.GetOpposite(Facing);
         ItemStack[] stacks = CircuitLayout.CreateItemStacks(ItemId, itemCount, maxSlots: 5);
 
-        builder.SetBlock(CircuitLayout.Map(0, 0, 0, 0, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: true, south: true, west: false));
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, 1, 1, 0, maxU, maxV, Facing), reverse, subtractMode: false);
+        builder.SetBlock(CircuitLayout.Map(0, 0, 0, 0, 1, 0, maxU, maxV, Facing), CircuitBlock);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, 1, 1, 0, maxU, maxV, Facing), reverse, subtractMode: false, powered: true);
         CircuitLayout.SetHopper(builder, CircuitLayout.Map(0, 0, 0, 2, 1, 0, maxU, maxV, Facing), Facing, enabled: true, stacks);
-        CircuitLayout.SetHopper(builder, CircuitLayout.Map(0, 0, 0, 3, 1, 0, maxU, maxV, Facing), reverse, enabled: true);
-        builder.SetComparator(CircuitLayout.Map(0, 0, 0, 4, 1, 0, maxU, maxV, Facing), Facing, subtractMode: false);
-        builder.SetBlock(CircuitLayout.Map(0, 0, 0, 5, 1, 0, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: false, east: IncludeOutputLamp, south: true, west: true));
+        CircuitLayout.SetHopper(builder, CircuitLayout.Map(0, 0, 0, 3, 1, 0, maxU, maxV, Facing), reverse, enabled: false);
+        CircuitLayout.SetComparator(builder, CircuitLayout.Map(0, 0, 0, 4, 1, 0, maxU, maxV, Facing), Facing, subtractMode: false, powered: false);
+        builder.SetBlock(CircuitLayout.Map(0, 0, 0, 5, 1, 0, maxU, maxV, Facing), CircuitBlock);
 
-        builder.SetBlock(CircuitLayout.Map(0, 0, 0, 0, 1, 1, maxU, maxV, Facing), CircuitBlock);
+        builder.SetBlock(CircuitLayout.Map(0, 0, 0, 0, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: true, west: true, power: 1));
         builder.SetPiston(CircuitLayout.Map(0, 0, 0, 1, 1, 1, maxU, maxV, Facing), Facing, sticky: true);
-        builder.SetBlock(CircuitLayout.Map(0, 0, 0, 2, 1, 1, maxU, maxV, Facing), Minecraft.Blocks.RedstoneBlock);
+        builder.SetBlock(CircuitLayout.Map(0, 0, 0, 3, 1, 1, maxU, maxV, Facing), Minecraft.Blocks.RedstoneBlock);
         builder.SetPiston(CircuitLayout.Map(0, 0, 0, 4, 1, 1, maxU, maxV, Facing), reverse, sticky: true);
-        builder.SetBlock(CircuitLayout.Map(0, 0, 0, 5, 1, 1, maxU, maxV, Facing), CircuitBlock);
+        builder.SetBlock(CircuitLayout.Map(0, 0, 0, 5, 1, 1, maxU, maxV, Facing), CircuitLayout.CreateWire(Facing, north: true, east: true, south: true, west: true));
 
         if (IncludeToggleLever)
         {
-            builder.SetBlock(CircuitLayout.Map(0, 0, 0, 2, 2, 0, maxU, maxV, Facing), CircuitBlock);
-            builder.SetLever(CircuitLayout.Map(0, 0, 0, 2, 2, 1, maxU, maxV, Facing), BlockFace.Floor, Facing, powered: false);
+            builder.SetLever(CircuitLayout.Map(0, 0, 0, 0, 2, 0, maxU, maxV, Facing), BlockFace.Floor, Facing, powered: false);
         }
 
         if (IncludeOutputLamp)
