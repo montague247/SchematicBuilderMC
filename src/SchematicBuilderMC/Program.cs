@@ -378,8 +378,11 @@ static int RunTntDuperExample(string[] args)
 
     var schematic = creator.Build();
     SchematicFile.Write(schematic, outputPath, SchematicFormat.SpongeV2);
+    var dropPos = new BlockPosition(targetX, creator.DropClearance, targetZ);
+    var dropOffset = creator.GetDropOffset();
+    var tntPos = creator.GetTntBlockPosition(targetX - dropOffset.X, creator.DropClearance, targetZ - dropOffset.Z);
     Console.WriteLine($"Created single-pulse TNT duper: {schematic.Width}x{schematic.Height}x{schematic.Length}");
-    Console.WriteLine($"TNT drops directly below ({targetX}, {creator.DropClearance}, {targetZ}): {schematic[targetX, creator.DropClearance, targetZ]}");
+    Console.WriteLine($"TNT drop column ({dropPos.X}, 0..{dropPos.Y + 3}, {dropPos.Z}) is open air; source TNT at ({tntPos.X}, {tntPos.Y}, {tntPos.Z}): {schematic[tntPos.X, tntPos.Y, tntPos.Z]}");
     Console.WriteLine($"Wrote Sponge schematic to {outputPath} ({new FileInfo(outputPath).Length} bytes)");
     return 0;
 }

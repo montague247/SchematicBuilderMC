@@ -1,4 +1,3 @@
-using fNbt;
 using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.IO;
@@ -11,11 +10,11 @@ namespace SchematicBuilderMC.Core.Tests.Schematics.Contraptions;
 public sealed class TntDuperSchematicCreatorTests
 {
     [Theory]
-    [InlineData(Direction.South, 2, 3, 4, 0, 1, 0, 1, 0, 3, "north_south", "north")]
-    [InlineData(Direction.North, 2, 3, 4, 1, 1, 3, 0, 0, 0, "north_south", "south")]
-    [InlineData(Direction.East, 4, 3, 2, 0, 1, 1, 3, 0, 0, "east_west", "west")]
-    [InlineData(Direction.West, 4, 3, 2, 3, 1, 0, 0, 0, 1, "east_west", "east")]
-    public void Build_AllHorizontalDirections_PlacesCoreBlocksEntitiesAndAlignments(
+    [InlineData(Direction.North, 4, 4, 6, 1, 0, 4, 0, 0, 4, "west", 2, 0, 4, "east", 2, 0, 1, 2, 2, 2, true)]
+    [InlineData(Direction.South, 4, 4, 6, 2, 0, 1, 3, 0, 1, "east", 1, 0, 1, "west", 1, 0, 4, 1, 2, 3, true)]
+    [InlineData(Direction.East, 6, 4, 4, 1, 0, 1, 1, 0, 0, "north", 1, 0, 2, "south", 4, 0, 2, 3, 2, 2, false)]
+    [InlineData(Direction.West, 6, 4, 4, 4, 0, 2, 4, 0, 3, "south", 4, 0, 1, "north", 1, 0, 1, 2, 2, 1, false)]
+    public void Build_AllHorizontalDirections_PlacesVerifiedOneShotLayoutAndOpenDropColumn(
         Direction facing,
         int expectedWidth,
         int expectedHeight,
@@ -23,11 +22,21 @@ public sealed class TntDuperSchematicCreatorTests
         int expectedTriggerX,
         int expectedTriggerY,
         int expectedTriggerZ,
+        int expectedButtonX,
+        int expectedButtonY,
+        int expectedButtonZ,
+        string expectedButtonFacing,
+        int expectedTorchX,
+        int expectedTorchY,
+        int expectedTorchZ,
+        string expectedTorchFacing,
         int expectedDropX,
         int expectedDropY,
         int expectedDropZ,
-        string expectedRailShape,
-        string expectedCoralFacing)
+        int expectedTntX,
+        int expectedTntY,
+        int expectedTntZ,
+        bool expectEastWestWire)
     {
         var creator = new TntDuperSchematicCreator
         {
@@ -43,23 +52,39 @@ public sealed class TntDuperSchematicCreatorTests
 
         var dropPos = creator.GetDropPosition();
         Assert.Equal(new BlockPosition(expectedDropX, expectedDropY, expectedDropZ), dropPos);
-        Assert.Equal(Minecraft.Blocks.Tnt, schematic[dropPos.X, dropPos.Y, dropPos.Z].Identifier);
+        for (int y = 0; y < 4; y++)
+        {
+            Assert.Equal(BlockState.Air, schematic[dropPos.X, y, dropPos.Z]);
+        }
+
+        var tntPos = creator.GetTntBlockPosition();
+        Assert.Equal(new BlockPosition(expectedTntX, expectedTntY, expectedTntZ), tntPos);
+        Assert.Equal(Minecraft.Blocks.Tnt, schematic[tntPos.X, tntPos.Y, tntPos.Z].Identifier);
+        Assert.Equal("false", schematic[tntPos.X, tntPos.Y, tntPos.Z].GetProperty("unstable"));
 
         var triggerPos = creator.GetTriggerPosition();
         Assert.Equal(new BlockPosition(expectedTriggerX, expectedTriggerY, expectedTriggerZ), triggerPos);
-        Assert.Equal(Minecraft.Blocks.Target, schematic[triggerPos.X, triggerPos.Y, triggerPos.Z].Identifier);
+        Assert.Equal(Minecraft.Blocks.Stone, schematic[triggerPos.X, triggerPos.Y, triggerPos.Z].Identifier);
 
-        var buttonBlock = schematic[triggerPos.X, triggerPos.Y + 1, triggerPos.Z];
+        var buttonBlock = schematic[expectedButtonX, expectedButtonY, expectedButtonZ];
         Assert.Equal(Minecraft.Blocks.StoneButton, buttonBlock.Identifier);
-        Assert.Equal("floor", buttonBlock.GetProperty("face"));
+        Assert.Equal("wall", buttonBlock.GetProperty("face"));
+        Assert.Equal(expectedButtonFacing, buttonBlock.GetProperty("facing"));
         Assert.Equal("false", buttonBlock.GetProperty("powered"));
+
+        var torchBlock = schematic[expectedTorchX, expectedTorchY, expectedTorchZ];
+        Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, torchBlock.Identifier);
+        Assert.Equal(expectedTorchFacing, torchBlock.GetProperty("facing"));
+        Assert.Equal("true", torchBlock.GetProperty("lit"));
 
         int stickyPistonCount = 0;
         int slimeCount = 0;
-        int detectorRailCount = 0;
+        int obsidianCount = 0;
+        int redstoneBlockCount = 0;
+        int wireCount = 0;
         int coralFanCount = 0;
         int tntCount = 0;
-        int wallCount = 0;
+        int stoneCount = 0;
 
         for (int y = 0; y < schematic.Height; y++)
         {
@@ -78,74 +103,87 @@ public sealed class TntDuperSchematicCreatorTests
                     {
                         slimeCount++;
                     }
-                    else if (block.Identifier == Minecraft.Blocks.DetectorRail)
+                    else if (block.Identifier == Minecraft.Blocks.Obsidian)
                     {
-                        detectorRailCount++;
-                        Assert.Equal("true", block.GetProperty("powered"));
-                        Assert.Equal(expectedRailShape, block.GetProperty("shape"));
-                        Assert.Equal("false", block.GetProperty("waterlogged"));
+                        obsidianCount++;
                     }
-                    else if (block.Identifier == Minecraft.Blocks.DeadTubeCoralWallFan)
+                    else if (block.Identifier == Minecraft.Blocks.RedstoneBlock)
+                    {
+                        redstoneBlockCount++;
+                    }
+                    else if (block.Identifier == Minecraft.Blocks.RedstoneWire)
+                    {
+                        wireCount++;
+                        Assert.Equal("15", block.GetProperty("power"));
+                        Assert.Equal(expectEastWestWire ? "side" : "none", block.GetProperty("east"));
+                        Assert.Equal(expectEastWestWire ? "side" : "none", block.GetProperty("west"));
+                        Assert.Equal(expectEastWestWire ? "none" : "side", block.GetProperty("north"));
+                        Assert.Equal(expectEastWestWire ? "none" : "side", block.GetProperty("south"));
+                    }
+                    else if (block.Identifier == Minecraft.Blocks.DeadTubeCoralFan)
                     {
                         coralFanCount++;
-                        Assert.Equal(expectedCoralFacing, block.GetProperty("facing"));
                         Assert.Equal("false", block.GetProperty("waterlogged"));
                     }
                     else if (block.Identifier == Minecraft.Blocks.Tnt)
                     {
                         tntCount++;
                     }
-                    else if (block.Identifier == Minecraft.Blocks.CobblestoneWall)
+                    else if (block.Identifier == Minecraft.Blocks.Stone)
                     {
-                        wallCount++;
+                        stoneCount++;
                     }
                 }
             }
         }
 
         Assert.Equal(1, stickyPistonCount);
-        Assert.Equal(3, slimeCount);
-        Assert.Equal(1, detectorRailCount);
+        Assert.Equal(9, slimeCount);
+        Assert.Equal(1, obsidianCount);
+        Assert.Equal(1, redstoneBlockCount);
+        Assert.Equal(1, wireCount);
         Assert.Equal(1, coralFanCount);
         Assert.Equal(1, tntCount);
-        Assert.Equal(1, wallCount);
-
-        var minecart = Assert.Single(schematic.Entities);
-        Assert.Equal(Minecraft.Entities.Minecart, minecart.Id);
+        Assert.Equal(2, stoneCount); // Trigger block + front stopper wall
+        Assert.Empty(schematic.Entities);
     }
 
     [Theory]
-    [InlineData(Direction.South, 6, 8)]
     [InlineData(Direction.North, 6, 8)]
+    [InlineData(Direction.South, 6, 8)]
     [InlineData(Direction.East, 6, 8)]
     [InlineData(Direction.West, 6, 8)]
-    public void WithDropPosition_AndPlaceAtDropPosition_AlignTntAtExactTargetCoordinates(
+    public void WithDropPosition_AndPlaceAtDropPosition_AlignDropColumnAtExactTargetCoordinates(
         Direction facing,
         int targetX,
         int targetZ)
     {
-        // Standalone WithDropPosition builder alignment
         var standalone = new TntDuperSchematicCreator { Facing = facing }
             .WithDropPosition(targetX, targetZ, dropClearance: 4)
             .Build();
 
-        Assert.Equal(Minecraft.Blocks.Tnt, standalone[targetX, 4, targetZ].Identifier);
-        for (int y = 0; y < 4; y++)
+        for (int y = 0; y < 8; y++)
         {
             Assert.Equal(BlockState.Air, standalone[targetX, y, targetZ]);
         }
 
-        // Fluent placement inside an existing schematic auto-extending bounds cleanly
+        var dropOffset = new TntDuperSchematicCreator { Facing = facing }.GetDropOffset();
+        var tntPos = new TntDuperSchematicCreator { Facing = facing }
+            .GetTntBlockPosition(targetX - dropOffset.X, 4, targetZ - dropOffset.Z);
+        Assert.Equal(Minecraft.Blocks.Tnt, standalone[tntPos.X, tntPos.Y, tntPos.Z].Identifier);
+
         var builder = SchematicBuilder.Create(3, 3, 3);
         var duper = new TntDuperSchematicCreator { Facing = facing };
         builder.CreateAtDropPosition(duper, targetX, targetY: 5, targetZ);
         var placed = builder.Build();
 
-        Assert.Equal(Minecraft.Blocks.Tnt, placed[targetX, 5, targetZ].Identifier);
-        for (int y = 0; y < 5; y++)
+        for (int y = 0; y < 9; y++)
         {
             Assert.Equal(BlockState.Air, placed[targetX, y, targetZ]);
         }
+
+        var placedTntPos = duper.GetTntBlockPosition(targetX - dropOffset.X, 5, targetZ - dropOffset.Z);
+        Assert.Equal(Minecraft.Blocks.Tnt, placed[placedTntPos.X, placedTntPos.Y, placedTntPos.Z].Identifier);
     }
 
     [Fact]
@@ -156,19 +194,19 @@ public sealed class TntDuperSchematicCreatorTests
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new TntDuperSchematicCreator { DropClearance = -1 }.Build());
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new TntDuperSchematicCreator { Facing = Direction.South }.WithDropPosition(0, 3).Build());
+            new TntDuperSchematicCreator { Facing = Direction.South }.WithDropPosition(0, 4).Build());
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new TntDuperSchematicCreator { Facing = Direction.South }.WithDropPosition(1, 2).Build());
+            new TntDuperSchematicCreator { Facing = Direction.South }.WithDropPosition(1, 3).Build());
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             SchematicBuilder.Create(4, 4, 4).CreateAtDropPosition(
                 new TntDuperSchematicCreator { Facing = Direction.East },
-                targetX: 2,
+                targetX: 3,
                 targetY: 0,
-                targetZ: 0));
+                targetZ: 2));
     }
 
     [Fact]
-    public void Build_WithRotationAndWriteReadSponge_PreservesBlocksAndMinecartEntity()
+    public void Build_WithRotationAndWriteReadSponge_RoundTripsCleanly()
     {
         var creator = new TntDuperSchematicCreator
         {
@@ -181,27 +219,22 @@ public sealed class TntDuperSchematicCreatorTests
         SchematicFile.Write(schematic, outputPath, SchematicFormat.SpongeV2);
 
         var readBack = SchematicFile.Read(outputPath, SchematicFormat.SpongeV2);
-        Assert.Equal(Minecraft.Blocks.Tnt, readBack[5, 3, 6].Identifier);
-        Assert.Equal(Minecraft.Blocks.Target, readBack[4, 4, 3].Identifier);
-        var minecart = Assert.Single(readBack.Entities);
-        Assert.Equal(Minecraft.Entities.Minecart, minecart.Id);
+        var dropOffset = creator.GetDropOffset();
+        int startX = 5 - dropOffset.X;
+        int startZ = 6 - dropOffset.Z;
+        var tntPos = creator.GetTntBlockPosition(startX, 3, startZ);
+        var triggerPos = creator.GetTriggerPosition(startX, 3, startZ);
 
-        // Verify WorldEdit SpongeV2 entity NBT compliance (top-level Rotation tag on entity compound)
-        var nbt = new NbtFile();
-        nbt.LoadFromFile(outputPath);
-        var entitiesList = Assert.IsType<NbtList>(nbt.RootTag["Entities"]);
-        var entityCompound = Assert.IsType<NbtCompound>(entitiesList[0]);
-        Assert.Equal(Minecraft.Entities.Minecart, entityCompound["Id"]?.StringValue);
-        Assert.False(entityCompound.Contains("Data"));
-        var rotation = Assert.IsType<NbtList>(entityCompound["Rotation"]);
-        Assert.Equal(2, rotation.Count);
+        Assert.Equal(BlockState.Air, readBack[5, 3, 6]);
+        Assert.Equal(Minecraft.Blocks.Tnt, readBack[tntPos.X, tntPos.Y, tntPos.Z].Identifier);
+        Assert.Equal(Minecraft.Blocks.Stone, readBack[triggerPos.X, triggerPos.Y, triggerPos.Z].Identifier);
+        Assert.Empty(readBack.Entities);
 
         var rotated = new TntDuperSchematicCreator { Facing = Direction.South }
             .WithRotation(Rotation.Clockwise90)
             .Build();
-        Assert.Equal(4, rotated.Width);
-        Assert.Equal(3, rotated.Height);
-        Assert.Equal(2, rotated.Length);
-        Assert.Single(rotated.Entities);
+        Assert.Equal(6, rotated.Width);
+        Assert.Equal(4, rotated.Height);
+        Assert.Equal(4, rotated.Length);
     }
 }
