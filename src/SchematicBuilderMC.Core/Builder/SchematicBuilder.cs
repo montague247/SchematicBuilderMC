@@ -325,39 +325,213 @@ public sealed class SchematicBuilder
         return this;
     }
 
-    public SchematicBuilder SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockState block, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
+    public SchematicBuilder SetCylinder(
+        int centerX,
+        int startY,
+        int centerZ,
+        int radius,
+        int height,
+        BlockState block,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null)
     {
-        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, block, filled, axis, smoothnessFactor);
+        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, block, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
         return this;
     }
 
-    public SchematicBuilder SetCylinder(int centerX, int startY, int centerZ, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
+    public SchematicBuilder SetCylinder(
+        int centerX,
+        int startY,
+        int centerZ,
+        int radius,
+        int height,
+        string blockStateString,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null)
     {
-        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, blockStateString, filled, axis, smoothnessFactor);
+        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, blockStateString, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
         return this;
     }
 
-    public SchematicBuilder SetCylinder(BlockPosition baseCenter, int radius, int height, BlockState block, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
+    public SchematicBuilder SetCylinder(
+        BlockPosition baseCenter,
+        int radius,
+        int height,
+        BlockState block,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null)
     {
-        _schematic.SetCylinder(baseCenter, radius, height, block, filled, axis, smoothnessFactor);
+        _schematic.SetCylinder(baseCenter, radius, height, block, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
         return this;
     }
 
-    public SchematicBuilder SetCylinder(BlockPosition baseCenter, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
+    public SchematicBuilder SetCylinder(
+        BlockPosition baseCenter,
+        int radius,
+        int height,
+        string blockStateString,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null)
     {
-        _schematic.SetCylinder(baseCenter, radius, height, blockStateString, filled, axis, smoothnessFactor);
+        _schematic.SetCylinder(baseCenter, radius, height, blockStateString, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
         return this;
     }
 
-    public SchematicBuilder SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockGradient gradient, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
+    public SchematicBuilder SetCylinder(
+        int centerX,
+        int startY,
+        int centerZ,
+        int radius,
+        int height,
+        BlockGradient gradient,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null)
     {
-        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, gradient, filled, axis, smoothnessFactor);
+        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, gradient, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
         return this;
     }
 
-    public SchematicBuilder SetCylinder(BlockPosition baseCenter, int radius, int height, BlockGradient gradient, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
+    public SchematicBuilder SetCylinder(
+        BlockPosition baseCenter,
+        int radius,
+        int height,
+        BlockGradient gradient,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null)
     {
-        _schematic.SetCylinder(baseCenter, radius, height, gradient, filled, axis, smoothnessFactor);
+        _schematic.SetCylinder(baseCenter, radius, height, gradient, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        return this;
+    }
+
+    public SchematicBuilder SetCylinderBase(
+        int centerX,
+        int startY,
+        int centerZ,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        BlockState block,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null)
+    {
+        _schematic.SetCylinderBase(centerX, startY, centerZ, cylinderRadius, baseWidth, baseHeight, block, axis, smoothnessFactor, useStairs, stairBlockId);
+        return this;
+    }
+
+    public SchematicBuilder SetCylinderBase(
+        int centerX,
+        int startY,
+        int centerZ,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        string blockStateString,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null)
+    {
+        _schematic.SetCylinderBase(centerX, startY, centerZ, cylinderRadius, baseWidth, baseHeight, blockStateString, axis, smoothnessFactor, useStairs, stairBlockId);
+        return this;
+    }
+
+    public SchematicBuilder SetCylinderBase(
+        BlockPosition baseCenter,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        BlockState block,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null)
+    {
+        _schematic.SetCylinderBase(baseCenter, cylinderRadius, baseWidth, baseHeight, block, axis, smoothnessFactor, useStairs, stairBlockId);
+        return this;
+    }
+
+    public SchematicBuilder SetCylinderBase(
+        BlockPosition baseCenter,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        string blockStateString,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null)
+    {
+        _schematic.SetCylinderBase(baseCenter, cylinderRadius, baseWidth, baseHeight, blockStateString, axis, smoothnessFactor, useStairs, stairBlockId);
+        return this;
+    }
+
+    public SchematicBuilder SetCylinderBase(
+        int centerX,
+        int startY,
+        int centerZ,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        BlockGradient gradient,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null)
+    {
+        _schematic.SetCylinderBase(centerX, startY, centerZ, cylinderRadius, baseWidth, baseHeight, gradient, axis, smoothnessFactor, useStairs, stairBlockId);
+        return this;
+    }
+
+    public SchematicBuilder SetCylinderBase(
+        BlockPosition baseCenter,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        BlockGradient gradient,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null)
+    {
+        _schematic.SetCylinderBase(baseCenter, cylinderRadius, baseWidth, baseHeight, gradient, axis, smoothnessFactor, useStairs, stairBlockId);
         return this;
     }
 

@@ -607,6 +607,123 @@ public sealed class GeometricShapesTests
         Assert.True(File.Exists(spongePath));
     }
 
+    [Fact]
+    public void SetCylinderBase_StairTransition_OrientsStairsInwardAndPreservesHollowCore()
+    {
+        var schematic = SchematicBuilder.Create(15, 8, 15)
+            .SetCylinder(7, 0, 7, radius: 4, height: 8, Minecraft.Blocks.LightGrayConcrete, filled: false)
+            .SetCylinderBase(7, 0, 7, cylinderRadius: 4, baseWidth: 3, baseHeight: 3, Minecraft.Blocks.StoneBricks)
+            .Build();
+
+        // Cardinal outer stairs on bottom ring (y = 0, outer radius = 7)
+        AssertStair(schematic[7, 0, 0], Minecraft.Blocks.StoneBrickStairs, "south", "straight");
+        AssertStair(schematic[7, 0, 14], Minecraft.Blocks.StoneBrickStairs, "north", "straight");
+        AssertStair(schematic[0, 0, 7], Minecraft.Blocks.StoneBrickStairs, "east", "straight");
+        AssertStair(schematic[14, 0, 7], Minecraft.Blocks.StoneBrickStairs, "west", "straight");
+
+        // Diagonal outer corners on bottom ring (du = -5, dv = -5 => x = 2, z = 2)
+        AssertStair(schematic[2, 0, 2], Minecraft.Blocks.StoneBrickStairs, "south", "outer_left");
+        AssertStair(schematic[12, 0, 2], Minecraft.Blocks.StoneBrickStairs, "south", "outer_right");
+        AssertStair(schematic[2, 0, 12], Minecraft.Blocks.StoneBrickStairs, "north", "outer_right");
+        AssertStair(schematic[12, 0, 12], Minecraft.Blocks.StoneBrickStairs, "north", "outer_left");
+
+        // Covered lower step directly under y = 1 stair tier stays solid fill block
+        Assert.Equal(Minecraft.Blocks.StoneBricks, schematic[7, 0, 2].Identifier);
+
+        // Rising stair tiers at y = 1 (radius 6) and y = 2 (radius 5)
+        AssertStair(schematic[7, 1, 1], Minecraft.Blocks.StoneBrickStairs, "south", "straight");
+        AssertStair(schematic[7, 2, 2], Minecraft.Blocks.StoneBrickStairs, "south", "straight");
+
+        // Above baseHeight (y = 3): base does not extend outward; cylinder wall & hollow interior remain intact
+        Assert.Equal(BlockState.Air, schematic[7, 3, 2]);
+        Assert.Equal(Minecraft.Blocks.LightGrayConcrete, schematic[7, 3, 3].Identifier);
+        Assert.Equal(BlockState.Air, schematic[7, 0, 7]);
+        Assert.Equal(BlockState.Air, schematic[7, 3, 7]);
+    }
+
+    [Fact]
+    public void SetCylinder_WithBaseWidthAndHeightRatios_HandlesSlopesGradientsAndStairInputs()
+    {
+        // Width > Height (4 wide, 2 high): layer 0 extends +4 (solid inner tread + outer stair), layer 1 extends +2
+        var wideBase = SchematicBuilder.Create(17, 6, 17)
+            .SetCylinder(
+                centerX: 8,
+                startY: 0,
+                centerZ: 8,
+                radius: 4,
+                height: 6,
+                blockStateString: Minecraft.Blocks.QuartzBlock,
+                filled: true,
+                axis: Axis.Y,
+                smoothnessFactor: 1.0,
+                baseWidth: 4,
+                baseHeight: 2,
+                baseGradient: new BlockGradient([Minecraft.Blocks.DeepslateBricks, Minecraft.Blocks.StoneBricks]))
+            .Build();
+
+        AssertStair(wideBase[8, 0, 0], Minecraft.Blocks.DeepslateBrickStairs, "south", "straight");
+        Assert.Equal(Minecraft.Blocks.DeepslateBricks, wideBase[8, 0, 1].Identifier);
+        AssertStair(wideBase[8, 1, 2], Minecraft.Blocks.StoneBrickStairs, "south", "straight");
+        Assert.Equal(BlockState.Air, wideBase[8, 2, 2]);
+
+        // Width < Height (2 wide, 4 high) using a *_stairs input resolves solid stone_bricks under upper layers
+        var tallBase = SchematicBuilder.Create(13, 6, 13)
+            .SetCylinder(8 - 2, 0, 6, radius: 3, height: 6, Minecraft.Blocks.Stone)
+            .SetCylinderBase(6, 0, 6, cylinderRadius: 3, baseWidth: 2, baseHeight: 4, Minecraft.Blocks.StoneBrickStairs)
+            .Build();
+
+        Assert.Equal(Minecraft.Blocks.StoneBricks, tallBase[6, 0, 1].Identifier);
+        AssertStair(tallBase[6, 1, 1], Minecraft.Blocks.StoneBrickStairs, "south", "straight");
+        Assert.Equal(Minecraft.Blocks.StoneBricks, tallBase[6, 2, 2].Identifier);
+        AssertStair(tallBase[6, 3, 2], Minecraft.Blocks.StoneBrickStairs, "south", "straight");
+        Assert.Equal(BlockState.Air, tallBase[6, 4, 2]);
+    }
+
+    [Fact]
+    public void CylinderSchematicCreator_WithBase_ExtendsBoundsValidationAndWritesSchematic()
+    {
+        // Auto-extends a smaller SchematicBuilder when placing cylinder + base
+        var creator = new CylinderSchematicCreator
+        {
+            Radius = 5,
+            Height = 12,
+            Block = Minecraft.Blocks.LightGrayConcrete,
+            Filled = false
+        }.WithBase(width: 3, height: 3, Minecraft.Blocks.DeepslateBricks, Minecraft.Blocks.StoneBricks);
+
+        var extendedBuilder = SchematicBuilder.Create(4, 4, 4);
+        creator.Place(extendedBuilder, startX: 1, startY: 0, startZ: 1);
+        var placed = extendedBuilder.Build();
+        Assert.Equal(18, placed.Width);
+        Assert.Equal(12, placed.Height);
+        Assert.Equal(18, placed.Length);
+
+        var standalone = creator.Build();
+        Assert.Equal(17, standalone.Width);
+        Assert.Equal(12, standalone.Height);
+        Assert.Equal(17, standalone.Length);
+        AssertStair(standalone[8, 0, 0], Minecraft.Blocks.DeepslateBrickStairs, "south", "straight");
+        AssertStair(standalone[8, 2, 2], Minecraft.Blocks.StoneBrickStairs, "south", "straight");
+
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, "CylinderWithStairBase.schem");
+        SchematicFile.Write(standalone, spongePath, SchematicFormat.SpongeV2);
+        var readBack = SchematicFile.Read(spongePath, SchematicFormat.SpongeV2);
+        Assert.Equal(standalone.Width, readBack.Width);
+        Assert.Equal(standalone.Height, readBack.Height);
+        Assert.Equal(standalone.Length, readBack.Length);
+        AssertStair(readBack[8, 0, 0], Minecraft.Blocks.DeepslateBrickStairs, "south", "straight");
+
+        // Validation guards
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CylinderSchematicCreator { Radius = 3, Height = 5, BaseWidth = 2, BaseHeight = 0 }.Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CylinderSchematicCreator { Radius = 3, Height = 5, BaseWidth = 0, BaseHeight = 2 }.Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CylinderSchematicCreator { Radius = 3, Height = 3, BaseWidth = 2, BaseHeight = 4 }.Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new Schematic(10, 10, 10).SetCylinderBase(5, 0, 5, cylinderRadius: 2, baseWidth: 0, baseHeight: 2, Minecraft.Blocks.StoneBricks));
+    }
+
     private static IReadOnlyList<string> GetLayerNonAirIdentifiers(Schematic schematic, int y)
     {
         var ids = new List<string>();

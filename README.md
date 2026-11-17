@@ -243,6 +243,30 @@ var door = new CompactPistonDoorSchematicCreator
 SchematicFile.Write(door, "piston_door.schem");
 ```
 
+### 10. Geometric Shapes & Cylinder Stair Base
+
+Surround any cylinder with a sloped stair transition base by specifying the outward base width, vertical height, and blocks:
+
+```csharp
+using SchematicBuilderMC.IO;
+using SchematicBuilderMC.Registries;
+using SchematicBuilderMC.Schematics.Shapes;
+
+var cylinderWithBase = new CylinderSchematicCreator
+{
+    Radius = 6,
+    Height = 14,
+    Block = Minecraft.Blocks.LightGrayConcrete,
+    Filled = false
+}
+    .WithBase(width: 4, height: 4, Minecraft.Blocks.DeepslateBricks, Minecraft.Blocks.StoneBricks)
+    .Build();
+
+SchematicFile.Write(cylinderWithBase, "cylinder_with_base.schem");
+```
+
+Or add a stair base directly around an existing cylinder with `SchematicBuilder.SetCylinderBase(...)`.
+
 ## Running Tests
 
 ```bash

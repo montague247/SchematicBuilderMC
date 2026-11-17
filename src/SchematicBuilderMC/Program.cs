@@ -5,6 +5,7 @@ using SchematicBuilderMC.Generators;
 using SchematicBuilderMC.IO;
 using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
+using SchematicBuilderMC.Schematics.Shapes;
 
 if (args.Length > 0)
 {
@@ -25,6 +26,11 @@ if (args.Length > 0)
         MinecraftRegistryGenerator.GenerateToDirectory(json, targetDir);
         Console.WriteLine($"Registry files generated at: {targetDir}");
         return 0;
+    }
+
+    if (firstArg is "cylinder-base" or "--cylinder-base")
+    {
+        return RunCylinderBaseExample(args);
     }
 
     if (firstArg is "generate-code" or "to-code" or "code" or "--code" or "-c" ||
@@ -264,6 +270,29 @@ static int RunGenerateCode(string[] args)
     }
 }
 
+static int RunCylinderBaseExample(string[] args)
+{
+    string outputPath = args.Length > 1 && !string.IsNullOrWhiteSpace(args[1])
+        ? Path.GetFullPath(args[1])
+        : Path.Combine(Path.GetFullPath("."), "cylinder_with_base.schem");
+
+    var schematic = new CylinderSchematicCreator
+    {
+        Radius = 6,
+        Height = 14,
+        Block = Minecraft.Blocks.LightGrayConcrete,
+        Filled = false
+    }
+        .WithBase(width: 4, height: 4, Minecraft.Blocks.DeepslateBricks, Minecraft.Blocks.StoneBricks)
+        .Build();
+
+    SchematicFile.Write(schematic, outputPath, SchematicFormat.SpongeV2);
+    Console.WriteLine($"Created cylinder with 4x4 stair base schematic: {schematic.Width}x{schematic.Height}x{schematic.Length}");
+    Console.WriteLine($"Non-Air Blocks: {schematic.CountNonAirBlocks()}");
+    Console.WriteLine($"Wrote Sponge schematic to {outputPath} ({new FileInfo(outputPath).Length} bytes)");
+    return 0;
+}
+
 static void PrintHelp()
 {
     Console.WriteLine($"""
@@ -274,6 +303,7 @@ static void PrintHelp()
 
         Commands:
           generate-code <file> [output.cs]   Generate C# fluent builder code from a schematic file (.schem, .schematic, .litematic).
+          cylinder-base [output.schem]       Generate an example cylinder surrounded by a stepped stair base.
           generate-registries                Generate Minecraft registry constants from embedded/online registries.json.
           demo                               Run the build and read/write demo (default when no args provided).
 

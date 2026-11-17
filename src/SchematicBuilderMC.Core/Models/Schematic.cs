@@ -1388,36 +1388,107 @@ public sealed class Schematic
         SetOval(center.X, center.Y, center.Z, radiusU, radiusV, gradient, filled, normalAxis, smoothnessFactor);
 
     /// <summary>
-    /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) extending along <paramref name="axis"/>.
+    /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) extending along <paramref name="axis"/>,
+    /// optionally surrounded by a stepped base of width <paramref name="baseWidth"/> and height <paramref name="baseHeight"/>.
     /// </summary>
-    public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockState blockState, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
+    public void SetCylinder(
+        int centerX,
+        int startY,
+        int centerZ,
+        int radius,
+        int height,
+        BlockState blockState,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null)
     {
         ArgumentNullException.ThrowIfNull(blockState);
-        SetCylinder(centerX, startY, centerZ, radius, height, new BlockGradient([blockState]), filled, axis, smoothnessFactor);
+        SetCylinder(centerX, startY, centerZ, radius, height, new BlockGradient([blockState]), filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
     }
 
     /// <summary>
-    /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) from a blockstate string.
+    /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) from a blockstate string,
+    /// optionally surrounded by a stepped base.
     /// </summary>
-    public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
-        SetCylinder(centerX, startY, centerZ, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor);
+    public void SetCylinder(
+        int centerX,
+        int startY,
+        int centerZ,
+        int radius,
+        int height,
+        string blockStateString,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null) =>
+        SetCylinder(centerX, startY, centerZ, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
 
     /// <summary>
-    /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/>.
+    /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/>,
+    /// optionally surrounded by a stepped base.
     /// </summary>
-    public void SetCylinder(BlockPosition baseCenter, int radius, int height, BlockState blockState, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
-        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, blockState, filled, axis, smoothnessFactor);
+    public void SetCylinder(
+        BlockPosition baseCenter,
+        int radius,
+        int height,
+        BlockState blockState,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, blockState, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
 
     /// <summary>
-    /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/> from a blockstate string.
+    /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/> from a blockstate string,
+    /// optionally surrounded by a stepped base.
     /// </summary>
-    public void SetCylinder(BlockPosition baseCenter, int radius, int height, string blockStateString, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
-        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor);
+    public void SetCylinder(
+        BlockPosition baseCenter,
+        int radius,
+        int height,
+        string blockStateString,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
 
     /// <summary>
-    /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) using a multi-block <paramref name="gradient"/>.
+    /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) using a multi-block <paramref name="gradient"/>,
+    /// optionally surrounded by a stepped base of width <paramref name="baseWidth"/> and height <paramref name="baseHeight"/>.
     /// </summary>
-    public void SetCylinder(int centerX, int startY, int centerZ, int radius, int height, BlockGradient gradient, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
+    public void SetCylinder(
+        int centerX,
+        int startY,
+        int centerZ,
+        int radius,
+        int height,
+        BlockGradient gradient,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null)
     {
         ArgumentNullException.ThrowIfNull(gradient);
         if (radius < 0)
@@ -1425,9 +1496,11 @@ public sealed class Schematic
         if (height <= 0)
             throw new ArgumentOutOfRangeException(nameof(height), height, "Height must be greater than zero.");
         ValidateAxis(axis, nameof(axis));
+        ValidateCylinderBaseDimensions(baseWidth, baseHeight, height);
         double radialPadding = CalculateRadialPadding(smoothnessFactor);
 
-        EnsureAxisBoxInBounds(centerX, startY, centerZ, -radius, radius, -radius, radius, 0, height - 1, axis);
+        int maxOuterRadius = radius + baseWidth;
+        EnsureAxisBoxInBounds(centerX, startY, centerZ, -maxOuterRadius, maxOuterRadius, -maxOuterRadius, maxOuterRadius, 0, height - 1, axis);
 
         Random? random = gradient.CreateRandom();
         for (int h = 0; h < height; h++)
@@ -1435,13 +1508,196 @@ public sealed class Schematic
             var sliceCenter = MapAxisOffset(centerX, startY, centerZ, 0, 0, h, axis);
             SetEllipticalSlice(sliceCenter.X, sliceCenter.Y, sliceCenter.Z, radius, radius, gradient, filled, axis, radialPadding, h, height, random);
         }
+
+        if (baseWidth > 0)
+        {
+            SetCylinderBase(centerX, startY, centerZ, radius, baseWidth, baseHeight, baseGradient ?? gradient, axis, smoothnessFactor, baseUseStairs, baseStairBlockId);
+        }
     }
 
     /// <summary>
-    /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/> using a multi-block <paramref name="gradient"/>.
+    /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/> using a multi-block <paramref name="gradient"/>,
+    /// optionally surrounded by a stepped base.
     /// </summary>
-    public void SetCylinder(BlockPosition baseCenter, int radius, int height, BlockGradient gradient, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0) =>
-        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, gradient, filled, axis, smoothnessFactor);
+    public void SetCylinder(
+        BlockPosition baseCenter,
+        int radius,
+        int height,
+        BlockGradient gradient,
+        bool filled = true,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int baseWidth = 0,
+        int baseHeight = 0,
+        BlockGradient? baseGradient = null,
+        bool baseUseStairs = true,
+        string? baseStairBlockId = null) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, gradient, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+
+    /// <summary>
+    /// Surrounds a cylinder at base center (centerX, startY, centerZ) with a stepped base extending outward by <paramref name="baseWidth"/>
+    /// blocks and rising along <paramref name="axis"/> for <paramref name="baseHeight"/> blocks using oriented stairs for smooth transitions.
+    /// </summary>
+    public void SetCylinderBase(
+        int centerX,
+        int startY,
+        int centerZ,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        BlockState blockState,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null)
+    {
+        ArgumentNullException.ThrowIfNull(blockState);
+        SetCylinderBase(centerX, startY, centerZ, cylinderRadius, baseWidth, baseHeight, new BlockGradient([blockState]), axis, smoothnessFactor, useStairs, stairBlockId);
+    }
+
+    /// <summary>
+    /// Surrounds a cylinder at base center (centerX, startY, centerZ) with a stepped stair base from a blockstate string.
+    /// </summary>
+    public void SetCylinderBase(
+        int centerX,
+        int startY,
+        int centerZ,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        string blockStateString,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null) =>
+        SetCylinderBase(centerX, startY, centerZ, cylinderRadius, baseWidth, baseHeight, BlockState.Parse(blockStateString), axis, smoothnessFactor, useStairs, stairBlockId);
+
+    /// <summary>
+    /// Surrounds a cylinder at <paramref name="baseCenter"/> with a stepped stair base.
+    /// </summary>
+    public void SetCylinderBase(
+        BlockPosition baseCenter,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        BlockState blockState,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null) =>
+        SetCylinderBase(baseCenter.X, baseCenter.Y, baseCenter.Z, cylinderRadius, baseWidth, baseHeight, blockState, axis, smoothnessFactor, useStairs, stairBlockId);
+
+    /// <summary>
+    /// Surrounds a cylinder at <paramref name="baseCenter"/> with a stepped stair base from a blockstate string.
+    /// </summary>
+    public void SetCylinderBase(
+        BlockPosition baseCenter,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        string blockStateString,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null) =>
+        SetCylinderBase(baseCenter.X, baseCenter.Y, baseCenter.Z, cylinderRadius, baseWidth, baseHeight, BlockState.Parse(blockStateString), axis, smoothnessFactor, useStairs, stairBlockId);
+
+    /// <summary>
+    /// Surrounds a cylinder at base center (centerX, startY, centerZ) with a stepped base extending outward by <paramref name="baseWidth"/>
+    /// blocks and rising along <paramref name="axis"/> for <paramref name="baseHeight"/> blocks using <paramref name="gradient"/>.
+    /// </summary>
+    public void SetCylinderBase(
+        int centerX,
+        int startY,
+        int centerZ,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        BlockGradient gradient,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+        if (cylinderRadius < 0)
+            throw new ArgumentOutOfRangeException(nameof(cylinderRadius), cylinderRadius, "Cylinder radius must be zero or greater.");
+        if (baseWidth <= 0)
+            throw new ArgumentOutOfRangeException(nameof(baseWidth), baseWidth, "Base width must be greater than zero.");
+        if (baseHeight <= 0)
+            throw new ArgumentOutOfRangeException(nameof(baseHeight), baseHeight, "Base height must be greater than zero.");
+        ValidateAxis(axis, nameof(axis));
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
+
+        int maxOuterRadius = cylinderRadius + baseWidth;
+        EnsureAxisBoxInBounds(centerX, startY, centerZ, -maxOuterRadius, maxOuterRadius, -maxOuterRadius, maxOuterRadius, 0, baseHeight - 1, axis);
+
+        double cylinderLimitSq = (cylinderRadius + radialPadding) * (cylinderRadius + radialPadding);
+        bool useExplicitSingleStair = gradient.Blocks.Count == 1 && !string.IsNullOrWhiteSpace(stairBlockId);
+        Dictionary<string, BlockState> stairCache = [];
+        Dictionary<string, BlockState> fullBlockCache = [];
+        Random? random = gradient.CreateRandom();
+
+        for (int h = 0; h < baseHeight; h++)
+        {
+            int extraRadius = CalculateBaseLayerExtraRadius(baseWidth, baseHeight, h);
+            int outerRadius = cylinderRadius + extraRadius;
+            int upperRadius = h + 1 < baseHeight
+                ? cylinderRadius + CalculateBaseLayerExtraRadius(baseWidth, baseHeight, h + 1)
+                : cylinderRadius;
+
+            double outerLimitSq = (outerRadius + radialPadding) * (outerRadius + radialPadding);
+            double upperLimitSq = (upperRadius + radialPadding) * (upperRadius + radialPadding);
+            var sliceCenter = MapAxisOffset(centerX, startY, centerZ, 0, 0, h, axis);
+
+            for (int dv = -outerRadius; dv <= outerRadius; dv++)
+            {
+                for (int du = -outerRadius; du <= outerRadius; du++)
+                {
+                    if (!IsInsideRadiusSq(du, dv, outerLimitSq) || IsInsideRadiusSq(du, dv, cylinderLimitSq))
+                    {
+                        continue;
+                    }
+
+                    BlockState chosen = gradient.GetBlock(h, baseHeight, random);
+                    bool placeStair = useStairs &&
+                                      axis == Axis.Y &&
+                                      !IsInsideRadiusSq(du, dv, upperLimitSq) &&
+                                      IsOnCircleOuterRim(du, dv, outerLimitSq);
+
+                    BlockState placed;
+                    if (placeStair)
+                    {
+                        BlockState stairBase = ResolveStairBaseBlock(chosen, stairBlockId, useExplicitSingleStair, stairCache);
+                        var (facing, shape) = ResolveCylinderBaseStairOrientation(du, dv, outerLimitSq);
+                        placed = stairBase.BottomHalf().WithFacing(facing).WithStairsShape(shape);
+                    }
+                    else
+                    {
+                        placed = ResolveBaseFullBlock(chosen, fullBlockCache);
+                    }
+
+                    var pos = MapAxisOffset(sliceCenter.X, sliceCenter.Y, sliceCenter.Z, du, dv, 0, axis);
+                    SetBlock(pos.X, pos.Y, pos.Z, placed);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Surrounds a cylinder at <paramref name="baseCenter"/> with a stepped stair base using <paramref name="gradient"/>.
+    /// </summary>
+    public void SetCylinderBase(
+        BlockPosition baseCenter,
+        int cylinderRadius,
+        int baseWidth,
+        int baseHeight,
+        BlockGradient gradient,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        bool useStairs = true,
+        string? stairBlockId = null) =>
+        SetCylinderBase(baseCenter.X, baseCenter.Y, baseCenter.Z, cylinderRadius, baseWidth, baseHeight, gradient, axis, smoothnessFactor, useStairs, stairBlockId);
 
     /// <summary>
     /// Places a filled or hollow torus centered at (centerX, centerY, centerZ) oriented around <paramref name="axis"/>.
@@ -1628,32 +1884,10 @@ public sealed class Schematic
         int max = layerWidth - 1;
         bool useExplicitSingleStair = gradient.Blocks.Count == 1 && !string.IsNullOrWhiteSpace(stairBlockId);
 
-        BlockState ResolveStairBase(BlockState block)
-        {
-            if (useExplicitSingleStair)
-            {
-                string explicitId = stairBlockId!.Contains(':', StringComparison.Ordinal) ? stairBlockId : $"minecraft:{stairBlockId}";
-                if (!stairCache.TryGetValue(explicitId, out var explicitBase))
-                {
-                    explicitBase = BlockState.Parse(explicitId);
-                    stairCache[explicitId] = explicitBase;
-                }
-                return explicitBase;
-            }
-
-            if (!stairCache.TryGetValue(block.Identifier, out var cachedBase))
-            {
-                string resolvedStairId = ResolveStairBlockId(block.Identifier, stairBlockId);
-                cachedBase = BlockState.Parse(resolvedStairId);
-                stairCache[block.Identifier] = cachedBase;
-            }
-            return cachedBase;
-        }
-
         if (!gradient.IsFuzzy)
         {
             BlockState fillBlock = gradient.GetBlock(level, pyramidHeight);
-            BlockState stairBase = ResolveStairBase(fillBlock);
+            BlockState stairBase = ResolveStairBaseBlock(fillBlock, stairBlockId, useExplicitSingleStair, stairCache);
             BlockState nwCorner = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.OuterLeft);
             BlockState neCorner = stairBase.BottomHalf().WithFacing(Direction.South).WithStairsShape(StairsShape.OuterRight);
             BlockState swCorner = stairBase.BottomHalf().WithFacing(Direction.North).WithStairsShape(StairsShape.OuterRight);
@@ -1721,7 +1955,10 @@ public sealed class Schematic
                 };
 
                 BlockState chosen = gradient.GetBlock(level, pyramidHeight, random);
-                BlockState stair = ResolveStairBase(chosen).BottomHalf().WithFacing(facing).WithStairsShape(shape);
+                BlockState stair = ResolveStairBaseBlock(chosen, stairBlockId, useExplicitSingleStair, stairCache)
+                    .BottomHalf()
+                    .WithFacing(facing)
+                    .WithStairsShape(shape);
                 SetBlock(layerStartX + dx, layerY, layerStartZ + dz, stair);
             }
         }
@@ -1785,6 +2022,174 @@ public sealed class Schematic
         }
 
         return fallback;
+    }
+
+    private static void ValidateCylinderBaseDimensions(int baseWidth, int baseHeight, int cylinderHeight)
+    {
+        if (baseWidth < 0)
+            throw new ArgumentOutOfRangeException(nameof(baseWidth), baseWidth, "Base width must be zero or greater.");
+        if (baseHeight < 0)
+            throw new ArgumentOutOfRangeException(nameof(baseHeight), baseHeight, "Base height must be zero or greater.");
+        if (baseWidth > 0 && baseHeight == 0)
+            throw new ArgumentOutOfRangeException(nameof(baseHeight), baseHeight, "Base height must be greater than zero when baseWidth is greater than zero.");
+        if (baseHeight > 0 && baseWidth == 0)
+            throw new ArgumentOutOfRangeException(nameof(baseWidth), baseWidth, "Base width must be greater than zero when baseHeight is greater than zero.");
+        if (baseHeight > cylinderHeight)
+            throw new ArgumentOutOfRangeException(nameof(baseHeight), baseHeight, "Base height cannot exceed cylinder height.");
+    }
+
+    private static int CalculateBaseLayerExtraRadius(int baseWidth, int baseHeight, int layerIndex)
+    {
+        double remainingFraction = (double)(baseHeight - layerIndex) / baseHeight;
+        return Math.Max(1, (int)Math.Ceiling(baseWidth * remainingFraction));
+    }
+
+    private static bool IsInsideRadiusSq(int du, int dv, double limitSq) =>
+        du * du + dv * dv <= limitSq;
+
+    private static bool IsOnCircleOuterRim(int du, int dv, double outerLimitSq)
+    {
+        for (int oz = -1; oz <= 1; oz++)
+        {
+            for (int ox = -1; ox <= 1; ox++)
+            {
+                if (ox == 0 && oz == 0)
+                    continue;
+
+                if (!IsInsideRadiusSq(du + ox, dv + oz, outerLimitSq))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static (Direction Facing, StairsShape Shape) ResolveCylinderBaseStairOrientation(int du, int dv, double outerLimitSq)
+    {
+        bool airNorth = !IsInsideRadiusSq(du, dv - 1, outerLimitSq);
+        bool airSouth = !IsInsideRadiusSq(du, dv + 1, outerLimitSq);
+        bool airWest = !IsInsideRadiusSq(du - 1, dv, outerLimitSq);
+        bool airEast = !IsInsideRadiusSq(du + 1, dv, outerLimitSq);
+
+        bool onlyNorth = airNorth && !airSouth;
+        bool onlySouth = airSouth && !airNorth;
+        bool onlyWest = airWest && !airEast;
+        bool onlyEast = airEast && !airWest;
+
+        if (onlyNorth || onlySouth || onlyWest || onlyEast)
+        {
+            return (onlyNorth, onlySouth, onlyWest, onlyEast) switch
+            {
+                (true, false, true, false) => (Direction.South, StairsShape.OuterLeft),
+                (true, false, false, true) => (Direction.South, StairsShape.OuterRight),
+                (false, true, true, false) => (Direction.North, StairsShape.OuterRight),
+                (false, true, false, true) => (Direction.North, StairsShape.OuterLeft),
+                (true, false, false, false) => (Direction.South, StairsShape.Straight),
+                (false, true, false, false) => (Direction.North, StairsShape.Straight),
+                (false, false, true, false) => (Direction.East, StairsShape.Straight),
+                (false, false, false, true) => (Direction.West, StairsShape.Straight),
+                _ => (GetInwardDirection(du, dv), StairsShape.Straight)
+            };
+        }
+
+        if (!airNorth && !airSouth && !airWest && !airEast)
+        {
+            if (!IsInsideRadiusSq(du - 1, dv - 1, outerLimitSq))
+                return (Direction.South, StairsShape.InnerLeft);
+            if (!IsInsideRadiusSq(du + 1, dv - 1, outerLimitSq))
+                return (Direction.South, StairsShape.InnerRight);
+            if (!IsInsideRadiusSq(du - 1, dv + 1, outerLimitSq))
+                return (Direction.North, StairsShape.InnerRight);
+            if (!IsInsideRadiusSq(du + 1, dv + 1, outerLimitSq))
+                return (Direction.North, StairsShape.InnerLeft);
+        }
+
+        return (GetInwardDirection(du, dv), StairsShape.Straight);
+    }
+
+    private static Direction GetInwardDirection(int du, int dv)
+    {
+        if (Math.Abs(du) >= Math.Abs(dv))
+            return du >= 0 ? Direction.West : Direction.East;
+
+        return dv >= 0 ? Direction.North : Direction.South;
+    }
+
+    private static BlockState ResolveStairBaseBlock(
+        BlockState block,
+        string? explicitStairBlockId,
+        bool useExplicitSingleStair,
+        Dictionary<string, BlockState> stairCache)
+    {
+        if (useExplicitSingleStair)
+        {
+            string explicitId = explicitStairBlockId!.Contains(':', StringComparison.Ordinal)
+                ? explicitStairBlockId
+                : $"minecraft:{explicitStairBlockId}";
+            if (!stairCache.TryGetValue(explicitId, out var explicitBase))
+            {
+                explicitBase = BlockState.Parse(explicitId);
+                stairCache[explicitId] = explicitBase;
+            }
+            return explicitBase;
+        }
+
+        if (!stairCache.TryGetValue(block.Identifier, out var cachedBase))
+        {
+            string resolvedStairId = ResolveStairBlockId(block.Identifier, explicitStairBlockId);
+            cachedBase = BlockState.Parse(resolvedStairId);
+            stairCache[block.Identifier] = cachedBase;
+        }
+        return cachedBase;
+    }
+
+    private static BlockState ResolveBaseFullBlock(BlockState block, Dictionary<string, BlockState> fullBlockCache)
+    {
+        if (fullBlockCache.TryGetValue(block.Identifier, out var cached))
+            return cached;
+
+        BlockState resolved = block;
+        if (block.Identifier.EndsWith("_stairs", StringComparison.OrdinalIgnoreCase))
+        {
+            string fullId = ResolveFullBlockIdFromStair(block.Identifier);
+            if (!string.Equals(fullId, block.Identifier, StringComparison.OrdinalIgnoreCase))
+            {
+                resolved = BlockState.Parse(fullId);
+            }
+        }
+
+        fullBlockCache[block.Identifier] = resolved;
+        return resolved;
+    }
+
+    private static string ResolveFullBlockIdFromStair(string stairIdentifier)
+    {
+        string normalized = stairIdentifier.Contains(':', StringComparison.Ordinal)
+            ? stairIdentifier
+            : $"minecraft:{stairIdentifier}";
+
+        int colonIndex = normalized.IndexOf(':', StringComparison.Ordinal);
+        string prefix = normalized[..(colonIndex + 1)];
+        string name = normalized[(colonIndex + 1)..];
+        if (!name.EndsWith("_stairs", StringComparison.OrdinalIgnoreCase))
+            return normalized;
+
+        string stem = name[..^"_stairs".Length];
+        string[] candidates =
+        [
+            $"{prefix}{stem}",
+            $"{prefix}{stem}s",
+            $"{prefix}{stem}_planks",
+            $"{prefix}{stem}_block"
+        ];
+
+        foreach (string candidate in candidates)
+        {
+            if (Minecraft.Blocks.IsValid(candidate))
+                return candidate;
+        }
+
+        return normalized;
     }
 
     private static double CalculateRadialPadding(double smoothnessFactor)
