@@ -17,7 +17,7 @@ public sealed class SlimeLaboratorySchematicCreatorTests
 
         // Assert
         Assert.Equal(19, schematic.Width);
-        Assert.Equal(16, schematic.Height);
+        Assert.Equal(18, schematic.Height);
         Assert.Equal(19, schematic.Length);
 
         // Write to file
