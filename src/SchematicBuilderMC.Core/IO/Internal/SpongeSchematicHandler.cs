@@ -109,7 +109,7 @@ internal static class SpongeSchematicHandler
                         pos = new BlockPosition(xTag.IntValue, yTag.IntValue, zTag.IntValue);
                     }
 
-                    var data = compound["Data"] is NbtCompound dataComp ? (NbtCompound)dataComp.Clone() : (NbtCompound)compound.Clone();
+                    var data = ExtractPayloadCompound(compound);
                     schematic.SetBlockEntity(new BlockEntity(id, pos, data));
                 }
             }
@@ -131,7 +131,7 @@ internal static class SpongeSchematicHandler
                         ez = posList[2].DoubleValue;
                     }
 
-                    var data = compound["Data"] is NbtCompound dataComp ? (NbtCompound)dataComp.Clone() : (NbtCompound)compound.Clone();
+                    var data = ExtractPayloadCompound(compound);
                     schematic.AddEntity(new Entity(id, ex, ey, ez, data));
                 }
             }
@@ -228,14 +228,12 @@ internal static class SpongeSchematicHandler
         foreach (var be in schematic.BlockEntities)
         {
             var dataClone = (NbtCompound)be.Data.Clone();
-            dataClone.Name = "Data";
-
             var beCompound = new NbtCompound
             {
                 new NbtString("Id", be.Id),
-                new NbtIntArray("Pos", [be.Position.X, be.Position.Y, be.Position.Z]),
-                dataClone
+                new NbtIntArray("Pos", [be.Position.X, be.Position.Y, be.Position.Z])
             };
+            AppendPayloadCompound(beCompound, dataClone, nestInDataTag: version >= 3);
             blockEntitiesList.Add(beCompound);
         }
 
@@ -263,15 +261,13 @@ internal static class SpongeSchematicHandler
             var entitiesList = new NbtList("Entities", NbtTagType.Compound);
             foreach (var ent in schematic.Entities)
             {
-                var dataClone = (NbtCompound)ent.Data.Clone();
-                dataClone.Name = "Data";
-
+                var dataClone = ent.CloneDataWithDefaultRotation();
                 var entCompound = new NbtCompound
                 {
                     new NbtString("Id", ent.Id),
-                    new NbtList("Pos", [new NbtDouble(ent.X), new NbtDouble(ent.Y), new NbtDouble(ent.Z)]),
-                    dataClone
+                    new NbtList("Pos", [new NbtDouble(ent.X), new NbtDouble(ent.Y), new NbtDouble(ent.Z)])
                 };
+                AppendPayloadCompound(entCompound, dataClone, nestInDataTag: version >= 3);
                 entitiesList.Add(entCompound);
             }
             root.Add(entitiesList);
@@ -326,5 +322,42 @@ internal static class SpongeSchematicHandler
         }
 
         return root;
+    }
+
+    private static NbtCompound ExtractPayloadCompound(NbtCompound compound)
+    {
+        if (compound["Data"] is NbtCompound dataComp)
+        {
+            return (NbtCompound)dataComp.Clone();
+        }
+
+        var flattened = (NbtCompound)compound.Clone();
+        flattened.Remove("Id");
+        flattened.Remove("id");
+        flattened.Remove("Pos");
+        return flattened;
+    }
+
+    private static void AppendPayloadCompound(NbtCompound wrapper, NbtCompound payload, bool nestInDataTag)
+    {
+        if (nestInDataTag)
+        {
+            payload.Name = "Data";
+            wrapper.Add(payload);
+            return;
+        }
+
+        foreach (var tag in payload)
+        {
+            if (string.IsNullOrEmpty(tag.Name) ||
+                tag.Name.Equals("Id", StringComparison.OrdinalIgnoreCase) ||
+                tag.Name.Equals("id", StringComparison.OrdinalIgnoreCase) ||
+                tag.Name.Equals("Pos", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            wrapper.Add((NbtTag)tag.Clone());
+        }
     }
 }

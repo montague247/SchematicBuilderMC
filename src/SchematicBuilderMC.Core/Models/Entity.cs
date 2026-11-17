@@ -200,6 +200,20 @@ public sealed class Entity
         return (0f, 0f);
     }
 
+    internal NbtCompound CloneDataWithDefaultRotation()
+    {
+        var clone = (NbtCompound)Data.Clone();
+        if (clone["Rotation"] is not NbtList rotationList || rotationList.Count < 2)
+        {
+            clone["Rotation"] = new NbtList("Rotation", NbtTagType.Float)
+            {
+                new NbtFloat(0f),
+                new NbtFloat(0f)
+            };
+        }
+        return clone;
+    }
+
     /// <summary>
     /// Renames this entity as if applying a Name Tag.
     /// Sets <see cref="CustomName"/>, sets <see cref="CustomNameVisible"/>, and marks <see cref="PersistenceRequired"/> as true.

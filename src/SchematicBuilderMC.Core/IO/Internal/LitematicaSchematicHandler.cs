@@ -435,7 +435,7 @@ internal static class LitematicaSchematicHandler
         var entitiesList = new NbtList("Entities", NbtTagType.Compound);
         foreach (var ent in schematic.Entities)
         {
-            var dataClone = (NbtCompound)ent.Data.Clone();
+            var dataClone = ent.CloneDataWithDefaultRotation();
             dataClone["id"] = new NbtString("id", ent.Id);
             dataClone["Pos"] = new NbtList("Pos", [new NbtDouble(ent.X), new NbtDouble(ent.Y), new NbtDouble(ent.Z)]);
             entitiesList.Add(dataClone);

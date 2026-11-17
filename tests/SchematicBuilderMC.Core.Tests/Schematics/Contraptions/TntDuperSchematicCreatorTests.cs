@@ -1,3 +1,4 @@
+using fNbt;
 using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.IO;
@@ -184,6 +185,16 @@ public sealed class TntDuperSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.Target, readBack[4, 4, 3].Identifier);
         var minecart = Assert.Single(readBack.Entities);
         Assert.Equal(Minecraft.Entities.Minecart, minecart.Id);
+
+        // Verify WorldEdit SpongeV2 entity NBT compliance (top-level Rotation tag on entity compound)
+        var nbt = new NbtFile();
+        nbt.LoadFromFile(outputPath);
+        var entitiesList = Assert.IsType<NbtList>(nbt.RootTag["Entities"]);
+        var entityCompound = Assert.IsType<NbtCompound>(entitiesList[0]);
+        Assert.Equal(Minecraft.Entities.Minecart, entityCompound["Id"]?.StringValue);
+        Assert.False(entityCompound.Contains("Data"));
+        var rotation = Assert.IsType<NbtList>(entityCompound["Rotation"]);
+        Assert.Equal(2, rotation.Count);
 
         var rotated = new TntDuperSchematicCreator { Facing = Direction.South }
             .WithRotation(Rotation.Clockwise90)

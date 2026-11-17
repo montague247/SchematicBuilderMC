@@ -196,7 +196,7 @@ internal static class ClassicSchematicHandler
         var entitiesList = new NbtList("Entities", NbtTagType.Compound);
         foreach (var ent in schematic.Entities)
         {
-            var comp = (NbtCompound)ent.Data.Clone();
+            var comp = ent.CloneDataWithDefaultRotation();
             comp["id"] = new NbtString("id", ent.Id);
             comp["Pos"] = new NbtList("Pos", [new NbtDouble(ent.X), new NbtDouble(ent.Y), new NbtDouble(ent.Z)]);
             entitiesList.Add(comp);

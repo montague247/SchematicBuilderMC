@@ -132,4 +132,34 @@ public class SpongeSchematicTests
             if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
+
+    [Fact]
+    public void SpongeSchematic_Entities_IncludeRotationAndMatchVersionLayout()
+    {
+        var schematic = new Schematic(3, 3, 3);
+        schematic.AddEntity(Entity.CreateMinecart(1.5, 1.0625, 1.5, passenger: null));
+
+        byte[] v2Bytes = SchematicFile.WriteToBytes(schematic, SchematicFormat.SpongeV2);
+        var v2File = new NbtFile();
+        v2File.LoadFromBuffer(v2Bytes, 0, v2Bytes.Length, NbtCompression.AutoDetect);
+        var v2Entities = Assert.IsType<NbtList>(v2File.RootTag["Entities"]);
+        var v2Entity = Assert.IsType<NbtCompound>(v2Entities[0]);
+        Assert.False(v2Entity.Contains("Data"));
+        var v2Rotation = Assert.IsType<NbtList>(v2Entity["Rotation"]);
+        Assert.Equal(2, v2Rotation.Count);
+        Assert.Equal(0f, v2Rotation[0].FloatValue);
+        Assert.Equal(0f, v2Rotation[1].FloatValue);
+
+        byte[] v3Bytes = SchematicFile.WriteToBytes(schematic, SchematicFormat.SpongeV3);
+        var v3File = new NbtFile();
+        v3File.LoadFromBuffer(v3Bytes, 0, v3Bytes.Length, NbtCompression.AutoDetect);
+        var v3Root = v3File.RootTag["Schematic"] as NbtCompound ?? v3File.RootTag;
+        var v3Entities = Assert.IsType<NbtList>(v3Root["Entities"]);
+        var v3Entity = Assert.IsType<NbtCompound>(v3Entities[0]);
+        var v3Data = Assert.IsType<NbtCompound>(v3Entity["Data"]);
+        var v3Rotation = Assert.IsType<NbtList>(v3Data["Rotation"]);
+        Assert.Equal(2, v3Rotation.Count);
+        Assert.Equal(0f, v3Rotation[0].FloatValue);
+        Assert.Equal(0f, v3Rotation[1].FloatValue);
+    }
 }
