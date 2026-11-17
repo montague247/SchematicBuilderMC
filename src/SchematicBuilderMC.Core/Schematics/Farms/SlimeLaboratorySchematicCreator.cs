@@ -30,6 +30,7 @@ public sealed class SlimeLaboratorySchematicCreator : SchematicCreator
         // cylinder for slimes to spawn in
         builder.SetCylinder(BaseWidth + Radius, 0, BaseWidth + Radius, Radius, Height, gradient, filled: false);
         builder.SetCylinderBase(BaseWidth + Radius, 0, BaseWidth + Radius, Radius, 2, 2, Minecraft.Blocks.DeepslateBricks);
+        builder.SetCylinderWater(BaseWidth + Radius, 0, BaseWidth + Radius, Radius);
 
         // place water at the bottom of the cylinder
         builder.SetBlock(BaseWidth + 1, 0, BaseWidth + Radius, Minecraft.Blocks.Water.WithLevel(8));
