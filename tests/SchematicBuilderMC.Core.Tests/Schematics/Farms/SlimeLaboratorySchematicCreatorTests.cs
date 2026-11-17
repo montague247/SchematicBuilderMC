@@ -16,9 +16,9 @@ public sealed class SlimeLaboratorySchematicCreatorTests
         var schematic = farm.Build();
 
         // Assert
-        Assert.Equal(18, schematic.Width);
+        Assert.Equal(19, schematic.Width);
         Assert.Equal(16, schematic.Height);
-        Assert.Equal(18, schematic.Length);
+        Assert.Equal(19, schematic.Length);
 
         // Write to file
         string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
