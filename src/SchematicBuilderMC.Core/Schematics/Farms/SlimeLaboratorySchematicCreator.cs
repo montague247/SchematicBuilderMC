@@ -60,10 +60,10 @@ public sealed class SlimeLaboratorySchematicCreator : SchematicCreator
 
         // set hole for tnt duper to drop tnt into the killing chamber
         builder.SetBlock(tntDropX, levelY, tntDropZ, Minecraft.Blocks.Air);
-        // set additionals holes for tnt duper to drop tnt into the killing chamber
-        builder.SetBlock(tntDropX, levelY, tntDropZ + 1, Minecraft.Blocks.Air);
-        builder.SetBlock(tntDropX, levelY, tntDropZ - 1, Minecraft.Blocks.Air);
-        builder.SetBlock(tntDropX + 1, levelY, tntDropZ, Minecraft.Blocks.Air);
+        // set additionals blocks for tnt duper to drop tnt into the killing chamber
+        builder.SetBlock(tntDropX, levelY, tntDropZ + 1, Minecraft.Blocks.DioriteWall);
+        builder.SetBlock(tntDropX, levelY, tntDropZ - 1, Minecraft.Blocks.DioriteWall);
+        builder.SetBlock(tntDropX + 1, levelY, tntDropZ, Minecraft.Blocks.DioriteWall);
 
         // place tnt duper
         builder.CreateAtDropPosition(new TntDuperSchematicCreator()
