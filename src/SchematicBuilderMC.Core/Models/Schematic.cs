@@ -1389,7 +1389,8 @@ public sealed class Schematic
 
     /// <summary>
     /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) extending along <paramref name="axis"/>,
-    /// optionally surrounded by a stepped base of width <paramref name="baseWidth"/> and height <paramref name="baseHeight"/>.
+    /// optionally surrounded by a stepped base of width <paramref name="baseWidth"/> and height <paramref name="baseHeight"/>,
+    /// and optionally filled with inward-flowing water at the bottom.
     /// </summary>
     public void SetCylinder(
         int centerX,
@@ -1405,15 +1406,17 @@ public sealed class Schematic
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null)
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null)
     {
         ArgumentNullException.ThrowIfNull(blockState);
-        SetCylinder(centerX, startY, centerZ, radius, height, new BlockGradient([blockState]), filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        SetCylinder(centerX, startY, centerZ, radius, height, new BlockGradient([blockState]), filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
     }
 
     /// <summary>
     /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) from a blockstate string,
-    /// optionally surrounded by a stepped base.
+    /// optionally surrounded by a stepped base and inward-flowing water.
     /// </summary>
     public void SetCylinder(
         int centerX,
@@ -1429,12 +1432,14 @@ public sealed class Schematic
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null) =>
-        SetCylinder(centerX, startY, centerZ, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null) =>
+        SetCylinder(centerX, startY, centerZ, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
 
     /// <summary>
     /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/>,
-    /// optionally surrounded by a stepped base.
+    /// optionally surrounded by a stepped base and inward-flowing water.
     /// </summary>
     public void SetCylinder(
         BlockPosition baseCenter,
@@ -1448,12 +1453,14 @@ public sealed class Schematic
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null) =>
-        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, blockState, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, blockState, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
 
     /// <summary>
     /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/> from a blockstate string,
-    /// optionally surrounded by a stepped base.
+    /// optionally surrounded by a stepped base and inward-flowing water.
     /// </summary>
     public void SetCylinder(
         BlockPosition baseCenter,
@@ -1467,12 +1474,15 @@ public sealed class Schematic
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null) =>
-        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, BlockState.Parse(blockStateString), filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
 
     /// <summary>
     /// Places a filled or hollow cylinder starting at base center (centerX, startY, centerZ) using a multi-block <paramref name="gradient"/>,
-    /// optionally surrounded by a stepped base of width <paramref name="baseWidth"/> and height <paramref name="baseHeight"/>.
+    /// optionally surrounded by a stepped base of width <paramref name="baseWidth"/> and height <paramref name="baseHeight"/>,
+    /// and optionally filled with inward-flowing water at the bottom.
     /// </summary>
     public void SetCylinder(
         int centerX,
@@ -1488,7 +1498,9 @@ public sealed class Schematic
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null)
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null)
     {
         ArgumentNullException.ThrowIfNull(gradient);
         if (radius < 0)
@@ -1497,6 +1509,15 @@ public sealed class Schematic
             throw new ArgumentOutOfRangeException(nameof(height), height, "Height must be greater than zero.");
         ValidateAxis(axis, nameof(axis));
         ValidateCylinderBaseDimensions(baseWidth, baseHeight, height);
+        if (includeWater)
+        {
+            if (filled)
+                throw new ArgumentException("Water flow can only be placed inside a hollow cylinder (filled must be false).", nameof(includeWater));
+            if (radius < 1)
+                throw new ArgumentOutOfRangeException(nameof(radius), radius, "Cylinder radius must be at least 1 when placing water inside.");
+            if (axis != Axis.Y)
+                throw new ArgumentOutOfRangeException(nameof(axis), axis, "Cylinder water flow is only supported for vertical cylinders (Axis.Y).");
+        }
         double radialPadding = CalculateRadialPadding(smoothnessFactor);
 
         int maxOuterRadius = radius + baseWidth;
@@ -1513,11 +1534,16 @@ public sealed class Schematic
         {
             SetCylinderBase(centerX, startY, centerZ, radius, baseWidth, baseHeight, baseGradient ?? gradient, axis, smoothnessFactor, baseUseStairs, baseStairBlockId);
         }
+
+        if (includeWater)
+        {
+            SetCylinderWater(centerX, startY, centerZ, radius, axis, smoothnessFactor, waterFloorBlock ?? ResolveWaterTierFloorBlock(gradient), height);
+        }
     }
 
     /// <summary>
     /// Places a filled or hollow cylinder starting at <paramref name="baseCenter"/> using a multi-block <paramref name="gradient"/>,
-    /// optionally surrounded by a stepped base.
+    /// optionally surrounded by a stepped base and inward-flowing water.
     /// </summary>
     public void SetCylinder(
         BlockPosition baseCenter,
@@ -1531,8 +1557,10 @@ public sealed class Schematic
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null) =>
-        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, gradient, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null) =>
+        SetCylinder(baseCenter.X, baseCenter.Y, baseCenter.Z, radius, height, gradient, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
 
     /// <summary>
     /// Surrounds a cylinder at base center (centerX, startY, centerZ) with a stepped base extending outward by <paramref name="baseWidth"/>
@@ -1698,6 +1726,133 @@ public sealed class Schematic
         bool useStairs = true,
         string? stairBlockId = null) =>
         SetCylinderBase(baseCenter.X, baseCenter.Y, baseCenter.Z, cylinderRadius, baseWidth, baseHeight, gradient, axis, smoothnessFactor, useStairs, stairBlockId);
+
+    /// <summary>
+    /// Places non-chaining water source blocks along the interior wall perimeter and pre-computes flowing water streams
+    /// inward to the center of the cylinder at (centerX, startY, centerZ). For radii whose horizontal flow distance exceeds
+    /// Minecraft's 7-block limit, stepped floor tiers are constructed automatically so water cascades cleanly to the center.
+    /// </summary>
+    public void SetCylinderWater(
+        int centerX,
+        int startY,
+        int centerZ,
+        int cylinderRadius,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        BlockState? tierFloorBlock = null,
+        int? maxHeight = null)
+    {
+        if (cylinderRadius < 1)
+            throw new ArgumentOutOfRangeException(nameof(cylinderRadius), cylinderRadius, "Cylinder radius must be at least 1 to contain water.");
+        ValidateAxis(axis, nameof(axis));
+        if (axis != Axis.Y)
+            throw new ArgumentOutOfRangeException(nameof(axis), axis, "Cylinder water flow is only supported for vertical cylinders (Axis.Y).");
+
+        double radialPadding = CalculateRadialPadding(smoothnessFactor);
+        double circleLimitSq = (cylinderRadius + radialPadding) * (cylinderRadius + radialPadding);
+
+        bool IsInterior(int du, int dv) =>
+            IsInsideRadiusSq(du, dv, circleLimitSq) &&
+            IsInsideRadiusSq(du + 1, dv, circleLimitSq) &&
+            IsInsideRadiusSq(du - 1, dv, circleLimitSq) &&
+            IsInsideRadiusSq(du, dv + 1, circleLimitSq) &&
+            IsInsideRadiusSq(du, dv - 1, circleLimitSq);
+
+        var interiorCells = new HashSet<(int Du, int Dv)>();
+        int maxInteriorRadius = 0;
+        for (int dv = -cylinderRadius; dv <= cylinderRadius; dv++)
+        {
+            for (int du = -cylinderRadius; du <= cylinderRadius; du++)
+            {
+                if (!IsInterior(du, dv))
+                {
+                    continue;
+                }
+
+                interiorCells.Add((du, dv));
+                maxInteriorRadius = Math.Max(maxInteriorRadius, Math.Max(Math.Abs(du), Math.Abs(dv)));
+            }
+        }
+
+        if (interiorCells.Count == 0)
+            return;
+
+        if (interiorCells.Count == 1 && interiorCells.Contains((0, 0)))
+        {
+            EnsureAxisBoxInBounds(centerX, startY, centerZ, 0, 0, 0, 0, 0, 0, axis);
+            SetBlock(centerX, startY, centerZ, Minecraft.Blocks.Water.WithLevel(0));
+            return;
+        }
+
+        int tierCount = maxInteriorRadius <= 7
+            ? 1
+            : 1 + (int)Math.Ceiling((maxInteriorRadius - 6.0) / 5.0);
+
+        if (maxHeight.HasValue && tierCount > maxHeight.Value)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxHeight), maxHeight.Value, $"Cylinder height ({maxHeight.Value}) must be at least {tierCount} to support stepped water flow for radius {cylinderRadius}.");
+        }
+
+        EnsureAxisBoxInBounds(centerX, startY, centerZ, -maxInteriorRadius, maxInteriorRadius, -maxInteriorRadius, maxInteriorRadius, 0, tierCount - 1, axis);
+
+        BlockState floorBlock = tierFloorBlock ?? new BlockState(Minecraft.Blocks.StoneBricks);
+        Dictionary<(int Du, int Dv), int> cellTier = new(interiorCells.Count);
+        foreach (var cell in interiorCells)
+        {
+            cellTier[cell] = CalculateWaterTier(cell.Du, cell.Dv, tierCount, radialPadding);
+        }
+
+        if (tierCount > 1)
+        {
+            foreach (var (cell, tier) in cellTier)
+            {
+                for (int y = 0; y < tier; y++)
+                {
+                    SetBlock(centerX + cell.Du, startY + y, centerZ + cell.Dv, floorBlock);
+                }
+            }
+        }
+
+        BuildCylinderWaterFlow(centerX, startY, centerZ, maxInteriorRadius, tierCount, cellTier);
+    }
+
+    /// <summary>
+    /// Places inward-flowing water inside a cylinder centered at <paramref name="baseCenter"/>.
+    /// </summary>
+    public void SetCylinderWater(
+        BlockPosition baseCenter,
+        int cylinderRadius,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        BlockState? tierFloorBlock = null,
+        int? maxHeight = null) =>
+        SetCylinderWater(baseCenter.X, baseCenter.Y, baseCenter.Z, cylinderRadius, axis, smoothnessFactor, tierFloorBlock, maxHeight);
+
+    /// <summary>
+    /// Places inward-flowing water inside a cylinder centered at (centerX, startY, centerZ) using a string floor block identifier for stepped tiers.
+    /// </summary>
+    public void SetCylinderWater(
+        int centerX,
+        int startY,
+        int centerZ,
+        int cylinderRadius,
+        string tierFloorBlockString,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int? maxHeight = null) =>
+        SetCylinderWater(centerX, startY, centerZ, cylinderRadius, axis, smoothnessFactor, BlockState.Parse(tierFloorBlockString), maxHeight);
+
+    /// <summary>
+    /// Places inward-flowing water inside a cylinder centered at <paramref name="baseCenter"/> using a string floor block identifier for stepped tiers.
+    /// </summary>
+    public void SetCylinderWater(
+        BlockPosition baseCenter,
+        int cylinderRadius,
+        string tierFloorBlockString,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int? maxHeight = null) =>
+        SetCylinderWater(baseCenter.X, baseCenter.Y, baseCenter.Z, cylinderRadius, axis, smoothnessFactor, BlockState.Parse(tierFloorBlockString), maxHeight);
 
     /// <summary>
     /// Places a filled or hollow torus centered at (centerX, centerY, centerZ) oriented around <paramref name="axis"/>.
@@ -2113,6 +2268,234 @@ public sealed class Schematic
             return du >= 0 ? Direction.West : Direction.East;
 
         return dv >= 0 ? Direction.North : Direction.South;
+    }
+
+    private static int CalculateWaterTier(int du, int dv, int tierCount, double radialPadding)
+    {
+        if (tierCount <= 1)
+            return 0;
+
+        int distSq = du * du + dv * dv;
+        for (int t = 0; t < tierCount - 1; t++)
+        {
+            double limit = 6.0 + t * 5.0 + radialPadding;
+            if (distSq <= limit * limit)
+                return t;
+        }
+
+        return tierCount - 1;
+    }
+
+    private void BuildCylinderWaterFlow(
+        int centerX,
+        int startY,
+        int centerZ,
+        int maxInteriorRadius,
+        int tierCount,
+        Dictionary<(int Du, int Dv), int> cellTier)
+    {
+        var outerRimCells = new List<(int Du, int Dv)>();
+        foreach (var (cell, tier) in cellTier)
+        {
+            if (tier != tierCount - 1)
+                continue;
+
+            bool touchesWall =
+                !cellTier.ContainsKey((cell.Du + 1, cell.Dv)) ||
+                !cellTier.ContainsKey((cell.Du - 1, cell.Dv)) ||
+                !cellTier.ContainsKey((cell.Du, cell.Dv + 1)) ||
+                !cellTier.ContainsKey((cell.Du, cell.Dv - 1));
+
+            if (touchesWall)
+            {
+                outerRimCells.Add(cell);
+            }
+        }
+
+        var rimSources = SelectNonChainingWaterRimSources(outerRimCells, maxInteriorRadius);
+        var nextTierDropSeeds = new HashSet<(int Du, int Dv)>();
+
+        for (int t = tierCount - 1; t >= 0; t--)
+        {
+            var queue = new Queue<(int Du, int Dv)>();
+            var levels = new Dictionary<(int Du, int Dv), int>();
+            var overhangDrops = new Dictionary<(int Du, int Dv), int>();
+
+            if (t == tierCount - 1)
+            {
+                foreach (var src in rimSources)
+                {
+                    levels[src] = 0;
+                    queue.Enqueue(src);
+                }
+            }
+            else
+            {
+                foreach (var drop in nextTierDropSeeds)
+                {
+                    if (cellTier.TryGetValue(drop, out int dropTier) && dropTier == t)
+                    {
+                        levels[drop] = 0;
+                        queue.Enqueue(drop);
+                    }
+                }
+            }
+
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                int currentLevel = levels[current];
+                if (currentLevel >= 7)
+                    continue;
+
+                (int Du, int Dv)[] neighbors =
+                [
+                    (current.Du + 1, current.Dv),
+                    (current.Du - 1, current.Dv),
+                    (current.Du, current.Dv + 1),
+                    (current.Du, current.Dv - 1)
+                ];
+
+                int nextLevel = currentLevel + 1;
+                foreach (var next in neighbors)
+                {
+                    if (!cellTier.TryGetValue(next, out int neighborTier))
+                        continue;
+
+                    if (neighborTier == t)
+                    {
+                        if (!levels.TryGetValue(next, out int existingLevel) || nextLevel < existingLevel)
+                        {
+                            levels[next] = nextLevel;
+                            queue.Enqueue(next);
+                        }
+                    }
+                    else if (neighborTier < t)
+                    {
+                        if (!overhangDrops.TryGetValue(next, out int existingDropLevel) || nextLevel < existingDropLevel)
+                        {
+                            overhangDrops[next] = nextLevel;
+                        }
+                    }
+                }
+            }
+
+            int tierY = startY + t;
+            bool isTopTier = t == tierCount - 1;
+            foreach (var (cell, level) in levels)
+            {
+                int placedLevel = !isTopTier && level == 0 ? 8 : level;
+                SetBlock(centerX + cell.Du, tierY, centerZ + cell.Dv, Minecraft.Blocks.Water.WithLevel(placedLevel));
+            }
+
+            foreach (var (overhangCell, overhangLevel) in overhangDrops)
+            {
+                SetBlock(centerX + overhangCell.Du, tierY, centerZ + overhangCell.Dv, Minecraft.Blocks.Water.WithLevel(overhangLevel));
+            }
+
+            nextTierDropSeeds.Clear();
+            foreach (var overhangCell in overhangDrops.Keys)
+            {
+                nextTierDropSeeds.Add(overhangCell);
+            }
+        }
+    }
+
+    private static List<(int Du, int Dv)> SelectNonChainingWaterRimSources(
+        IReadOnlyCollection<(int Du, int Dv)> outerRimCells,
+        int maxInteriorRadius)
+    {
+        var rimSet = outerRimCells.ToHashSet();
+        var selected = new List<(int Du, int Dv)>();
+
+        bool CanAddGroup(IEnumerable<(int Du, int Dv)> group)
+        {
+            var distinctGroup = group.Distinct().ToList();
+            foreach (var candidate in distinctGroup)
+            {
+                if (!rimSet.Contains(candidate))
+                    return false;
+
+                foreach (var existing in selected)
+                {
+                    if (Math.Abs(candidate.Du - existing.Du) + Math.Abs(candidate.Dv - existing.Dv) < 3)
+                        return false;
+                }
+            }
+
+            for (int i = 0; i < distinctGroup.Count; i++)
+            {
+                for (int j = i + 1; j < distinctGroup.Count; j++)
+                {
+                    if (Math.Abs(distinctGroup[i].Du - distinctGroup[j].Du) + Math.Abs(distinctGroup[i].Dv - distinctGroup[j].Dv) < 3)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        if (maxInteriorRadius >= 2)
+        {
+            (int, int)[] cardinals =
+            [
+                (maxInteriorRadius, 0),
+                (-maxInteriorRadius, 0),
+                (0, maxInteriorRadius),
+                (0, -maxInteriorRadius)
+            ];
+
+            if (CanAddGroup(cardinals))
+            {
+                selected.AddRange(cardinals);
+            }
+        }
+        else if (CanAddGroup([(1, 1), (-1, -1)]))
+        {
+            selected.Add((1, 1));
+            selected.Add((-1, -1));
+            return selected;
+        }
+        else if (outerRimCells.Count > 0)
+        {
+            selected.Add(outerRimCells.First());
+            return selected;
+        }
+
+        var octantCandidates = outerRimCells
+            .Where(c => c.Du > 0 && c.Dv > 0 && c.Dv <= c.Du)
+            .OrderBy(c => Math.Abs(c.Du - c.Dv))
+            .ThenByDescending(c => c.Du)
+            .ToList();
+
+        foreach (var (du, dv) in octantCandidates)
+        {
+            (int, int)[] symmetricMirrors =
+            [
+                (du, dv), (-du, dv), (du, -dv), (-du, -dv),
+                (dv, du), (-dv, du), (dv, -du), (-dv, -du)
+            ];
+
+            if (CanAddGroup(symmetricMirrors))
+            {
+                selected.AddRange(symmetricMirrors.Distinct());
+            }
+        }
+
+        return selected;
+    }
+
+    private static BlockState ResolveWaterTierFloorBlock(BlockGradient cylinderGradient)
+    {
+        BlockState primary = cylinderGradient.Blocks[0];
+        if (!primary.Identifier.EndsWith("_glass", StringComparison.OrdinalIgnoreCase) &&
+            !primary.Identifier.EndsWith("_glass_pane", StringComparison.OrdinalIgnoreCase))
+        {
+            Dictionary<string, BlockState> cache = [];
+            return ResolveBaseFullBlock(primary, cache);
+        }
+
+        return new BlockState(Minecraft.Blocks.StoneBricks);
     }
 
     private static BlockState ResolveStairBaseBlock(

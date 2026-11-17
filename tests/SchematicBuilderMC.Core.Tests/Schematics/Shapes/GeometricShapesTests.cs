@@ -724,6 +724,135 @@ public sealed class GeometricShapesTests
             new Schematic(10, 10, 10).SetCylinderBase(5, 0, 5, cylinderRadius: 2, baseWidth: 0, baseHeight: 2, Minecraft.Blocks.StoneBricks));
     }
 
+    [Fact]
+    public void SetCylinderWater_MediumCylinder_PlacesNonChainingSourcesAndFlowsToCenter()
+    {
+        var schematic = SchematicBuilder.Create(15, 10, 15)
+            .SetCylinder(7, 0, 7, radius: 7, height: 10, Minecraft.Blocks.LimeStainedGlass, filled: false)
+            .SetCylinderWater(7, 0, 7, cylinderRadius: 7)
+            .Build();
+
+        // Collect all water source blocks (level=0) and verify none can chain into an infinite water lake (Manhattan distance >= 3)
+        var sources = new List<(int X, int Z)>();
+        for (int z = 0; z < schematic.Length; z++)
+        {
+            for (int x = 0; x < schematic.Width; x++)
+            {
+                var block = schematic[x, 0, z];
+                if (block.Identifier == Minecraft.Blocks.Water && block.Properties.GetValueOrDefault("level") == "0")
+                {
+                    sources.Add((x, z));
+                }
+            }
+        }
+
+        Assert.True(sources.Count >= 4);
+        Assert.Contains((1, 7), sources);
+        Assert.Contains((13, 7), sources);
+        Assert.Contains((7, 1), sources);
+        Assert.Contains((7, 13), sources);
+
+        for (int i = 0; i < sources.Count; i++)
+        {
+            for (int j = i + 1; j < sources.Count; j++)
+            {
+                int manhattan = Math.Abs(sources[i].X - sources[j].X) + Math.Abs(sources[i].Z - sources[j].Z);
+                Assert.True(manhattan >= 3, $"Water sources at {sources[i]} and {sources[j]} are too close (Manhattan distance {manhattan}) and would create an infinite water source.");
+            }
+        }
+
+        // Verify strictly increasing water level (decreasing water height) from inner wall toward center (7, 0, 7)
+        for (int offset = 0; offset <= 6; offset++)
+        {
+            int expectedLevel = 6 - offset;
+            var sample = schematic[7 + offset, 0, 7];
+            Assert.Equal(Minecraft.Blocks.Water, sample.Identifier);
+            Assert.Equal(expectedLevel.ToString(), sample.Properties["level"]);
+        }
+
+        // Verify cylinder wall itself remains glass and is not overwritten by water
+        Assert.Equal(Minecraft.Blocks.LimeStainedGlass, schematic[14, 0, 7].Identifier);
+        Assert.Equal(Minecraft.Blocks.LimeStainedGlass, schematic[0, 0, 7].Identifier);
+        Assert.Equal(Minecraft.Blocks.LimeStainedGlass, schematic[7, 0, 14].Identifier);
+        Assert.Equal(Minecraft.Blocks.LimeStainedGlass, schematic[7, 0, 0].Identifier);
+    }
+
+    [Fact]
+    public void SetCylinderWater_LargeCylinder_BuildsSteppedTiersAndFlowsToCenter()
+    {
+        var schematic = SchematicBuilder.Create(25, 10, 25)
+            .SetCylinder(
+                centerX: 12,
+                startY: 0,
+                centerZ: 12,
+                radius: 12,
+                height: 10,
+                blockStateString: Minecraft.Blocks.StoneBricks,
+                filled: false,
+                includeWater: true,
+                waterFloorBlock: new BlockState(Minecraft.Blocks.DeepslateBricks))
+            .Build();
+
+        // Outer tier (tier 1) has solid floor at y=0 and water source at y=1
+        Assert.Equal(Minecraft.Blocks.DeepslateBricks, schematic[23, 0, 12].Identifier);
+        Assert.Equal(Minecraft.Blocks.Water, schematic[23, 1, 12].Identifier);
+        Assert.Equal("0", schematic[23, 1, 12].Properties["level"]);
+
+        // Transition edge (radius 6 from center => x = 18, z = 12) receives overhanging flow at y=1 and falling water (level=8) at y=0
+        Assert.Equal(Minecraft.Blocks.Water, schematic[18, 1, 12].Identifier);
+        Assert.Equal("8", schematic[18, 0, 12].Properties["level"]);
+
+        // Inner tier spreads from level=8 drop at (18, 0, 12) inward to center (12, 0, 12)
+        for (int step = 1; step <= 6; step++)
+        {
+            var innerSample = schematic[18 - step, 0, 12];
+            Assert.Equal(Minecraft.Blocks.Water, innerSample.Identifier);
+            Assert.Equal(step.ToString(), innerSample.Properties["level"]);
+        }
+
+        var centerBlock = schematic[12, 0, 12];
+        Assert.Equal(Minecraft.Blocks.Water, centerBlock.Identifier);
+        Assert.Equal("6", centerBlock.Properties["level"]);
+    }
+
+    [Fact]
+    public void CylinderSchematicCreator_WithWater_ValidatesAndWritesSchematicFile()
+    {
+        var creator = new CylinderSchematicCreator
+        {
+            Radius = 7,
+            Height = 16,
+            Block = Minecraft.Blocks.LimeStainedGlass,
+            Filled = false
+        }
+            .WithBase(width: 2, height: 2, Minecraft.Blocks.DeepslateBricks)
+            .WithWater(includeWater: true);
+
+        var schematic = creator.Build();
+        Assert.Equal(19, schematic.Width);
+        Assert.Equal(16, schematic.Height);
+        Assert.Equal(19, schematic.Length);
+        Assert.Equal(Minecraft.Blocks.Water, schematic[9, 0, 9].Identifier);
+        Assert.Equal("6", schematic[9, 0, 9].Properties["level"]);
+        AssertStair(schematic[9, 0, 0], Minecraft.Blocks.DeepslateBrickStairs, "south", "straight");
+
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, "CylinderWithWaterFlow.schem");
+        SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
+        var readBack = SchematicFile.Read(spongePath, SchematicFormat.SpongeV2);
+        Assert.Equal(Minecraft.Blocks.Water, readBack[9, 0, 9].Identifier);
+        Assert.Equal("6", readBack[9, 0, 9].Properties["level"]);
+
+        // Validation guards
+        Assert.Throws<ArgumentException>(() =>
+            new CylinderSchematicCreator { Radius = 5, Height = 8, Filled = true }.WithWater().Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CylinderSchematicCreator { Radius = 5, Height = 8, Filled = false, Axis = Axis.X }.WithWater().Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CylinderSchematicCreator { Radius = 0, Height = 8, Filled = false }.WithWater().Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CylinderSchematicCreator { Radius = 12, Height = 1, Filled = false }.WithWater().Build());
+    }
+
     private static IReadOnlyList<string> GetLayerNonAirIdentifiers(Schematic schematic, int y)
     {
         var ids = new List<string>();

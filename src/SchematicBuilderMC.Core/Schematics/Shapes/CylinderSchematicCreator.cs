@@ -83,6 +83,26 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
     public string? BaseStairBlock { get; set; }
 
     /// <summary>
+    /// Whether to place inward-flowing water at the bottom inside a hollow vertical cylinder so entities and items flow toward the center.
+    /// </summary>
+    public bool IncludeWater { get; set; } = false;
+
+    /// <summary>
+    /// Optional floor block identifier used to construct stepped inner water tiers when the cylinder radius exceeds Minecraft's 7-block flat water range.
+    /// </summary>
+    public string? WaterFloorBlock { get; set; }
+
+    /// <summary>
+    /// Enables or disables inward-flowing water inside the hollow vertical cylinder.
+    /// </summary>
+    public CylinderSchematicCreator WithWater(bool includeWater = true, string? waterFloorBlock = null)
+    {
+        IncludeWater = includeWater;
+        WaterFloorBlock = waterFloorBlock;
+        return this;
+    }
+
+    /// <summary>
     /// Configures a stepped stair base surrounding the cylinder with the specified width, height, and blocks.
     /// </summary>
     public CylinderSchematicCreator WithBase(int width, int height, params string[] blocks)
@@ -149,6 +169,7 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
 
         BlockGradient gradient = ResolveGradient(Block);
         BlockGradient? baseGradient = BaseWidth > 0 ? ResolveBaseGradient(gradient) : null;
+        BlockState? waterFloor = IncludeWater ? ResolveWaterFloorBlockState(baseGradient ?? gradient) : null;
         return builder.SetCylinder(
             bx,
             by,
@@ -163,7 +184,9 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
             BaseHeight,
             baseGradient,
             BaseUseStairs,
-            BaseStairBlock);
+            BaseStairBlock,
+            IncludeWater,
+            waterFloor);
     }
 
     /// <summary>
@@ -176,12 +199,13 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
         int effectiveRadius = GetEffectiveRadius();
         var (width, height, length) = GetDimensions(effectiveRadius);
         string baseDescription = BaseWidth > 0 ? $" surrounded by a {BaseWidth}x{BaseHeight} base" : string.Empty;
+        string waterDescription = IncludeWater ? " with inward-flowing water" : string.Empty;
         var builder = SchematicBuilder.Create(width, height, length)
             .WithRotation(Rotation)
             .WithOffset(0, 0, 0)
             .WithName("Cylinder")
             .WithAuthor("SchematicBuilderMC")
-            .WithDescription($"A {(Filled ? "filled" : "hollow")} cylinder (radius {effectiveRadius}, height {Height}){baseDescription} along axis {Axis}.");
+            .WithDescription($"A {(Filled ? "filled" : "hollow")} cylinder (radius {effectiveRadius}, height {Height}){baseDescription}{waterDescription} along axis {Axis}.");
 
         return Place(builder, 0, 0, 0);
     }
@@ -220,6 +244,21 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
         return cylinderGradient;
     }
 
+    private BlockState? ResolveWaterFloorBlockState(BlockGradient fallbackGradient)
+    {
+        if (!string.IsNullOrWhiteSpace(WaterFloorBlock))
+        {
+            return BlockState.Parse(WaterFloorBlock);
+        }
+
+        if (BaseWidth > 0)
+        {
+            return fallbackGradient.Blocks[0];
+        }
+
+        return null;
+    }
+
     private void ValidateConfiguration()
     {
         if (Radius < 0)
@@ -239,6 +278,17 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
         ValidateSmoothnessFactor();
         if (!Enum.IsDefined(Axis))
             throw new ArgumentOutOfRangeException(nameof(Axis), Axis, "Unsupported axis value.");
+        if (IncludeWater)
+        {
+            if (Filled)
+                throw new ArgumentException("Water flow can only be placed inside a hollow cylinder (Filled must be false).", nameof(IncludeWater));
+            if (GetEffectiveRadius() < 1)
+                throw new ArgumentOutOfRangeException(nameof(Radius), Radius, "Radius must be at least 1 when IncludeWater is true.");
+            if (Axis != Axis.Y)
+                throw new ArgumentOutOfRangeException(nameof(Axis), Axis, "Cylinder water flow is only supported for vertical cylinders (Axis.Y).");
+            if (!string.IsNullOrWhiteSpace(WaterFloorBlock))
+                _ = BlockState.Parse(WaterFloorBlock);
+        }
         BlockGradient cylinderGradient = ResolveGradient(Block);
         if (BaseWidth > 0)
         {

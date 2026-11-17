@@ -339,9 +339,11 @@ public sealed class SchematicBuilder
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null)
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null)
     {
-        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, block, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, block, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
         return this;
     }
 
@@ -359,9 +361,11 @@ public sealed class SchematicBuilder
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null)
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null)
     {
-        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, blockStateString, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, blockStateString, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
         return this;
     }
 
@@ -377,9 +381,11 @@ public sealed class SchematicBuilder
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null)
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null)
     {
-        _schematic.SetCylinder(baseCenter, radius, height, block, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        _schematic.SetCylinder(baseCenter, radius, height, block, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
         return this;
     }
 
@@ -395,9 +401,11 @@ public sealed class SchematicBuilder
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null)
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null)
     {
-        _schematic.SetCylinder(baseCenter, radius, height, blockStateString, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        _schematic.SetCylinder(baseCenter, radius, height, blockStateString, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
         return this;
     }
 
@@ -415,9 +423,11 @@ public sealed class SchematicBuilder
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null)
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null)
     {
-        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, gradient, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        _schematic.SetCylinder(centerX, startY, centerZ, radius, height, gradient, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
         return this;
     }
 
@@ -433,9 +443,11 @@ public sealed class SchematicBuilder
         int baseHeight = 0,
         BlockGradient? baseGradient = null,
         bool baseUseStairs = true,
-        string? baseStairBlockId = null)
+        string? baseStairBlockId = null,
+        bool includeWater = false,
+        BlockState? waterFloorBlock = null)
     {
-        _schematic.SetCylinder(baseCenter, radius, height, gradient, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId);
+        _schematic.SetCylinder(baseCenter, radius, height, gradient, filled, axis, smoothnessFactor, baseWidth, baseHeight, baseGradient, baseUseStairs, baseStairBlockId, includeWater, waterFloorBlock);
         return this;
     }
 
@@ -532,6 +544,58 @@ public sealed class SchematicBuilder
         string? stairBlockId = null)
     {
         _schematic.SetCylinderBase(baseCenter, cylinderRadius, baseWidth, baseHeight, gradient, axis, smoothnessFactor, useStairs, stairBlockId);
+        return this;
+    }
+
+    public SchematicBuilder SetCylinderWater(
+        int centerX,
+        int startY,
+        int centerZ,
+        int cylinderRadius,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        BlockState? tierFloorBlock = null,
+        int? maxHeight = null)
+    {
+        _schematic.SetCylinderWater(centerX, startY, centerZ, cylinderRadius, axis, smoothnessFactor, tierFloorBlock, maxHeight);
+        return this;
+    }
+
+    public SchematicBuilder SetCylinderWater(
+        BlockPosition baseCenter,
+        int cylinderRadius,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        BlockState? tierFloorBlock = null,
+        int? maxHeight = null)
+    {
+        _schematic.SetCylinderWater(baseCenter, cylinderRadius, axis, smoothnessFactor, tierFloorBlock, maxHeight);
+        return this;
+    }
+
+    public SchematicBuilder SetCylinderWater(
+        int centerX,
+        int startY,
+        int centerZ,
+        int cylinderRadius,
+        string tierFloorBlockString,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int? maxHeight = null)
+    {
+        _schematic.SetCylinderWater(centerX, startY, centerZ, cylinderRadius, tierFloorBlockString, axis, smoothnessFactor, maxHeight);
+        return this;
+    }
+
+    public SchematicBuilder SetCylinderWater(
+        BlockPosition baseCenter,
+        int cylinderRadius,
+        string tierFloorBlockString,
+        Axis axis = Axis.Y,
+        double smoothnessFactor = 1.0,
+        int? maxHeight = null)
+    {
+        _schematic.SetCylinderWater(baseCenter, cylinderRadius, tierFloorBlockString, axis, smoothnessFactor, maxHeight);
         return this;
     }
 
