@@ -280,6 +280,37 @@ SchematicFile.Write(cylinderWithBase, "cylinder_with_base.schem");
 
 Or add a stair base, top collar, or center-flowing water directly around an existing cylinder with `SchematicBuilder.SetCylinderBase(...)`, `SchematicBuilder.SetCylinderTop(...)`, and `SchematicBuilder.SetCylinderWater(...)`.
 
+### 11. Configurable Redstone Circuits
+
+Build transmission, logic, pulse, clock, memory, and miscellaneous Redstone circuits from the Minecraft Wiki as configurable `SchematicCreator` components or via fluent `SchematicBuilder` extensions:
+
+```csharp
+using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Enums;
+using SchematicBuilderMC.Schematics.Redstone.Clocks;
+using SchematicBuilderMC.Schematics.Redstone.Logic;
+using SchematicBuilderMC.Schematics.Redstone.Memory;
+using SchematicBuilderMC.Schematics.Redstone.Miscellaneous;
+using SchematicBuilderMC.Schematics.Redstone.Pulse;
+using SchematicBuilderMC.Schematics.Redstone.Transmission;
+
+var hopperClock = new HopperClockSchematicCreator
+{
+    Period = TimeSpan.FromSeconds(16), // automatically configures Etho hopper item count
+    Facing = Direction.East,
+    IncludeToggleLever = true,
+    IncludeOutputLamp = true
+}.Build();
+
+var combinedBoard = SchematicBuilder.Create(32, 8, 32)
+    .AddTransmissionLine(0, 0, 0, length: 16, delay: TimeSpan.FromSeconds(1))
+    .AddXorGate(0, 0, 3, includeInputLevers: true, includeOutputLamp: true)
+    .AddPulseExtender(0, 0, 8, PulseExtenderMode.HopperTimer, duration: TimeSpan.FromSeconds(5))
+    .AddBinaryCounter(12, 0, 0, bitCount: 4, includeOutputLamps: true)
+    .AddAbbaCircuit(12, 0, 6, outputCount: 3, stepDelay: TimeSpan.FromMilliseconds(400))
+    .Build();
+```
+
 ## Running Tests
 
 ```bash
