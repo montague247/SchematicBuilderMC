@@ -213,6 +213,42 @@ internal static class CircuitLayout
         builder.SetContainer(Minecraft.Blocks.Hopper, Minecraft.BlockEntities.Hopper, position, items);
     }
 
+    public static void SetButton(SchematicBuilder builder, BlockPosition position, BlockFace face, Direction facing, string buttonBlock = Minecraft.Blocks.StoneButton)
+    {
+        builder.SetBlock(
+            position,
+            buttonBlock
+                .WithFace(face)
+                .WithFacing(facing)
+                .WithPowered(false));
+    }
+
+    /// <summary>
+    /// Splits <paramref name="totalCount"/> items across sequential container slots up to 64 items per slot.
+    /// </summary>
+    public static ItemStack[] CreateItemStacks(string itemId, int totalCount, int maxSlots = 5, int maxStackSize = 64)
+    {
+        ValidateBlockId(itemId, nameof(itemId));
+        ValidatePositive(totalCount, nameof(totalCount), 1);
+        int maxTotal = maxSlots * maxStackSize;
+        if (totalCount > maxTotal)
+        {
+            throw new ArgumentOutOfRangeException(nameof(totalCount), totalCount, $"Total item count cannot exceed {maxTotal} across {maxSlots} slot(s).");
+        }
+
+        var stacks = new List<ItemStack>();
+        int remaining = totalCount;
+        byte slot = 0;
+        while (remaining > 0)
+        {
+            int count = Math.Min(remaining, maxStackSize);
+            stacks.Add(new ItemStack(itemId, count, slot++));
+            remaining -= count;
+        }
+
+        return stacks.ToArray();
+    }
+
     public static SchematicBuilder CreateBuilder(
         SchematicCreator creator,
         int width,
