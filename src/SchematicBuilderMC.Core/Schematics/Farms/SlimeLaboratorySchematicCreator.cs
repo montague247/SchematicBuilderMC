@@ -3,6 +3,7 @@ using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.Extensions;
 using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
+using SchematicBuilderMC.Schematics.Contraptions;
 
 namespace SchematicBuilderMC.Schematics.Farms;
 
@@ -33,7 +34,7 @@ public sealed class SlimeLaboratorySchematicCreator : SchematicCreator
         builder.SetBlock(CenterX, levelY, CenterZ, Minecraft.Blocks.Hopper.FacingDown());
         // set dispenser for splash potion
         builder.SetBlock(CenterX + 1, levelY, CenterZ, Minecraft.Blocks.Dispenser.FacingUp());
-        
+
         levelY++;
 
         // gradient for the cylinder (from bottom to top)
@@ -51,6 +52,24 @@ public sealed class SlimeLaboratorySchematicCreator : SchematicCreator
 
         // set top layer
         builder.SetCircle(CenterX, levelY, CenterZ, BaseWidth + Radius, Minecraft.Blocks.QuartzBlock);
+        // set dispenser for splash potion
+        builder.SetBlock(CenterX, levelY, CenterZ, Minecraft.Blocks.Dispenser.FacingDown());
+
+        var tntDropX = CenterX + 1;
+        var tntDropZ = CenterZ;
+
+        // set hole for tnt duper to drop tnt into the killing chamber
+        builder.SetBlock(tntDropX, levelY, tntDropZ, Minecraft.Blocks.Air);
+        // set additionals holes for tnt duper to drop tnt into the killing chamber
+        builder.SetBlock(tntDropX, levelY, tntDropZ + 1, Minecraft.Blocks.Air);
+        builder.SetBlock(tntDropX, levelY, tntDropZ - 1, Minecraft.Blocks.Air);
+        builder.SetBlock(tntDropX + 1, levelY, tntDropZ, Minecraft.Blocks.Air);
+
+        // place tnt duper
+        builder.CreateAtDropPosition(new TntDuperSchematicCreator()
+        {
+            IncludeTriggerButton = true
+        }, tntDropX, levelY + 1, tntDropZ);
 
         return builder;
     }
