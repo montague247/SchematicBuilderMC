@@ -83,6 +83,53 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
     public string? BaseStairBlock { get; set; }
 
     /// <summary>
+    /// Radial width in blocks of the optional outward-flaring stair collar at the top of the cylinder (0 disables the top collar).
+    /// </summary>
+    public int TopWidth { get; set; } = 0;
+
+    /// <summary>
+    /// Vertical height in blocks of the optional stepped stair collar at the top of the cylinder (0 disables the top collar).
+    /// </summary>
+    public int TopHeight { get; set; } = 0;
+
+    /// <summary>
+    /// Optional single block identifier used for the cylinder top collar when <see cref="TopBlocks"/> is empty.
+    /// When <c>null</c> or whitespace, the cylinder's primary <see cref="Block"/> or <see cref="ShapesSchematicCreator.Blocks"/> gradient is used.
+    /// </summary>
+    public string? TopBlock { get; set; }
+
+    /// <summary>
+    /// Optional ordered list of block identifiers used to form a gradient across the cylinder top collar.
+    /// </summary>
+    public IReadOnlyList<string> TopBlocks { get; set; } = [];
+
+    /// <summary>
+    /// Transition mode between blocks in <see cref="TopBlocks"/>.
+    /// </summary>
+    public GradientTransition TopTransition { get; set; } = GradientTransition.Strict;
+
+    /// <summary>
+    /// Optional percentage/weight values for <see cref="TopBlocks"/> when using <see cref="GradientTransition.Weighted"/> or <see cref="GradientTransition.Fuzzy"/>.
+    /// </summary>
+    public IReadOnlyList<double> TopTransitionWeights { get; set; } = [];
+
+    /// <summary>
+    /// Randomizes transitions at segment boundaries in the cylinder top collar.
+    /// </summary>
+    public bool TopFuzzyTransition { get; set; }
+
+    /// <summary>
+    /// Whether exposed underside transition steps of the cylinder top collar use inverted stairs (<c>true</c>) or full blocks only (<c>false</c>).
+    /// </summary>
+    public bool TopUseStairs { get; set; } = true;
+
+    /// <summary>
+    /// Optional stair block identifier override when <see cref="TopUseStairs"/> is <c>true</c>.
+    /// When <c>null</c>, matching stairs are resolved automatically for each top block.
+    /// </summary>
+    public string? TopStairBlock { get; set; }
+
+    /// <summary>
     /// Whether to place inward-flowing water at the bottom inside a hollow vertical cylinder so entities and items flow toward the center.
     /// </summary>
     public bool IncludeWater { get; set; } = false;
@@ -146,6 +193,49 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
     }
 
     /// <summary>
+    /// Configures a stepped stair top collar surrounding the upper end of the cylinder with the specified width, height, and blocks.
+    /// </summary>
+    public CylinderSchematicCreator WithTop(int width, int height, params string[] blocks)
+    {
+        ArgumentNullException.ThrowIfNull(blocks);
+        TopWidth = width;
+        TopHeight = height;
+        if (blocks.Length == 1)
+        {
+            TopBlock = blocks[0];
+            TopBlocks = [];
+        }
+        else if (blocks.Length > 1)
+        {
+            TopBlock = null;
+            TopBlocks = [.. blocks];
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a stepped stair top collar surrounding the upper end of the cylinder with a multi-block gradient.
+    /// </summary>
+    public CylinderSchematicCreator WithTopGradient(
+        int width,
+        int height,
+        IEnumerable<string> blocks,
+        GradientTransition transition = GradientTransition.Strict,
+        IEnumerable<double>? weights = null,
+        bool fuzzy = false)
+    {
+        ArgumentNullException.ThrowIfNull(blocks);
+        TopWidth = width;
+        TopHeight = height;
+        TopBlock = null;
+        TopBlocks = [.. blocks];
+        TopTransition = transition;
+        TopTransitionWeights = weights is null ? [] : [.. weights];
+        TopFuzzyTransition = fuzzy || transition == GradientTransition.Fuzzy;
+        return this;
+    }
+
+    /// <summary>
     /// Places the cylinder into an existing <see cref="SchematicBuilder"/> with its bounding box starting at (startX, startY, startZ),
     /// extending its dimensions automatically if needed.
     /// </summary>
@@ -155,7 +245,7 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
         ValidateConfiguration();
 
         int effectiveRadius = GetEffectiveRadius();
-        int outerRadius = effectiveRadius + BaseWidth;
+        int outerRadius = effectiveRadius + Math.Max(BaseWidth, TopWidth);
         var (width, height, length) = GetDimensions(effectiveRadius);
         EnsurePlacementBounds(builder, startX, startY, startZ, width, height, length);
 
@@ -168,7 +258,8 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
         };
 
         BlockGradient gradient = ResolveGradient(Block);
-        BlockGradient? baseGradient = BaseWidth > 0 ? ResolveBaseGradient(gradient) : null;
+        BlockGradient? baseGradient = BaseWidth > 0 ? ResolveCollarGradient(BaseBlocks, BaseBlock, BaseTransition, BaseTransitionWeights, BaseFuzzyTransition, gradient) : null;
+        BlockGradient? topGradient = TopWidth > 0 ? ResolveCollarGradient(TopBlocks, TopBlock, TopTransition, TopTransitionWeights, TopFuzzyTransition, gradient) : null;
         BlockState? waterFloor = IncludeWater ? ResolveWaterFloorBlockState(baseGradient ?? gradient) : null;
         return builder.SetCylinder(
             bx,
@@ -186,7 +277,12 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
             BaseUseStairs,
             BaseStairBlock,
             IncludeWater,
-            waterFloor);
+            waterFloor,
+            TopWidth,
+            TopHeight,
+            topGradient,
+            TopUseStairs,
+            TopStairBlock);
     }
 
     /// <summary>
@@ -199,13 +295,14 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
         int effectiveRadius = GetEffectiveRadius();
         var (width, height, length) = GetDimensions(effectiveRadius);
         string baseDescription = BaseWidth > 0 ? $" surrounded by a {BaseWidth}x{BaseHeight} base" : string.Empty;
+        string topDescription = TopWidth > 0 ? $" and a {TopWidth}x{TopHeight} top collar" : string.Empty;
         string waterDescription = IncludeWater ? " with inward-flowing water" : string.Empty;
         var builder = SchematicBuilder.Create(width, height, length)
             .WithRotation(Rotation)
             .WithOffset(0, 0, 0)
             .WithName("Cylinder")
             .WithAuthor("SchematicBuilderMC")
-            .WithDescription($"A {(Filled ? "filled" : "hollow")} cylinder (radius {effectiveRadius}, height {Height}){baseDescription}{waterDescription} along axis {Axis}.");
+            .WithDescription($"A {(Filled ? "filled" : "hollow")} cylinder (radius {effectiveRadius}, height {Height}){baseDescription}{topDescription}{waterDescription} along axis {Axis}.");
 
         return Place(builder, 0, 0, 0);
     }
@@ -214,7 +311,7 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
 
     private (int Width, int Height, int Length) GetDimensions(int effectiveRadius)
     {
-        int diameter = 2 * (effectiveRadius + BaseWidth) + 1;
+        int diameter = 2 * (effectiveRadius + Math.Max(BaseWidth, TopWidth)) + 1;
         return Axis switch
         {
             Axis.X => (Height, diameter, diameter),
@@ -224,21 +321,27 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
         };
     }
 
-    private BlockGradient? ResolveBaseGradient(BlockGradient cylinderGradient)
+    private BlockGradient ResolveCollarGradient(
+        IReadOnlyList<string> blocks,
+        string? singleBlock,
+        GradientTransition transition,
+        IReadOnlyList<double> weights,
+        bool fuzzy,
+        BlockGradient cylinderGradient)
     {
-        if (BaseBlocks is { Count: > 0 })
+        if (blocks is { Count: > 0 })
         {
             return new BlockGradient(
-                BaseBlocks,
-                BaseTransition,
-                BaseTransitionWeights.Count > 0 ? BaseTransitionWeights : null,
-                BaseFuzzyTransition || BaseTransition == GradientTransition.Fuzzy,
+                blocks,
+                transition,
+                weights.Count > 0 ? weights : null,
+                fuzzy || transition == GradientTransition.Fuzzy,
                 RandomSeed);
         }
 
-        if (!string.IsNullOrWhiteSpace(BaseBlock))
+        if (!string.IsNullOrWhiteSpace(singleBlock))
         {
-            return new BlockGradient([BaseBlock]);
+            return new BlockGradient([singleBlock]);
         }
 
         return cylinderGradient;
@@ -265,16 +368,10 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
             throw new ArgumentOutOfRangeException(nameof(Radius), Radius, "Radius must be zero or greater.");
         if (Height <= 0)
             throw new ArgumentOutOfRangeException(nameof(Height), Height, "Height must be greater than zero.");
-        if (BaseWidth < 0)
-            throw new ArgumentOutOfRangeException(nameof(BaseWidth), BaseWidth, "BaseWidth must be zero or greater.");
-        if (BaseHeight < 0)
-            throw new ArgumentOutOfRangeException(nameof(BaseHeight), BaseHeight, "BaseHeight must be zero or greater.");
-        if (BaseWidth > 0 && BaseHeight == 0)
-            throw new ArgumentOutOfRangeException(nameof(BaseHeight), BaseHeight, "BaseHeight must be greater than zero when BaseWidth is greater than zero.");
-        if (BaseHeight > 0 && BaseWidth == 0)
-            throw new ArgumentOutOfRangeException(nameof(BaseWidth), BaseWidth, "BaseWidth must be greater than zero when BaseHeight is greater than zero.");
-        if (BaseHeight > Height)
-            throw new ArgumentOutOfRangeException(nameof(BaseHeight), BaseHeight, "BaseHeight cannot exceed Height.");
+        ValidateCollarConfiguration(BaseWidth, BaseHeight, nameof(BaseWidth), nameof(BaseHeight));
+        ValidateCollarConfiguration(TopWidth, TopHeight, nameof(TopWidth), nameof(TopHeight));
+        if (BaseHeight + TopHeight > Height)
+            throw new ArgumentOutOfRangeException(nameof(TopHeight), TopHeight, "Combined BaseHeight and TopHeight cannot exceed Height.");
         ValidateSmoothnessFactor();
         if (!Enum.IsDefined(Axis))
             throw new ArgumentOutOfRangeException(nameof(Axis), Axis, "Unsupported axis value.");
@@ -292,7 +389,25 @@ public sealed class CylinderSchematicCreator : ShapesSchematicCreator
         BlockGradient cylinderGradient = ResolveGradient(Block);
         if (BaseWidth > 0)
         {
-            _ = ResolveBaseGradient(cylinderGradient);
+            _ = ResolveCollarGradient(BaseBlocks, BaseBlock, BaseTransition, BaseTransitionWeights, BaseFuzzyTransition, cylinderGradient);
         }
+        if (TopWidth > 0)
+        {
+            _ = ResolveCollarGradient(TopBlocks, TopBlock, TopTransition, TopTransitionWeights, TopFuzzyTransition, cylinderGradient);
+        }
+    }
+
+    private void ValidateCollarConfiguration(int width, int height, string widthParam, string heightParam)
+    {
+        if (width < 0)
+            throw new ArgumentOutOfRangeException(widthParam, width, $"{widthParam} must be zero or greater.");
+        if (height < 0)
+            throw new ArgumentOutOfRangeException(heightParam, height, $"{heightParam} must be zero or greater.");
+        if (width > 0 && height == 0)
+            throw new ArgumentOutOfRangeException(heightParam, height, $"{heightParam} must be greater than zero when {widthParam} is greater than zero.");
+        if (height > 0 && width == 0)
+            throw new ArgumentOutOfRangeException(widthParam, width, $"{widthParam} must be greater than zero when {heightParam} is greater than zero.");
+        if (height > Height)
+            throw new ArgumentOutOfRangeException(heightParam, height, $"{heightParam} cannot exceed Height.");
     }
 }

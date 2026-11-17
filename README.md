@@ -260,13 +260,14 @@ var cylinderWithBase = new CylinderSchematicCreator
     Filled = false
 }
     .WithBase(width: 4, height: 4, Minecraft.Blocks.DeepslateBricks, Minecraft.Blocks.StoneBricks)
+    .WithTop(width: 4, height: 4, Minecraft.Blocks.StoneBricks, Minecraft.Blocks.DeepslateBricks)
     .WithWater(includeWater: true)
     .Build();
 
 SchematicFile.Write(cylinderWithBase, "cylinder_with_base.schem");
 ```
 
-Or add a stair base or center-flowing water directly around an existing cylinder with `SchematicBuilder.SetCylinderBase(...)` and `SchematicBuilder.SetCylinderWater(...)`.
+Or add a stair base, top collar, or center-flowing water directly around an existing cylinder with `SchematicBuilder.SetCylinderBase(...)`, `SchematicBuilder.SetCylinderTop(...)`, and `SchematicBuilder.SetCylinderWater(...)`.
 
 ## Running Tests
 

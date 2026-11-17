@@ -853,6 +853,126 @@ public sealed class GeometricShapesTests
             new CylinderSchematicCreator { Radius = 12, Height = 1, Filled = false }.WithWater().Build());
     }
 
+    [Fact]
+    public void SetCylinderTop_InvertedStairTransition_OrientsTopStairsInwardAndPreservesHollowCore()
+    {
+        var schematic = SchematicBuilder.Create(15, 8, 15)
+            .SetCylinder(7, 0, 7, radius: 4, height: 8, Minecraft.Blocks.LightGrayConcrete, filled: false)
+            .SetCylinderTop(7, 5, 7, cylinderRadius: 4, topWidth: 3, topHeight: 3, Minecraft.Blocks.StoneBricks)
+            .Build();
+
+        // Cardinal outer inverted stairs on top ring (y = 7, outer radius = 7)
+        AssertStair(schematic[7, 7, 0], Minecraft.Blocks.StoneBrickStairs, "south", "straight", "top");
+        AssertStair(schematic[7, 7, 14], Minecraft.Blocks.StoneBrickStairs, "north", "straight", "top");
+        AssertStair(schematic[0, 7, 7], Minecraft.Blocks.StoneBrickStairs, "east", "straight", "top");
+        AssertStair(schematic[14, 7, 7], Minecraft.Blocks.StoneBrickStairs, "west", "straight", "top");
+
+        // Diagonal outer corners on top ring (du = -5, dv = -5 => x = 2, z = 2)
+        AssertStair(schematic[2, 7, 2], Minecraft.Blocks.StoneBrickStairs, "south", "outer_left", "top");
+        AssertStair(schematic[12, 7, 2], Minecraft.Blocks.StoneBrickStairs, "south", "outer_right", "top");
+        AssertStair(schematic[2, 7, 12], Minecraft.Blocks.StoneBrickStairs, "north", "outer_right", "top");
+        AssertStair(schematic[12, 7, 12], Minecraft.Blocks.StoneBrickStairs, "north", "outer_left", "top");
+
+        // Covered upper step above y = 6 stair tier stays solid fill block
+        Assert.Equal(Minecraft.Blocks.StoneBricks, schematic[7, 7, 2].Identifier);
+
+        // Descending underside stair tiers at y = 6 (radius 6) and y = 5 (radius 5)
+        AssertStair(schematic[7, 6, 1], Minecraft.Blocks.StoneBrickStairs, "south", "straight", "top");
+        AssertStair(schematic[7, 5, 2], Minecraft.Blocks.StoneBrickStairs, "south", "straight", "top");
+
+        // Below topStartY (y = 4): top collar does not extend outward; cylinder wall & hollow interior remain intact
+        Assert.Equal(BlockState.Air, schematic[7, 4, 2]);
+        Assert.Equal(Minecraft.Blocks.LightGrayConcrete, schematic[7, 4, 3].Identifier);
+        Assert.Equal(BlockState.Air, schematic[7, 7, 7]);
+        Assert.Equal(BlockState.Air, schematic[7, 4, 7]);
+    }
+
+    [Fact]
+    public void SetCylinder_WithTopWidthAndHeightRatios_HandlesSlopesGradientsAndStairInputs()
+    {
+        // Width > Height (4 wide, 2 high): layer 5 (y=5) extends +4 at top, layer 4 extends +2
+        var wideTop = SchematicBuilder.Create(17, 6, 17)
+            .SetCylinder(
+                centerX: 8,
+                startY: 0,
+                centerZ: 8,
+                radius: 4,
+                height: 6,
+                blockStateString: Minecraft.Blocks.QuartzBlock,
+                filled: true,
+                axis: Axis.Y,
+                smoothnessFactor: 1.0,
+                topWidth: 4,
+                topHeight: 2,
+                topGradient: new BlockGradient([Minecraft.Blocks.StoneBricks, Minecraft.Blocks.DeepslateBricks]))
+            .Build();
+
+        AssertStair(wideTop[8, 4, 2], Minecraft.Blocks.StoneBrickStairs, "south", "straight", "top");
+        AssertStair(wideTop[8, 5, 0], Minecraft.Blocks.DeepslateBrickStairs, "south", "straight", "top");
+        Assert.Equal(Minecraft.Blocks.DeepslateBricks, wideTop[8, 5, 1].Identifier);
+        Assert.Equal(BlockState.Air, wideTop[8, 3, 2]);
+
+        // Width < Height (2 wide, 4 high) using a *_stairs input resolves solid stone_bricks behind outer tiers
+        var tallTop = SchematicBuilder.Create(13, 6, 13)
+            .SetCylinder(6, 0, 6, radius: 3, height: 6, Minecraft.Blocks.Stone)
+            .SetCylinderTop(6, 2, 6, cylinderRadius: 3, topWidth: 2, topHeight: 4, Minecraft.Blocks.StoneBrickStairs)
+            .Build();
+
+        AssertStair(tallTop[6, 2, 2], Minecraft.Blocks.StoneBrickStairs, "south", "straight", "top");
+        Assert.Equal(Minecraft.Blocks.StoneBricks, tallTop[6, 3, 2].Identifier);
+        AssertStair(tallTop[6, 4, 1], Minecraft.Blocks.StoneBrickStairs, "south", "straight", "top");
+        Assert.Equal(Minecraft.Blocks.StoneBricks, tallTop[6, 5, 1].Identifier);
+        Assert.Equal(BlockState.Air, tallTop[6, 1, 2]);
+    }
+
+    [Fact]
+    public void CylinderSchematicCreator_WithBaseAndTop_ExtendsBoundsValidatesAndWritesSchematic()
+    {
+        var creator = new CylinderSchematicCreator
+        {
+            Radius = 5,
+            Height = 12,
+            Block = Minecraft.Blocks.LightGrayConcrete,
+            Filled = false
+        }
+            .WithBase(width: 2, height: 2, Minecraft.Blocks.DeepslateBricks)
+            .WithTop(width: 4, height: 3, Minecraft.Blocks.StoneBricks, Minecraft.Blocks.DeepslateBricks)
+            .WithWater(includeWater: true);
+
+        var extendedBuilder = SchematicBuilder.Create(4, 4, 4);
+        creator.Place(extendedBuilder, startX: 1, startY: 0, startZ: 1);
+        var placed = extendedBuilder.Build();
+        Assert.Equal(20, placed.Width);
+        Assert.Equal(12, placed.Height);
+        Assert.Equal(20, placed.Length);
+
+        var standalone = creator.Build();
+        Assert.Equal(19, standalone.Width);
+        Assert.Equal(12, standalone.Height);
+        Assert.Equal(19, standalone.Length);
+        AssertStair(standalone[9, 0, 2], Minecraft.Blocks.DeepslateBrickStairs, "south", "straight", "bottom");
+        AssertStair(standalone[9, 11, 0], Minecraft.Blocks.DeepslateBrickStairs, "south", "straight", "top");
+        Assert.Equal(Minecraft.Blocks.Water, standalone[9, 0, 9].Identifier);
+
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, "CylinderWithStairTop.schem");
+        SchematicFile.Write(standalone, spongePath, SchematicFormat.SpongeV2);
+        var readBack = SchematicFile.Read(spongePath, SchematicFormat.SpongeV2);
+        AssertStair(readBack[9, 11, 0], Minecraft.Blocks.DeepslateBrickStairs, "south", "straight", "top");
+        AssertStair(readBack[9, 0, 2], Minecraft.Blocks.DeepslateBrickStairs, "south", "straight", "bottom");
+
+        // Validation guards
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CylinderSchematicCreator { Radius = 3, Height = 5, TopWidth = 2, TopHeight = 0 }.Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CylinderSchematicCreator { Radius = 3, Height = 5, TopWidth = 0, TopHeight = 2 }.Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CylinderSchematicCreator { Radius = 3, Height = 3, TopWidth = 2, TopHeight = 4 }.Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CylinderSchematicCreator { Radius = 3, Height = 5, BaseWidth = 2, BaseHeight = 3, TopWidth = 2, TopHeight = 3 }.Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new Schematic(10, 10, 10).SetCylinderTop(5, 0, 5, cylinderRadius: 2, topWidth: 0, topHeight: 2, Minecraft.Blocks.StoneBricks));
+    }
+
     private static IReadOnlyList<string> GetLayerNonAirIdentifiers(Schematic schematic, int y)
     {
         var ids = new List<string>();
@@ -870,10 +990,10 @@ public sealed class GeometricShapesTests
         return ids;
     }
 
-    private static void AssertStair(BlockState state, string expectedStairId, string expectedFacing, string expectedShape)
+    private static void AssertStair(BlockState state, string expectedStairId, string expectedFacing, string expectedShape, string expectedHalf = "bottom")
     {
         Assert.Equal(expectedStairId, state.Identifier);
-        Assert.Equal("bottom", state.Properties["half"]);
+        Assert.Equal(expectedHalf, state.Properties["half"]);
         Assert.Equal(expectedFacing, state.Properties["facing"]);
         Assert.Equal(expectedShape, state.Properties["shape"]);
     }

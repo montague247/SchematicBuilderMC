@@ -38,6 +38,11 @@ if (args.Length > 0)
         return RunCylinderWaterExample(args);
     }
 
+    if (firstArg is "cylinder-top" or "--cylinder-top")
+    {
+        return RunCylinderTopExample(args);
+    }
+
     if (firstArg is "generate-code" or "to-code" or "code" or "--code" or "-c" ||
         firstArg.EndsWith(".schem", StringComparison.OrdinalIgnoreCase) ||
         firstArg.EndsWith(".schematic", StringComparison.OrdinalIgnoreCase) ||
@@ -325,6 +330,30 @@ static int RunCylinderWaterExample(string[] args)
     return 0;
 }
 
+static int RunCylinderTopExample(string[] args)
+{
+    string outputPath = args.Length > 1 && !string.IsNullOrWhiteSpace(args[1])
+        ? Path.GetFullPath(args[1])
+        : Path.Combine(Path.GetFullPath("."), "cylinder_with_top.schem");
+
+    var schematic = new CylinderSchematicCreator
+    {
+        Radius = 6,
+        Height = 14,
+        Block = Minecraft.Blocks.LightGrayConcrete,
+        Filled = false
+    }
+        .WithBase(width: 3, height: 3, Minecraft.Blocks.DeepslateBricks, Minecraft.Blocks.StoneBricks)
+        .WithTop(width: 3, height: 3, Minecraft.Blocks.StoneBricks, Minecraft.Blocks.DeepslateBricks)
+        .Build();
+
+    SchematicFile.Write(schematic, outputPath, SchematicFormat.SpongeV2);
+    Console.WriteLine($"Created cylinder with 3x3 stair base and 3x3 stair top: {schematic.Width}x{schematic.Height}x{schematic.Length}");
+    Console.WriteLine($"Non-Air Blocks: {schematic.CountNonAirBlocks()}");
+    Console.WriteLine($"Wrote Sponge schematic to {outputPath} ({new FileInfo(outputPath).Length} bytes)");
+    return 0;
+}
+
 static void PrintHelp()
 {
     Console.WriteLine($"""
@@ -336,6 +365,7 @@ static void PrintHelp()
         Commands:
           generate-code <file> [output.cs]   Generate C# fluent builder code from a schematic file (.schem, .schematic, .litematic).
           cylinder-base [output.schem]       Generate an example cylinder surrounded by a stepped stair base.
+          cylinder-top [output.schem]        Generate an example cylinder surrounded by stepped stair base and top collars.
           cylinder-water [output.schem]      Generate an example hollow cylinder with inward-flowing water to its center.
           generate-registries                Generate Minecraft registry constants from embedded/online registries.json.
           demo                               Run the build and read/write demo (default when no args provided).
