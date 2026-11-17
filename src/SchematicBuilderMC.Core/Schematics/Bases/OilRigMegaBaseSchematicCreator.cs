@@ -17,12 +17,12 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
     /// <summary>
     /// Radius of each of the 4 corner outer columns in blocks (2 or greater).
     /// </summary>
-    public int OuterColumnRadius { get; set; } = 5;
+    public int OuterColumnRadius { get; set; } = 16;
 
     /// <summary>
     /// Radius of the central column in blocks (2 or greater).
     /// </summary>
-    public int InnerColumnRadius { get; set; } = 7;
+    public int InnerColumnRadius { get; set; } = 32;
 
     /// <summary>
     /// Convenience alias for <see cref="InnerColumnRadius"/>.
@@ -34,29 +34,30 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
     }
 
     /// <summary>
-    /// Horizontal center-to-center distance between the outer columns along X and Z.
+    /// Horizontal center-to-center distance between the outer columns along X and Z (or clear horizontal spacing
+    /// between outer and center columns when less than <c>2 * OuterColumnRadius + 2</c>).
     /// </summary>
-    public int ColumnSpacing { get; set; } = 28;
+    public int ColumnSpacing { get; set; } = 32;
 
     /// <summary>
     /// Height above ground (Y = 0) at which the usage platform starts (2 or greater).
     /// </summary>
-    public int PlatformHeight { get; set; } = 18;
+    public int PlatformHeight { get; set; } = 128;
 
     /// <summary>
     /// Vertical thickness of the usage platform in blocks (1 or greater).
     /// </summary>
-    public int PlatformThickness { get; set; } = 3;
+    public int PlatformThickness { get; set; } = 10;
 
     /// <summary>
     /// Number of blocks the usage platform overhangs beyond the outer walls of the outer columns (0 or greater).
     /// </summary>
-    public int PlatformOverhang { get; set; } = 2;
+    public int PlatformOverhang { get; set; } = 15;
 
     /// <summary>
     /// Height above ground where the exterior spiral stairs around the 4 outer columns begin (0 to PlatformHeight - 1).
     /// </summary>
-    public int OuterStairsStartHeight { get; set; } = 6;
+    public int OuterStairsStartHeight { get; set; } = 100;
 
     /// <summary>
     /// Height above ground where the interior spiral stairs inside all 5 columns begin (defaults to 0 / ground level).
@@ -162,9 +163,19 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
 
     private int EffectiveInnerColumnRadius => ScaleDimension(InnerColumnRadius, minimum: 2);
 
-    private int EffectiveColumnSpacing => ScaleDimension(ColumnSpacing, minimum: 2 * EffectiveOuterColumnRadius + 2);
+    private int EffectiveColumnSpacing => ScaleDimension(ColumnSpacing, minimum: 2);
 
     private int EffectivePlatformOverhang => PlatformOverhang == 0 ? 0 : ScaleDimension(PlatformOverhang, minimum: 0);
+
+    private int GetEffectiveCenterToCenterSpacing()
+    {
+        int outerRadius = EffectiveOuterColumnRadius;
+        int innerRadius = EffectiveInnerColumnRadius;
+        int spacing = EffectiveColumnSpacing;
+        return spacing >= 2 * outerRadius + 2
+            ? spacing
+            : 2 * (innerRadius + outerRadius) + spacing;
+    }
 
     /// <summary>
     /// Returns the base center coordinate of the center column when placed at (startX, startY, startZ).
@@ -315,16 +326,17 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
             (ne, sw)
         };
 
+        BlockState supportBeamState = BlockState.Parse(SupportBeamBlock);
         foreach (int y in bracingHeights)
         {
             foreach (var (from, to) in spans)
             {
-                PlaceHorizontalBeam(builder, y, from, to, outerCenters, centerColumnBase, outerRadius, innerRadius, radialPadding);
+                PlaceHorizontalBeam(builder, y, from, to, outerCenters, centerColumnBase, outerRadius, innerRadius, radialPadding, supportBeamState);
             }
         }
     }
 
-    private void PlaceHorizontalBeam(
+    private static void PlaceHorizontalBeam(
         SchematicBuilder builder,
         int y,
         BlockPosition from,
@@ -333,7 +345,8 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
         BlockPosition centerColumnBase,
         int outerRadius,
         int innerRadius,
-        double radialPadding)
+        double radialPadding,
+        BlockState supportBeamState)
     {
         int dx = to.X - from.X;
         int dz = to.Z - from.Z;
@@ -346,7 +359,7 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
 
             if (!IsInsideAnyColumnDisk(x, z, outerCenters, centerColumnBase, outerRadius, innerRadius, radialPadding))
             {
-                builder.SetBlock(x, y, z, SupportBeamBlock);
+                builder.SetBlock(x, y, z, supportBeamState);
             }
         }
     }
@@ -366,28 +379,32 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
     {
         int platformStartY = startY + PlatformHeight;
         int topDeckY = platformStartY + PlatformThickness - 1;
+        BlockState platformState = BlockState.Parse(PlatformBlock);
+        BlockState platformBorderState = BlockState.Parse(PlatformBorderBlock);
 
-        for (int y = platformStartY; y <= topDeckY; y++)
+        for (int z = platformMinZ; z <= platformMaxZ; z++)
         {
-            for (int z = platformMinZ; z <= platformMaxZ; z++)
+            bool isZBorder = z == platformMinZ || z == platformMaxZ;
+            for (int x = platformMinX; x <= platformMaxX; x++)
             {
-                for (int x = platformMinX; x <= platformMaxX; x++)
+                if (IsOnAnyColumnWall(x, z, outerCenters, centerColumnBase, outerRadius, innerRadius, radialPadding))
                 {
-                    if (IsOnAnyColumnWall(x, z, outerCenters, centerColumnBase, outerRadius, innerRadius, radialPadding))
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    bool isStrictlyInside = IsStrictlyInsideAnyColumn(x, z, outerCenters, centerColumnBase, outerRadius, innerRadius, radialPadding);
+                bool isStrictlyInside = IsStrictlyInsideAnyColumn(x, z, outerCenters, centerColumnBase, outerRadius, innerRadius, radialPadding);
+                bool isBorderXZ = isZBorder || x == platformMinX || x == platformMaxX;
+
+                for (int y = platformStartY; y <= topDeckY; y++)
+                {
                     if (isStrictlyInside && y < topDeckY)
                     {
                         builder.SetBlock(x, y, z, BlockState.Air);
                         continue;
                     }
 
-                    bool isBorder = y == topDeckY &&
-                        (x == platformMinX || x == platformMaxX || z == platformMinZ || z == platformMaxZ);
-                    builder.SetBlock(x, y, z, isBorder ? PlatformBorderBlock : PlatformBlock);
+                    bool isBorder = y == topDeckY && isBorderXZ;
+                    builder.SetBlock(x, y, z, isBorder ? platformBorderState : platformState);
                 }
             }
         }
@@ -404,6 +421,7 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
     {
         int railY = startY + PlatformHeight + PlatformThickness;
         bool openForOuterStairs = outerStairLandings is { Count: > 0 } && EffectivePlatformOverhang == 0;
+        BlockState guardrailState = BlockState.Parse(GuardrailBlock);
 
         for (int z = platformMinZ; z <= platformMaxZ; z++)
         {
@@ -423,7 +441,7 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
                     continue;
                 }
 
-                builder.SetBlock(x, railY, z, GuardrailBlock);
+                builder.SetBlock(x, railY, z, guardrailState);
             }
         }
     }
@@ -708,7 +726,7 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
     {
         int outerRadius = EffectiveOuterColumnRadius;
         int innerRadius = EffectiveInnerColumnRadius;
-        int spacing = EffectiveColumnSpacing;
+        int spacing = GetEffectiveCenterToCenterSpacing();
         int margin = Math.Max(EffectivePlatformOverhang, IncludeOuterStairs ? 1 : 0);
         int outerSpan = spacing + 2 * (outerRadius + margin) + 1;
         int requiredInnerSpan = 2 * innerRadius + 1;
@@ -717,7 +735,7 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
 
     private (int MinOuter, int MaxOuter) GetOuterColumnOffsetRange()
     {
-        int spacing = EffectiveColumnSpacing;
+        int spacing = GetEffectiveCenterToCenterSpacing();
         int span = GetSpan();
         int minOuter = (span - spacing) / 2;
         return (minOuter, minOuter + spacing);
@@ -765,9 +783,9 @@ public sealed class OilRigMegaBaseSchematicCreator : ShapesSchematicCreator
             throw new ArgumentOutOfRangeException(nameof(InnerColumnRadius), InnerColumnRadius, "InnerColumnRadius must be 2 or greater so the center column has an interior for stairs.");
         }
 
-        if (ColumnSpacing < 2 * OuterColumnRadius + 2)
+        if (ColumnSpacing < 2)
         {
-            throw new ArgumentOutOfRangeException(nameof(ColumnSpacing), ColumnSpacing, "ColumnSpacing must leave clearance between adjacent outer columns.");
+            throw new ArgumentOutOfRangeException(nameof(ColumnSpacing), ColumnSpacing, "ColumnSpacing must be 2 or greater.");
         }
 
         if (PlatformHeight < 2)

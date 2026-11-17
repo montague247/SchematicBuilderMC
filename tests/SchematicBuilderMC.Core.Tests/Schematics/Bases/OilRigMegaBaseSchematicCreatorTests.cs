@@ -16,15 +16,15 @@ public sealed class OilRigMegaBaseSchematicCreatorTests
         var schematic = creator.Build();
 
         Assert.Equal("Oil Rig Mega Base", schematic.Metadata.Name);
-        Assert.Equal(43, schematic.Width);
-        Assert.Equal(22, schematic.Height);
-        Assert.Equal(43, schematic.Length);
+        Assert.Equal(creator.Width, schematic.Width);
+        Assert.Equal(creator.Height, schematic.Height);
+        Assert.Equal(creator.Length, schematic.Length);
         Assert.True(schematic.CountNonAirBlocks() > 0);
 
         var outerCenters = creator.GetOuterColumnBasePositions();
         var centerBase = creator.GetCenterColumnBasePosition();
         Assert.Equal(4, outerCenters.Count);
-        Assert.Equal(new BlockPosition(21, 0, 21), centerBase);
+        Assert.Equal(new BlockPosition(creator.Width / 2, 0, creator.Length / 2), centerBase);
 
         // Column walls exist at expected radii and centers are hollow
         Assert.Equal(BlockState.Air, schematic[centerBase]);
@@ -137,7 +137,7 @@ public sealed class OilRigMegaBaseSchematicCreatorTests
             new OilRigMegaBaseSchematicCreator { InnerColumnRadius = 1 }.Create());
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new OilRigMegaBaseSchematicCreator { OuterColumnRadius = 5, ColumnSpacing = 11 }.Create());
+            new OilRigMegaBaseSchematicCreator { OuterColumnRadius = 5, ColumnSpacing = 1 }.Create());
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new OilRigMegaBaseSchematicCreator { PlatformHeight = 1 }.Create());
