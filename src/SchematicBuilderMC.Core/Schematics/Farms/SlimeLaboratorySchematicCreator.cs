@@ -29,8 +29,10 @@ public sealed class SlimeLaboratorySchematicCreator : SchematicCreator
 
         // set base layer
         builder.SetCircle(CenterX, levelY, CenterZ, BaseWidth + Radius, Minecraft.Blocks.QuartzBlock);
+        // set hopper for slime collection
+        builder.SetBlock(CenterX, levelY, CenterZ, Minecraft.Blocks.Hopper.FacingDown());
         // set dispenser for splash potion
-        builder.SetBlock(CenterX, levelY, CenterZ, Minecraft.Blocks.Dispenser.FacingUp());
+        builder.SetBlock(CenterX + 1, levelY, CenterZ, Minecraft.Blocks.Dispenser.FacingUp());
         
         levelY++;
 
