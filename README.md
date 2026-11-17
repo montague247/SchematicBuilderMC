@@ -241,6 +241,17 @@ var door = new CompactPistonDoorSchematicCreator
 }.Build();
 
 SchematicFile.Write(door, "piston_door.schem");
+
+// Or build a single-pulse TNT duper aligned to drop at a specific (X, Z) target:
+var tntDuper = new TntDuperSchematicCreator
+{
+    Facing = Direction.South,
+    IncludeTriggerButton = true
+}
+    .WithDropPosition(targetX: 8, targetZ: 8, dropClearance: 6)
+    .Build();
+
+SchematicFile.Write(tntDuper, "tnt_duper.schem");
 ```
 
 ### 10. Geometric Shapes & Cylinder Stair Base

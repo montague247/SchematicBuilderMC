@@ -5,6 +5,7 @@ using SchematicBuilderMC.Generators;
 using SchematicBuilderMC.IO;
 using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
+using SchematicBuilderMC.Schematics.Contraptions;
 using SchematicBuilderMC.Schematics.Shapes;
 
 if (args.Length > 0)
@@ -41,6 +42,11 @@ if (args.Length > 0)
     if (firstArg is "cylinder-top" or "--cylinder-top")
     {
         return RunCylinderTopExample(args);
+    }
+
+    if (firstArg is "tnt-duper" or "--tnt-duper")
+    {
+        return RunTntDuperExample(args);
     }
 
     if (firstArg is "generate-code" or "to-code" or "code" or "--code" or "-c" ||
@@ -354,6 +360,30 @@ static int RunCylinderTopExample(string[] args)
     return 0;
 }
 
+static int RunTntDuperExample(string[] args)
+{
+    int targetX = args.Length > 1 && int.TryParse(args[1], out int parsedX) ? parsedX : 5;
+    int targetZ = args.Length > 2 && int.TryParse(args[2], out int parsedZ) ? parsedZ : 5;
+    string outputPath = args.Length > 3 && !string.IsNullOrWhiteSpace(args[3])
+        ? Path.GetFullPath(args[3])
+        : (args.Length == 2 && !int.TryParse(args[1], out _)
+            ? Path.GetFullPath(args[1])
+            : Path.Combine(Path.GetFullPath("."), "tnt_duper.schem"));
+
+    var creator = new TntDuperSchematicCreator
+    {
+        Facing = Direction.South,
+        IncludeTriggerButton = true
+    }.WithDropPosition(targetX, targetZ, dropClearance: 4);
+
+    var schematic = creator.Build();
+    SchematicFile.Write(schematic, outputPath, SchematicFormat.SpongeV2);
+    Console.WriteLine($"Created single-pulse TNT duper: {schematic.Width}x{schematic.Height}x{schematic.Length}");
+    Console.WriteLine($"TNT drops directly below ({targetX}, {creator.DropClearance}, {targetZ}): {schematic[targetX, creator.DropClearance, targetZ]}");
+    Console.WriteLine($"Wrote Sponge schematic to {outputPath} ({new FileInfo(outputPath).Length} bytes)");
+    return 0;
+}
+
 static void PrintHelp()
 {
     Console.WriteLine($"""
@@ -367,6 +397,7 @@ static void PrintHelp()
           cylinder-base [output.schem]       Generate an example cylinder surrounded by a stepped stair base.
           cylinder-top [output.schem]        Generate an example cylinder surrounded by stepped stair base and top collars.
           cylinder-water [output.schem]      Generate an example hollow cylinder with inward-flowing water to its center.
+          tnt-duper [x z] [output.schem]     Generate a single-pulse TNT duper aligned to drop at (X, Z).
           generate-registries                Generate Minecraft registry constants from embedded/online registries.json.
           demo                               Run the build and read/write demo (default when no args provided).
 
