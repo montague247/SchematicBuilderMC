@@ -16,6 +16,8 @@ public sealed class SlimeLaboratorySchematicCreator : SchematicCreator
         const int BaseWidth = 2;
         const int Width = (BaseWidth + Radius) * 2 + 1;
         const int Length = Width;
+        const int CenterX = BaseWidth + Radius;
+        const int CenterZ = CenterX;
 
         var builder = SchematicBuilder.Create(Width, Height, Length, Rotation)
                 .WithOffset(0, 0, 0)
@@ -26,8 +28,10 @@ public sealed class SlimeLaboratorySchematicCreator : SchematicCreator
         var levelY = 0;
 
         // set base layer
-        builder.SetCircle(BaseWidth + Radius, levelY, BaseWidth + Radius, BaseWidth + Radius, Minecraft.Blocks.QuartzBlock);
-
+        builder.SetCircle(CenterX, levelY, CenterZ, BaseWidth + Radius, Minecraft.Blocks.QuartzBlock);
+        // set dispenser for splash potion
+        builder.SetBlock(CenterX, levelY, CenterZ, Minecraft.Blocks.Dispenser.FacingUp());
+        
         levelY++;
 
         // gradient for the cylinder (from bottom to top)
@@ -36,21 +40,15 @@ public sealed class SlimeLaboratorySchematicCreator : SchematicCreator
             GradientTransition.Fuzzy, [35], true, 42);
 
         // cylinder for slimes to spawn in
-        builder.SetCylinder(BaseWidth + Radius, levelY, BaseWidth + Radius, Radius, CylinderHeight, gradient, filled: false);
-        builder.SetCylinderWater(BaseWidth + Radius, levelY, BaseWidth + Radius, Radius);
-        builder.SetCylinderBase(BaseWidth + Radius, levelY, BaseWidth + Radius, Radius, 2, 2, Minecraft.Blocks.DeepslateBricks);
-        builder.SetCylinderTop(BaseWidth + Radius, levelY + CylinderHeight - 2, BaseWidth + Radius, Radius, 2, 2, Minecraft.Blocks.DeepslateBricks);
-
-        // place water at the bottom of the cylinder
-        builder.SetBlock(BaseWidth + 1, levelY, BaseWidth + Radius, Minecraft.Blocks.Water.WithLevel(8));
-        builder.SetBlock(BaseWidth + Radius, levelY, BaseWidth + 1, Minecraft.Blocks.Water.WithLevel(8));
-        builder.SetBlock(BaseWidth + Radius, levelY, (BaseWidth + Radius) * 2 - 1, Minecraft.Blocks.Water.WithLevel(8));
-        builder.SetBlock((BaseWidth + Radius) * 2 - 1, levelY, BaseWidth + Radius, Minecraft.Blocks.Water.WithLevel(8));
+        builder.SetCylinder(CenterX, levelY, CenterZ, Radius, CylinderHeight, gradient, filled: false);
+        builder.SetCylinderWater(CenterX, levelY, CenterZ, Radius);
+        builder.SetCylinderBase(CenterX, levelY, CenterZ, Radius, 2, 2, Minecraft.Blocks.DeepslateBricks);
+        builder.SetCylinderTop(CenterX, levelY + CylinderHeight - 2, CenterZ, Radius, 2, 2, Minecraft.Blocks.DeepslateBricks);
 
         levelY += CylinderHeight;
 
         // set top layer
-        builder.SetCircle(BaseWidth + Radius, levelY, BaseWidth + Radius, BaseWidth + Radius, Minecraft.Blocks.QuartzBlock);
+        builder.SetCircle(CenterX, levelY, CenterZ, BaseWidth + Radius, Minecraft.Blocks.QuartzBlock);
 
         return builder;
     }
