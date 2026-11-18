@@ -75,6 +75,66 @@ public sealed class ClockCircuitsTests
         Assert.Equal(Minecraft.Blocks.RedstoneLamp, schematic[6, 1, 0].Identifier);
     }
 
+    [Theory]
+    [InlineData(HopperClockTorchPlacement.None, 1, false, 6, 3, 1)]
+    [InlineData(HopperClockTorchPlacement.Beginning, 1, true, 8, 5, 1)]
+    [InlineData(HopperClockTorchPlacement.End, 2, false, 11, 3, 1)]
+    [InlineData(HopperClockTorchPlacement.Both, 2, true, 15, 5, 1)]
+    public void HopperClock_OneWideAndOptionalTorches_ProducesExpectedLayoutAndWidth(
+        HopperClockTorchPlacement torchPlacement,
+        int torchCount,
+        bool includeToggleLever,
+        int expectedWidth,
+        int expectedHeight,
+        int expectedLength)
+    {
+        var clock = new HopperClockSchematicCreator
+        {
+            PeriodTicks = 80,
+            Facing = Direction.East,
+            OneWide = true,
+            TorchPlacement = torchPlacement,
+            TorchCount = torchCount,
+            IncludeToggleLever = includeToggleLever,
+            IncludeOutputLamp = torchPlacement != HopperClockTorchPlacement.None
+        };
+
+        var schematic = clock.Build();
+
+        Assert.Equal(expectedWidth, schematic.Width);
+        Assert.Equal(expectedHeight, schematic.Height);
+        Assert.Equal(expectedLength, schematic.Length);
+
+        int lead = torchPlacement is HopperClockTorchPlacement.Beginning or HopperClockTorchPlacement.Both
+            ? (torchCount == 1 ? 1 : 4)
+            : 0;
+        Assert.Equal(Minecraft.Blocks.StickyPiston, schematic[lead + 1, 2, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneBlock, schematic[lead + 3, 2, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.StickyPiston, schematic[lead + 4, 2, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[lead, 2, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[lead + 5, 2, 0].Identifier);
+
+        if (torchPlacement is HopperClockTorchPlacement.Beginning or HopperClockTorchPlacement.Both)
+        {
+            Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[lead - 1, 1, 0].Identifier);
+            Assert.Equal("west", schematic[lead - 1, 1, 0].Properties["facing"]);
+            if (torchCount == 2)
+            {
+                Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[0, 1, 0].Identifier);
+            }
+        }
+
+        if (torchPlacement is HopperClockTorchPlacement.End or HopperClockTorchPlacement.Both)
+        {
+            Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[lead + 6, 1, 0].Identifier);
+            Assert.Equal("east", schematic[lead + 6, 1, 0].Properties["facing"]);
+            if (torchCount == 2)
+            {
+                Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[lead + 9, 1, 0].Identifier);
+            }
+        }
+    }
+
     [Fact]
     public void RepeaterAndTorchClocks_TimingCalculations_ResolveAsExpected()
     {
@@ -127,5 +187,8 @@ public sealed class ClockCircuitsTests
         Assert.Throws<ArgumentOutOfRangeException>(() => new ClockSchematicCreator { ClockType = (ClockType)999 }.Build());
         Assert.Throws<ArgumentOutOfRangeException>(() => new RepeaterClockSchematicCreator { PeriodTicks = 2 }.Build());
         Assert.Throws<ArgumentOutOfRangeException>(() => new MinecartClockSchematicCreator { TrackLength = 2 }.Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new HopperClockSchematicCreator { TorchCount = 0 }.Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new HopperClockSchematicCreator { TorchCount = 3 }.Build());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new HopperClockSchematicCreator { TorchPlacement = (HopperClockTorchPlacement)999 }.Build());
     }
 }

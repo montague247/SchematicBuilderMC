@@ -39,8 +39,29 @@ public static class ClockExtensions
     public static SchematicBuilder AddComparatorClock(this SchematicBuilder builder, int x, int y, int z, TimeSpan? period = null, Direction facing = Direction.East, bool includeToggleLever = true, bool includeOutputLamp = false, Rotation rotation = Rotation.None) =>
         builder.AddClock(x, y, z, ClockType.Comparator, period, facing, includeToggleLever, includeOutputLamp, rotation);
 
-    public static SchematicBuilder AddHopperClock(this SchematicBuilder builder, int x, int y, int z, TimeSpan? period = null, Direction facing = Direction.East, bool includeToggleLever = false, bool includeOutputLamp = false, Rotation rotation = Rotation.None) =>
-        builder.AddClock(x, y, z, ClockType.Hopper, period, facing, includeToggleLever, includeOutputLamp, rotation);
+    public static SchematicBuilder AddHopperClock(
+        this SchematicBuilder builder,
+        int x,
+        int y,
+        int z,
+        TimeSpan? period = null,
+        Direction facing = Direction.East,
+        bool includeToggleLever = false,
+        bool includeOutputLamp = false,
+        bool oneWide = false,
+        HopperClockTorchPlacement torchPlacement = HopperClockTorchPlacement.None,
+        int torchCount = 1,
+        Rotation rotation = Rotation.None) =>
+        new HopperClockSchematicCreator
+        {
+            Period = period,
+            Facing = facing,
+            OneWide = oneWide,
+            TorchPlacement = torchPlacement,
+            TorchCount = torchCount,
+            IncludeToggleLever = includeToggleLever,
+            IncludeOutputLamp = includeOutputLamp
+        }.WithRotation(rotation).Place(builder, x, y, z);
 
     public static SchematicBuilder AddObserverClock(this SchematicBuilder builder, int x, int y, int z, TimeSpan? period = null, Direction facing = Direction.East, bool includeToggleLever = true, bool includeOutputLamp = false, Rotation rotation = Rotation.None) =>
         builder.AddClock(x, y, z, ClockType.Observer, period, facing, includeToggleLever, includeOutputLamp, rotation);

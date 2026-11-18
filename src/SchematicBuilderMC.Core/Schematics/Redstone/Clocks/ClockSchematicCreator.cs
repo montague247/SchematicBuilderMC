@@ -37,6 +37,12 @@ public class ClockSchematicCreator : SchematicCreator
 
     public string ItemId { get; set; } = Minecraft.Items.Cobblestone;
 
+    public bool OneWide { get; set; }
+
+    public HopperClockTorchPlacement TorchPlacement { get; set; } = HopperClockTorchPlacement.None;
+
+    public int TorchCount { get; set; } = 1;
+
     public bool IncludeToggleLever { get; set; }
 
     public bool IncludeOutputLamp { get; set; }
@@ -100,6 +106,9 @@ public class ClockSchematicCreator : SchematicCreator
                 Period = Period,
                 PeriodTicks = PeriodTicks,
                 Facing = Facing,
+                OneWide = OneWide,
+                TorchPlacement = TorchPlacement,
+                TorchCount = TorchCount,
                 CircuitBlock = CircuitBlock,
                 ItemId = ItemId,
                 IncludeToggleLever = IncludeToggleLever,
