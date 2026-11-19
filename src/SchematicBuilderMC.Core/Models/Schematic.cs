@@ -2261,6 +2261,243 @@ public sealed class Schematic
     }
 
     /// <summary>
+    /// Places a horizontal water channel of <paramref name="length"/> blocks starting at (startX, startY, startZ) flowing along <paramref name="facing"/>.
+    /// Uses <paramref name="baseBlock"/> (default <see cref="Minecraft.Blocks.BlueIce"/>) as the channel floor, places water sources and
+    /// flowing water levels (with pass-through dividers every 8 water blocks for channels longer than 9 blocks), and optionally adds trapdoors
+    /// surrounding the base block, guiding the water stream, and covering the top.
+    /// </summary>
+    public void SetWaterChannel(
+        int startX,
+        int startY,
+        int startZ,
+        int length,
+        Direction facing = Direction.East,
+        string baseBlock = Minecraft.Blocks.BlueIce,
+        bool surroundBaseWithTrapdoors = false,
+        bool guideWaterWithTrapdoors = false,
+        bool coverTopWithTrapdoors = false,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool closeEndWithTrapdoor = false,
+        BlockState? dividerBlock = null,
+        bool overwriteExisting = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseBlock);
+        ArgumentException.ThrowIfNullOrWhiteSpace(trapdoorBlock);
+        SetWaterChannel(
+            startX,
+            startY,
+            startZ,
+            length,
+            facing,
+            BlockState.Parse(baseBlock),
+            surroundBaseWithTrapdoors,
+            guideWaterWithTrapdoors,
+            coverTopWithTrapdoors,
+            BlockState.Parse(trapdoorBlock),
+            closeEndWithTrapdoor,
+            dividerBlock,
+            overwriteExisting);
+    }
+
+    /// <summary>
+    /// Places a horizontal water channel starting at <paramref name="start"/> flowing along <paramref name="facing"/>.
+    /// </summary>
+    public void SetWaterChannel(
+        BlockPosition start,
+        int length,
+        Direction facing = Direction.East,
+        string baseBlock = Minecraft.Blocks.BlueIce,
+        bool surroundBaseWithTrapdoors = false,
+        bool guideWaterWithTrapdoors = false,
+        bool coverTopWithTrapdoors = false,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool closeEndWithTrapdoor = false,
+        BlockState? dividerBlock = null,
+        bool overwriteExisting = false) =>
+        SetWaterChannel(
+            start.X,
+            start.Y,
+            start.Z,
+            length,
+            facing,
+            baseBlock,
+            surroundBaseWithTrapdoors,
+            guideWaterWithTrapdoors,
+            coverTopWithTrapdoors,
+            trapdoorBlock,
+            closeEndWithTrapdoor,
+            dividerBlock,
+            overwriteExisting);
+
+    /// <summary>
+    /// Places a horizontal water channel of <paramref name="length"/> blocks starting at (startX, startY, startZ) using explicit <see cref="BlockState"/> definitions.
+    /// </summary>
+    public void SetWaterChannel(
+        int startX,
+        int startY,
+        int startZ,
+        int length,
+        Direction facing,
+        BlockState baseBlockState,
+        bool surroundBaseWithTrapdoors = false,
+        bool guideWaterWithTrapdoors = false,
+        bool coverTopWithTrapdoors = false,
+        BlockState? trapdoorState = null,
+        bool closeEndWithTrapdoor = false,
+        BlockState? dividerBlock = null,
+        bool overwriteExisting = false)
+    {
+        ArgumentNullException.ThrowIfNull(baseBlockState);
+        if (length <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Channel length must be greater than zero.");
+        }
+
+        var (fwdDx, fwdDz, leftFacing, leftDx, leftDz, rightFacing, rightDx, rightDz, backFacing) = ResolveHorizontalStep(facing);
+        var resolvedTrapdoor = trapdoorState ?? BlockState.Parse(Minecraft.Blocks.OakTrapdoor);
+
+        var basePositions = new List<BlockPosition>(length);
+        for (int i = 0; i < length; i++)
+        {
+            int x = startX + (i * fwdDx);
+            int z = startZ + (i * fwdDz);
+            EnsureInBounds(x, startY, z);
+            EnsureInBounds(x, startY + 1, z);
+            if (coverTopWithTrapdoors)
+            {
+                EnsureInBounds(x, startY + 2, z);
+            }
+
+            if (guideWaterWithTrapdoors)
+            {
+                EnsureInBounds(x + leftDx, startY + 1, z + leftDz);
+                EnsureInBounds(x + rightDx, startY + 1, z + rightDz);
+            }
+
+            basePositions.Add(new BlockPosition(x, startY, z));
+        }
+
+        if (guideWaterWithTrapdoors)
+        {
+            EnsureInBounds(startX - fwdDx, startY + 1, startZ - fwdDz);
+            if (closeEndWithTrapdoor)
+            {
+                EnsureInBounds(startX + (length * fwdDx), startY + 1, startZ + (length * fwdDz));
+            }
+        }
+
+        // 1. Place base floor strip (default: Blue Ice)
+        foreach (var basePos in basePositions)
+        {
+            SetBlock(basePos, baseBlockState);
+        }
+
+        // 2. Optional trapdoors surrounding the base blocks
+        if (surroundBaseWithTrapdoors)
+        {
+            SurroundWithTrapdoors(basePositions, resolvedTrapdoor, bottom: true, open: true, powered: false, waterlogged: false, overwriteExisting: overwriteExisting);
+        }
+
+        // 3. Optional trapdoors guiding the water stream along sides and back cap (plus optional closed end cap)
+        if (guideWaterWithTrapdoors)
+        {
+            void TryPlaceGuideTrapdoor(int x, int y, int z, Direction tdFacing)
+            {
+                if (overwriteExisting || GetBlock(x, y, z).IsAir)
+                {
+                    SetBlock(x, y, z, CreateTrapdoorState(resolvedTrapdoor, tdFacing, bottom: true, open: true, powered: false, waterlogged: false));
+                }
+            }
+
+            TryPlaceGuideTrapdoor(startX - fwdDx, startY + 1, startZ - fwdDz, backFacing);
+            for (int i = 0; i < length; i++)
+            {
+                int x = startX + (i * fwdDx);
+                int z = startZ + (i * fwdDz);
+                TryPlaceGuideTrapdoor(x + leftDx, startY + 1, z + leftDz, leftFacing);
+                TryPlaceGuideTrapdoor(x + rightDx, startY + 1, z + rightDz, rightFacing);
+            }
+
+            if (closeEndWithTrapdoor)
+            {
+                TryPlaceGuideTrapdoor(startX + (length * fwdDx), startY + 1, startZ + (length * fwdDz), facing);
+            }
+        }
+
+        // 4. Place water sources, flowing water levels (0..7), and pass-through water dividers where segments exceed 8 blocks
+        var resolvedDivider = dividerBlock ?? CreateTrapdoorState(resolvedTrapdoor, facing, bottom: false, open: false, powered: false, waterlogged: false);
+        for (int i = 0; i < length; i++)
+        {
+            int x = startX + (i * fwdDx);
+            int z = startZ + (i * fwdDz);
+            int segmentOffset = i % 9;
+            if (segmentOffset < 8)
+            {
+                SetBlock(x, startY + 1, z, Minecraft.Blocks.Water.WithLevel(segmentOffset));
+            }
+            else if (i < length - 1)
+            {
+                SetBlock(x, startY + 1, z, resolvedDivider);
+            }
+        }
+
+        // 5. Optional top trapdoors covering the water stream (closed on bottom half directly above the water)
+        if (coverTopWithTrapdoors)
+        {
+            var topCoverState = CreateTrapdoorState(resolvedTrapdoor, facing, bottom: true, open: false, powered: false, waterlogged: false);
+            for (int i = 0; i < length; i++)
+            {
+                int x = startX + (i * fwdDx);
+                int z = startZ + (i * fwdDz);
+                if (overwriteExisting || GetBlock(x, startY + 2, z).IsAir)
+                {
+                    SetBlock(x, startY + 2, z, topCoverState);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places a horizontal water channel starting at <paramref name="start"/> using explicit <see cref="BlockState"/> definitions.
+    /// </summary>
+    public void SetWaterChannel(
+        BlockPosition start,
+        int length,
+        Direction facing,
+        BlockState baseBlockState,
+        bool surroundBaseWithTrapdoors = false,
+        bool guideWaterWithTrapdoors = false,
+        bool coverTopWithTrapdoors = false,
+        BlockState? trapdoorState = null,
+        bool closeEndWithTrapdoor = false,
+        BlockState? dividerBlock = null,
+        bool overwriteExisting = false) =>
+        SetWaterChannel(
+            start.X,
+            start.Y,
+            start.Z,
+            length,
+            facing,
+            baseBlockState,
+            surroundBaseWithTrapdoors,
+            guideWaterWithTrapdoors,
+            coverTopWithTrapdoors,
+            trapdoorState,
+            closeEndWithTrapdoor,
+            dividerBlock,
+            overwriteExisting);
+
+    private static (int FwdDx, int FwdDz, Direction LeftFacing, int LeftDx, int LeftDz, Direction RightFacing, int RightDx, int RightDz, Direction BackFacing) ResolveHorizontalStep(Direction facing) =>
+        facing switch
+        {
+            Direction.East => (1, 0, Direction.North, 0, -1, Direction.South, 0, 1, Direction.West),
+            Direction.West => (-1, 0, Direction.South, 0, 1, Direction.North, 0, -1, Direction.East),
+            Direction.South => (0, 1, Direction.East, 1, 0, Direction.West, -1, 0, Direction.North),
+            Direction.North => (0, -1, Direction.West, -1, 0, Direction.East, 1, 0, Direction.South),
+            _ => throw new ArgumentOutOfRangeException(nameof(facing), facing, "Channel facing must be North, South, East, or West.")
+        };
+
+    /// <summary>
     /// Places a filled or hollow torus centered at (centerX, centerY, centerZ) oriented around <paramref name="axis"/>.
     /// </summary>
     public void SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, BlockState blockState, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)

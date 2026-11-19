@@ -905,6 +905,90 @@ public sealed class SchematicBuilder
         return this;
     }
 
+    /// <summary>
+    /// Places a horizontal water channel of <paramref name="length"/> blocks starting at (startX, startY, startZ) flowing along <paramref name="facing"/>.
+    /// </summary>
+    public SchematicBuilder SetWaterChannel(
+        int startX,
+        int startY,
+        int startZ,
+        int length,
+        Direction facing = Direction.East,
+        string baseBlock = Minecraft.Blocks.BlueIce,
+        bool surroundBaseWithTrapdoors = false,
+        bool guideWaterWithTrapdoors = false,
+        bool coverTopWithTrapdoors = false,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool closeEndWithTrapdoor = false,
+        BlockState? dividerBlock = null,
+        bool overwriteExisting = false)
+    {
+        _schematic.SetWaterChannel(startX, startY, startZ, length, facing, baseBlock, surroundBaseWithTrapdoors, guideWaterWithTrapdoors, coverTopWithTrapdoors, trapdoorBlock, closeEndWithTrapdoor, dividerBlock, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Places a horizontal water channel starting at <paramref name="start"/> flowing along <paramref name="facing"/>.
+    /// </summary>
+    public SchematicBuilder SetWaterChannel(
+        BlockPosition start,
+        int length,
+        Direction facing = Direction.East,
+        string baseBlock = Minecraft.Blocks.BlueIce,
+        bool surroundBaseWithTrapdoors = false,
+        bool guideWaterWithTrapdoors = false,
+        bool coverTopWithTrapdoors = false,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool closeEndWithTrapdoor = false,
+        BlockState? dividerBlock = null,
+        bool overwriteExisting = false)
+    {
+        _schematic.SetWaterChannel(start, length, facing, baseBlock, surroundBaseWithTrapdoors, guideWaterWithTrapdoors, coverTopWithTrapdoors, trapdoorBlock, closeEndWithTrapdoor, dividerBlock, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Places a horizontal water channel of <paramref name="length"/> blocks starting at (startX, startY, startZ) using explicit <see cref="BlockState"/> definitions.
+    /// </summary>
+    public SchematicBuilder SetWaterChannel(
+        int startX,
+        int startY,
+        int startZ,
+        int length,
+        Direction facing,
+        BlockState baseBlockState,
+        bool surroundBaseWithTrapdoors = false,
+        bool guideWaterWithTrapdoors = false,
+        bool coverTopWithTrapdoors = false,
+        BlockState? trapdoorState = null,
+        bool closeEndWithTrapdoor = false,
+        BlockState? dividerBlock = null,
+        bool overwriteExisting = false)
+    {
+        _schematic.SetWaterChannel(startX, startY, startZ, length, facing, baseBlockState, surroundBaseWithTrapdoors, guideWaterWithTrapdoors, coverTopWithTrapdoors, trapdoorState, closeEndWithTrapdoor, dividerBlock, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Places a horizontal water channel starting at <paramref name="start"/> using explicit <see cref="BlockState"/> definitions.
+    /// </summary>
+    public SchematicBuilder SetWaterChannel(
+        BlockPosition start,
+        int length,
+        Direction facing,
+        BlockState baseBlockState,
+        bool surroundBaseWithTrapdoors = false,
+        bool guideWaterWithTrapdoors = false,
+        bool coverTopWithTrapdoors = false,
+        BlockState? trapdoorState = null,
+        bool closeEndWithTrapdoor = false,
+        BlockState? dividerBlock = null,
+        bool overwriteExisting = false)
+    {
+        _schematic.SetWaterChannel(start, length, facing, baseBlockState, surroundBaseWithTrapdoors, guideWaterWithTrapdoors, coverTopWithTrapdoors, trapdoorState, closeEndWithTrapdoor, dividerBlock, overwriteExisting);
+        return this;
+    }
+
     public SchematicBuilder SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, BlockState block, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
         _schematic.SetTorus(centerX, centerY, centerZ, majorRadius, minorRadius, block, filled, axis, smoothnessFactor);

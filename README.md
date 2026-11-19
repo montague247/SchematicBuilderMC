@@ -295,6 +295,18 @@ var wrappedSingle = new TrapdoorSurroundSchematicCreator
     Bottom = false, // top half
     Open = true
 }.Build();
+
+// Water channel with configurable base block (default: Blue Ice) and optional trapdoor base surround, water guides, and top cover:
+var waterChannel = new WaterChannelSchematicCreator
+{
+    Length = 16,
+    Facing = Direction.East,
+    BaseBlock = Minecraft.Blocks.BlueIce,
+    TrapdoorBlock = Minecraft.Blocks.SpruceTrapdoor,
+    SurroundBaseWithTrapdoors = true,
+    GuideWaterWithTrapdoors = true,
+    CoverTopWithTrapdoors = true
+}.Build();
 ```
 
 ### 11. Configurable Redstone Circuits
