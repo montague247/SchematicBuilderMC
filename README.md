@@ -280,6 +280,23 @@ SchematicFile.Write(cylinderWithBase, "cylinder_with_base.schem");
 
 Or add a stair base, top collar, or center-flowing water directly around an existing cylinder with `SchematicBuilder.SetCylinderBase(...)`, `SchematicBuilder.SetCylinderTop(...)`, and `SchematicBuilder.SetCylinderWater(...)`.
 
+You can also surround one block, a cuboid region, or an arbitrary list of blocks with outward-facing trapdoors (defaulting to `bottom: true` and `open: true`):
+
+```csharp
+var wrappedPost = SchematicBuilder.Create(5, 4, 5)
+    .Fill(2, 0, 2, 2, 2, 2, Minecraft.Blocks.Glowstone)
+    .SurroundWithTrapdoors(2, 0, 2, width: 1, height: 3, length: 1, Minecraft.Blocks.SpruceTrapdoor, bottom: true, open: true)
+    .Build();
+
+var wrappedSingle = new TrapdoorSurroundSchematicCreator
+{
+    Block = Minecraft.Blocks.Shroomlight,
+    TrapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+    Bottom = false, // top half
+    Open = true
+}.Build();
+```
+
 ### 11. Configurable Redstone Circuits
 
 Build transmission, logic, pulse, clock, memory, and miscellaneous Redstone circuits from the Minecraft Wiki as configurable `SchematicCreator` components or via fluent `SchematicBuilder` extensions:

@@ -831,6 +831,72 @@ public sealed class Schematic
         SetPiston(position.X, position.Y, position.Z, facing.ToStateString(), sticky, extended);
 
     /// <summary>
+    /// Sets a trapdoor at (x, y, z) with specified horizontal facing, vertical placement (<paramref name="bottom"/>),
+    /// open state (<paramref name="open"/>), powered state, and waterlogged state.
+    /// </summary>
+    public BlockState SetTrapdoor(
+        int x,
+        int y,
+        int z,
+        Direction facing = Direction.North,
+        bool bottom = true,
+        bool open = true,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool powered = false,
+        bool waterlogged = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(trapdoorBlock);
+        return SetTrapdoor(x, y, z, BlockState.Parse(trapdoorBlock), facing, bottom, open, powered, waterlogged);
+    }
+
+    /// <summary>
+    /// Sets a trapdoor at <paramref name="position"/> with specified horizontal facing, vertical placement, and open state.
+    /// </summary>
+    public BlockState SetTrapdoor(
+        BlockPosition position,
+        Direction facing = Direction.North,
+        bool bottom = true,
+        bool open = true,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool powered = false,
+        bool waterlogged = false) =>
+        SetTrapdoor(position.X, position.Y, position.Z, facing, bottom, open, trapdoorBlock, powered, waterlogged);
+
+    /// <summary>
+    /// Sets a trapdoor using <paramref name="trapdoorState"/> at (x, y, z) with specified horizontal facing,
+    /// vertical placement (<paramref name="bottom"/>), open state (<paramref name="open"/>), powered state, and waterlogged state.
+    /// </summary>
+    public BlockState SetTrapdoor(
+        int x,
+        int y,
+        int z,
+        BlockState trapdoorState,
+        Direction facing = Direction.North,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false)
+    {
+        ArgumentNullException.ThrowIfNull(trapdoorState);
+        var state = CreateTrapdoorState(trapdoorState, facing, bottom, open, powered, waterlogged);
+        SetBlock(x, y, z, state);
+        return state;
+    }
+
+    /// <summary>
+    /// Sets a trapdoor using <paramref name="trapdoorState"/> at <paramref name="position"/>.
+    /// </summary>
+    public BlockState SetTrapdoor(
+        BlockPosition position,
+        BlockState trapdoorState,
+        Direction facing = Direction.North,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false) =>
+        SetTrapdoor(position.X, position.Y, position.Z, trapdoorState, facing, bottom, open, powered, waterlogged);
+
+    /// <summary>
     /// Adds an entity to the schematic.
     /// </summary>
     public void AddEntity(Entity entity)
@@ -1929,6 +1995,270 @@ public sealed class Schematic
         double smoothnessFactor = 1.0,
         int? maxHeight = null) =>
         SetCylinderWater(baseCenter.X, baseCenter.Y, baseCenter.Z, cylinderRadius, axis, smoothnessFactor, BlockState.Parse(tierFloorBlockString), maxHeight);
+
+    /// <summary>
+    /// Surrounds a single block at (x, y, z) on all four horizontal sides with trapdoors facing outward from the block.
+    /// </summary>
+    public void SurroundWithTrapdoors(
+        int x,
+        int y,
+        int z,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(trapdoorBlock);
+        SurroundWithTrapdoors([new BlockPosition(x, y, z)], BlockState.Parse(trapdoorBlock), bottom, open, powered, waterlogged, overwriteExisting);
+    }
+
+    /// <summary>
+    /// Surrounds a single block at <paramref name="position"/> on all four horizontal sides with trapdoors facing outward.
+    /// </summary>
+    public void SurroundWithTrapdoors(
+        BlockPosition position,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false) =>
+        SurroundWithTrapdoors(position.X, position.Y, position.Z, trapdoorBlock, bottom, open, powered, waterlogged, overwriteExisting);
+
+    /// <summary>
+    /// Surrounds a single block at (x, y, z) on all four horizontal sides with trapdoors using <paramref name="trapdoorState"/>.
+    /// </summary>
+    public void SurroundWithTrapdoors(
+        int x,
+        int y,
+        int z,
+        BlockState trapdoorState,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        ArgumentNullException.ThrowIfNull(trapdoorState);
+        SurroundWithTrapdoors([new BlockPosition(x, y, z)], trapdoorState, bottom, open, powered, waterlogged, overwriteExisting);
+    }
+
+    /// <summary>
+    /// Surrounds a single block at <paramref name="position"/> on all four horizontal sides with trapdoors using <paramref name="trapdoorState"/>.
+    /// </summary>
+    public void SurroundWithTrapdoors(
+        BlockPosition position,
+        BlockState trapdoorState,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false) =>
+        SurroundWithTrapdoors(position.X, position.Y, position.Z, trapdoorState, bottom, open, powered, waterlogged, overwriteExisting);
+
+    /// <summary>
+    /// Surrounds a rectangular region of blocks starting at (startX, startY, startZ) with outward-facing trapdoors on all exposed horizontal perimeter faces.
+    /// </summary>
+    public void SurroundWithTrapdoors(
+        int startX,
+        int startY,
+        int startZ,
+        int width,
+        int height,
+        int length,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(trapdoorBlock);
+        SurroundWithTrapdoors(startX, startY, startZ, width, height, length, BlockState.Parse(trapdoorBlock), bottom, open, powered, waterlogged, overwriteExisting);
+    }
+
+    /// <summary>
+    /// Surrounds a rectangular region of blocks starting at <paramref name="start"/> with outward-facing trapdoors on all exposed horizontal perimeter faces.
+    /// </summary>
+    public void SurroundWithTrapdoors(
+        BlockPosition start,
+        int width,
+        int height,
+        int length,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false) =>
+        SurroundWithTrapdoors(start.X, start.Y, start.Z, width, height, length, trapdoorBlock, bottom, open, powered, waterlogged, overwriteExisting);
+
+    /// <summary>
+    /// Surrounds a rectangular region of blocks starting at (startX, startY, startZ) with outward-facing trapdoors using <paramref name="trapdoorState"/>.
+    /// </summary>
+    public void SurroundWithTrapdoors(
+        int startX,
+        int startY,
+        int startZ,
+        int width,
+        int height,
+        int length,
+        BlockState trapdoorState,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        ArgumentNullException.ThrowIfNull(trapdoorState);
+        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width), width, "Width must be greater than zero.");
+        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height), height, "Height must be greater than zero.");
+        if (length <= 0) throw new ArgumentOutOfRangeException(nameof(length), length, "Length must be greater than zero.");
+
+        var positions = new List<BlockPosition>(checked(width * height * length));
+        for (int dy = 0; dy < height; dy++)
+        {
+            for (int dz = 0; dz < length; dz++)
+            {
+                for (int dx = 0; dx < width; dx++)
+                {
+                    positions.Add(new BlockPosition(startX + dx, startY + dy, startZ + dz));
+                }
+            }
+        }
+
+        SurroundWithTrapdoors(positions, trapdoorState, bottom, open, powered, waterlogged, overwriteExisting);
+    }
+
+    /// <summary>
+    /// Surrounds a rectangular region of blocks starting at <paramref name="start"/> with outward-facing trapdoors using <paramref name="trapdoorState"/>.
+    /// </summary>
+    public void SurroundWithTrapdoors(
+        BlockPosition start,
+        int width,
+        int height,
+        int length,
+        BlockState trapdoorState,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false) =>
+        SurroundWithTrapdoors(start.X, start.Y, start.Z, width, height, length, trapdoorState, bottom, open, powered, waterlogged, overwriteExisting);
+
+    /// <summary>
+    /// Surrounds one or more block positions (<paramref name="blockPositions"/>) with outward-facing trapdoors on all exposed horizontal perimeter faces.
+    /// </summary>
+    public void SurroundWithTrapdoors(
+        IEnumerable<BlockPosition> blockPositions,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(trapdoorBlock);
+        SurroundWithTrapdoors(blockPositions, BlockState.Parse(trapdoorBlock), bottom, open, powered, waterlogged, overwriteExisting);
+    }
+
+    /// <summary>
+    /// Surrounds one or more block positions (<paramref name="blockPositions"/>) with outward-facing trapdoors using <paramref name="trapdoorState"/>.
+    /// </summary>
+    public void SurroundWithTrapdoors(
+        IEnumerable<BlockPosition> blockPositions,
+        BlockState trapdoorState,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        ArgumentNullException.ThrowIfNull(blockPositions);
+        ArgumentNullException.ThrowIfNull(trapdoorState);
+
+        var targets = new HashSet<BlockPosition>();
+        foreach (var pos in blockPositions)
+        {
+            targets.Add(pos);
+        }
+
+        if (targets.Count == 0)
+        {
+            throw new ArgumentException("At least one block position must be provided.", nameof(blockPositions));
+        }
+
+        // Deterministic ordering ensures shared inside-corner cells receive a predictable facing.
+        var orderedTargets = targets
+            .OrderBy(p => p.Y)
+            .ThenBy(p => p.Z)
+            .ThenBy(p => p.X)
+            .ToArray();
+
+        ReadOnlySpan<(Direction Facing, int Dx, int Dz)> horizontalFaces =
+        [
+            (Direction.North, 0, -1),
+            (Direction.South, 0, 1),
+            (Direction.East, 1, 0),
+            (Direction.West, -1, 0)
+        ];
+
+        var candidates = new List<(BlockPosition Neighbor, Direction Facing)>();
+        var seenNeighbors = new HashSet<BlockPosition>();
+
+        foreach (var pos in orderedTargets)
+        {
+            EnsureInBounds(pos.X, pos.Y, pos.Z);
+            foreach (var (facing, dx, dz) in horizontalFaces)
+            {
+                var neighbor = new BlockPosition(pos.X + dx, pos.Y, pos.Z + dz);
+                if (targets.Contains(neighbor))
+                {
+                    continue;
+                }
+
+                EnsureInBounds(neighbor.X, neighbor.Y, neighbor.Z);
+                if (seenNeighbors.Add(neighbor))
+                {
+                    candidates.Add((neighbor, facing));
+                }
+            }
+        }
+
+        foreach (var (neighbor, facing) in candidates)
+        {
+            if (!overwriteExisting && !GetBlock(neighbor.X, neighbor.Y, neighbor.Z).IsAir)
+            {
+                continue;
+            }
+
+            SetBlock(neighbor, CreateTrapdoorState(trapdoorState, facing, bottom, open, powered, waterlogged));
+        }
+    }
+
+    private static BlockState CreateTrapdoorState(
+        BlockState baseState,
+        Direction facing,
+        bool bottom,
+        bool open,
+        bool powered,
+        bool waterlogged)
+    {
+        if (!Enum.IsDefined(facing) ||
+            facing is not (Direction.North or Direction.South or Direction.East or Direction.West))
+        {
+            throw new ArgumentOutOfRangeException(nameof(facing), facing, "Trapdoor facing must be North, South, East, or West.");
+        }
+
+        return baseState
+            .WithFacing(facing)
+            .WithHalf(bottom ? BlockHalf.Bottom : BlockHalf.Top)
+            .WithOpen(open)
+            .WithPowered(powered)
+            .WithWaterlogged(waterlogged);
+    }
 
     /// <summary>
     /// Places a filled or hollow torus centered at (centerX, centerY, centerZ) oriented around <paramref name="axis"/>.

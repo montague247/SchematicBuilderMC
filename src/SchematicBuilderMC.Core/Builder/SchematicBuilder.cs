@@ -725,6 +725,186 @@ public sealed class SchematicBuilder
         return this;
     }
 
+    /// <summary>
+    /// Surrounds a single block at (x, y, z) on all four horizontal sides with outward-facing trapdoors.
+    /// </summary>
+    public SchematicBuilder SurroundWithTrapdoors(
+        int x,
+        int y,
+        int z,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        _schematic.SurroundWithTrapdoors(x, y, z, trapdoorBlock, bottom, open, powered, waterlogged, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Surrounds a single block at <paramref name="position"/> on all four horizontal sides with outward-facing trapdoors.
+    /// </summary>
+    public SchematicBuilder SurroundWithTrapdoors(
+        BlockPosition position,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        _schematic.SurroundWithTrapdoors(position, trapdoorBlock, bottom, open, powered, waterlogged, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Surrounds a single block at (x, y, z) on all four horizontal sides with outward-facing trapdoors using <paramref name="trapdoorState"/>.
+    /// </summary>
+    public SchematicBuilder SurroundWithTrapdoors(
+        int x,
+        int y,
+        int z,
+        BlockState trapdoorState,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        _schematic.SurroundWithTrapdoors(x, y, z, trapdoorState, bottom, open, powered, waterlogged, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Surrounds a single block at <paramref name="position"/> on all four horizontal sides with outward-facing trapdoors using <paramref name="trapdoorState"/>.
+    /// </summary>
+    public SchematicBuilder SurroundWithTrapdoors(
+        BlockPosition position,
+        BlockState trapdoorState,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        _schematic.SurroundWithTrapdoors(position, trapdoorState, bottom, open, powered, waterlogged, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Surrounds a rectangular region of blocks starting at (startX, startY, startZ) with outward-facing trapdoors on all exposed horizontal perimeter faces.
+    /// </summary>
+    public SchematicBuilder SurroundWithTrapdoors(
+        int startX,
+        int startY,
+        int startZ,
+        int width,
+        int height,
+        int length,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        _schematic.SurroundWithTrapdoors(startX, startY, startZ, width, height, length, trapdoorBlock, bottom, open, powered, waterlogged, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Surrounds a rectangular region of blocks starting at <paramref name="start"/> with outward-facing trapdoors on all exposed horizontal perimeter faces.
+    /// </summary>
+    public SchematicBuilder SurroundWithTrapdoors(
+        BlockPosition start,
+        int width,
+        int height,
+        int length,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        _schematic.SurroundWithTrapdoors(start, width, height, length, trapdoorBlock, bottom, open, powered, waterlogged, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Surrounds a rectangular region of blocks starting at (startX, startY, startZ) with outward-facing trapdoors using <paramref name="trapdoorState"/>.
+    /// </summary>
+    public SchematicBuilder SurroundWithTrapdoors(
+        int startX,
+        int startY,
+        int startZ,
+        int width,
+        int height,
+        int length,
+        BlockState trapdoorState,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        _schematic.SurroundWithTrapdoors(startX, startY, startZ, width, height, length, trapdoorState, bottom, open, powered, waterlogged, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Surrounds a rectangular region of blocks starting at <paramref name="start"/> with outward-facing trapdoors using <paramref name="trapdoorState"/>.
+    /// </summary>
+    public SchematicBuilder SurroundWithTrapdoors(
+        BlockPosition start,
+        int width,
+        int height,
+        int length,
+        BlockState trapdoorState,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        _schematic.SurroundWithTrapdoors(start, width, height, length, trapdoorState, bottom, open, powered, waterlogged, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Surrounds one or more block positions (<paramref name="blockPositions"/>) with outward-facing trapdoors on all exposed horizontal perimeter faces.
+    /// </summary>
+    public SchematicBuilder SurroundWithTrapdoors(
+        IEnumerable<BlockPosition> blockPositions,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        _schematic.SurroundWithTrapdoors(blockPositions, trapdoorBlock, bottom, open, powered, waterlogged, overwriteExisting);
+        return this;
+    }
+
+    /// <summary>
+    /// Surrounds one or more block positions (<paramref name="blockPositions"/>) with outward-facing trapdoors using <paramref name="trapdoorState"/>.
+    /// </summary>
+    public SchematicBuilder SurroundWithTrapdoors(
+        IEnumerable<BlockPosition> blockPositions,
+        BlockState trapdoorState,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false,
+        bool overwriteExisting = false)
+    {
+        _schematic.SurroundWithTrapdoors(blockPositions, trapdoorState, bottom, open, powered, waterlogged, overwriteExisting);
+        return this;
+    }
+
     public SchematicBuilder SetTorus(int centerX, int centerY, int centerZ, int majorRadius, int minorRadius, BlockState block, bool filled = true, Axis axis = Axis.Y, double smoothnessFactor = 1.0)
     {
         _schematic.SetTorus(centerX, centerY, centerZ, majorRadius, minorRadius, block, filled, axis, smoothnessFactor);
@@ -1234,6 +1414,75 @@ public sealed class SchematicBuilder
     public SchematicBuilder SetPiston(BlockPosition position, Direction facing, bool sticky = false, bool extended = false)
     {
         _schematic.SetPiston(position, facing, sticky, extended);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a trapdoor at (x, y, z) with specified horizontal facing, vertical placement (<paramref name="bottom"/>),
+    /// open state (<paramref name="open"/>), powered state, and waterlogged state.
+    /// </summary>
+    public SchematicBuilder SetTrapdoor(
+        int x,
+        int y,
+        int z,
+        Direction facing = Direction.North,
+        bool bottom = true,
+        bool open = true,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool powered = false,
+        bool waterlogged = false)
+    {
+        _schematic.SetTrapdoor(x, y, z, facing, bottom, open, trapdoorBlock, powered, waterlogged);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a trapdoor at <paramref name="position"/> with specified horizontal facing, vertical placement, and open state.
+    /// </summary>
+    public SchematicBuilder SetTrapdoor(
+        BlockPosition position,
+        Direction facing = Direction.North,
+        bool bottom = true,
+        bool open = true,
+        string trapdoorBlock = Minecraft.Blocks.OakTrapdoor,
+        bool powered = false,
+        bool waterlogged = false)
+    {
+        _schematic.SetTrapdoor(position, facing, bottom, open, trapdoorBlock, powered, waterlogged);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a trapdoor using <paramref name="trapdoorState"/> at (x, y, z).
+    /// </summary>
+    public SchematicBuilder SetTrapdoor(
+        int x,
+        int y,
+        int z,
+        BlockState trapdoorState,
+        Direction facing = Direction.North,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false)
+    {
+        _schematic.SetTrapdoor(x, y, z, trapdoorState, facing, bottom, open, powered, waterlogged);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a trapdoor using <paramref name="trapdoorState"/> at <paramref name="position"/>.
+    /// </summary>
+    public SchematicBuilder SetTrapdoor(
+        BlockPosition position,
+        BlockState trapdoorState,
+        Direction facing = Direction.North,
+        bool bottom = true,
+        bool open = true,
+        bool powered = false,
+        bool waterlogged = false)
+    {
+        _schematic.SetTrapdoor(position, trapdoorState, facing, bottom, open, powered, waterlogged);
         return this;
     }
 
