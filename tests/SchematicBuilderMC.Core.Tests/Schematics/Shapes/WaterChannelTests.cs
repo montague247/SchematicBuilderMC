@@ -81,7 +81,7 @@ public sealed class WaterChannelTests
     {
         var creator = new WaterChannelSchematicCreator
         {
-            Length = 6,
+            Length = 32,
             Facing = Direction.East,
             TrapdoorBlock = Minecraft.Blocks.DarkOakTrapdoor,
             SurroundBaseWithTrapdoors = true,
@@ -91,7 +91,7 @@ public sealed class WaterChannelTests
 
         var schematic = creator.Build();
 
-        Assert.Equal(8, schematic.Width); // 1 back + 6 channel + 1 front (base surround)
+        Assert.Equal(34, schematic.Width); // 1 back + 6 channel + 1 front (base surround)
         Assert.Equal(3, schematic.Height); // base + water/guide + top cover
         Assert.Equal(3, schematic.Length); // left + channel + right
 
@@ -105,9 +105,9 @@ public sealed class WaterChannelTests
         Assert.Equal("true", schematic[0, 1, 1].Properties["open"]);
 
         // Front trapdoor surrounds base at y=0, while water exit at y=1 remains open
-        Assert.Equal(Minecraft.Blocks.DarkOakTrapdoor, schematic[7, 0, 1].Identifier);
-        Assert.Equal("east", schematic[7, 0, 1].Properties["facing"]);
-        Assert.Equal(BlockState.Air, schematic[7, 1, 1]);
+        Assert.Equal(Minecraft.Blocks.DarkOakTrapdoor, schematic[33, 0, 1].Identifier);
+        Assert.Equal("east", schematic[33, 0, 1].Properties["facing"]);
+        Assert.Equal(BlockState.Air, schematic[33, 1, 1]);
 
         for (int i = 0; i < 6; i++)
         {
