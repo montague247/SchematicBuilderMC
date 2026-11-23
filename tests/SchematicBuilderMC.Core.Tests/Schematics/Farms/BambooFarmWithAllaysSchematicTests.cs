@@ -51,21 +51,30 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.Glass, schematic[1, 10, 3].Identifier);
         Assert.Equal(Minecraft.Blocks.Glass, schematic[33, 10, 34].Identifier);
 
-        // Both multi-machine start triggers (x=9, 26 at z=2) and end triggers (x=8, 25 at z=35)
-        // are observers wired via horizontal buses and vertical torch towers to the global 30s clock.
+        // Cross-connected default alternates left (x=14) and right (x=19) flying machines via CopperBulbs
+        // and keeps both start/end trigger buses separated (air at centerX=17 on trigger lift towers).
+        Assert.Equal(Minecraft.Blocks.WaxedCopperBulb, schematic[17, 1, 14].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[16, 1, 14].Identifier);
+        Assert.Equal(Minecraft.Blocks.WaxedCopperBulb, schematic[17, 1, 23].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[18, 1, 23].Identifier);
+
         Assert.Equal(Minecraft.Blocks.Observer, schematic[9, 6, 2].Identifier);
         Assert.Equal("north", schematic[9, 6, 2].Properties["facing"]);
         Assert.Equal(Minecraft.Blocks.Observer, schematic[26, 6, 2].Identifier);
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[9, 6, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[14, 6, 0].Identifier);
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[26, 6, 1].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[19, 6, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.Air, schematic[17, 6, 0].Identifier);
 
         Assert.Equal(Minecraft.Blocks.Observer, schematic[8, 6, 35].Identifier);
         Assert.Equal("south", schematic[8, 6, 35].Properties["facing"]);
         Assert.Equal(Minecraft.Blocks.Observer, schematic[25, 6, 35].Identifier);
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[8, 6, 36].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[14, 6, 37].Identifier);
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[25, 6, 36].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 37].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[19, 6, 37].Identifier);
+        Assert.Equal(Minecraft.Blocks.Air, schematic[17, 6, 37].Identifier);
 
         Assert.Equal(4, schematic.Entities.Count);
         var firstAllay = schematic.Entities[0];
@@ -188,5 +197,26 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[centerX, 8, endWallZ + 2].Identifier);
         Assert.Equal(Minecraft.Blocks.Repeater, schematic[centerX, 8, endWallZ + 1].Identifier);
         Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[centerX, 8, endWallZ].Identifier);
+    }
+
+    [Fact]
+    public void Build_CrossConnectTriggerWiringDisabled_UsesSharedTriggerBuses()
+    {
+        var farm = new BambooFarmWithAllaysSchematicCreator
+        {
+            CrossConnectTriggerWiring = false
+        };
+
+        var schematic = farm.Build();
+
+        // Direct mode uses a single centerX=17 lift tower and shared horizontal buses for all start/end triggers.
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[9, 6, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[26, 6, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 37].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 36].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[8, 6, 36].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[25, 6, 36].Identifier);
     }
 }

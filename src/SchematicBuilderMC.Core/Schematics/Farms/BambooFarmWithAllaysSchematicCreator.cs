@@ -51,6 +51,13 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
     /// </summary>
     public bool RotateNoteBlockClock { get; set; } = true;
 
+    /// <summary>
+    /// When <c>true</c> (default) and multiple flying machines exist, cross-connects each machine's start and end triggers
+    /// to opposite rising-edge clock channels so only one flying machine runs at a time.
+    /// When <c>false</c>, connects all start triggers to the north clock line and all end triggers to the south clock line.
+    /// </summary>
+    public bool CrossConnectTriggerWiring { get; set; } = true;
+
     public string SoilBlock { get; set; } = Minecraft.Blocks.Dirt;
 
     public string WallBlock { get; set; } = Minecraft.Blocks.WaxedCopperBlock;
@@ -187,18 +194,89 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         int centerZ = dirtStartZ + (dirtLength / 2);
         int clockStartZ = centerZ - 4;
         int clockEndZ = clockStartZ + 7;
+        int startBusZ = wallStartZ - 1;
+        int startTowerZ = wallStartZ - 2;
+        int endBusZ = wallEndZ + 1;
+        int endTowerZ = wallEndZ + 2;
 
-        // Connect north and south clock torches to their respective trigger buses and torch lifts.
-        PlaceTriggerBus(builder, centerX, triggerY, clockStartZ - 1, Direction.North, wallStartZ - 1, wallStartZ - 2, Direction.South, startTriggerXs);
-        PlaceTriggerBus(builder, centerX, triggerY, clockEndZ + 1, Direction.South, wallEndZ + 1, wallEndZ + 2, Direction.North, endTriggerXs);
+        if (CrossConnectTriggerWiring &&
+            startTriggerXs.Count > 1 &&
+            endTriggerXs.Count > 1 &&
+            clockStartZ - 1 > startBusZ &&
+            endBusZ > clockEndZ + 1)
+        {
+            PlaceCrossConnectedTriggerWiring(
+                builder,
+                centerX,
+                triggerY,
+                clockStartZ,
+                clockEndZ,
+                startBusZ,
+                startTowerZ,
+                endBusZ,
+                endTowerZ,
+                startTriggerXs,
+                endTriggerXs);
+            return;
+        }
+
+        // Direct mode: north clock line triggers all start observers, south clock line triggers all end observers.
+        PlaceTriggerBus(builder, centerX, triggerY, clockStartZ - 1, Direction.North, 0, startBusZ, startTowerZ, Direction.South, startTriggerXs);
+        PlaceTriggerBus(builder, centerX, triggerY, clockEndZ + 1, Direction.South, 0, endBusZ, endTowerZ, Direction.North, endTriggerXs);
+    }
+
+    private static void PlaceCrossConnectedTriggerWiring(
+        SchematicBuilder builder,
+        int centerX,
+        int busY,
+        int clockStartZ,
+        int clockEndZ,
+        int startBusZ,
+        int startTowerZ,
+        int endBusZ,
+        int endTowerZ,
+        List<int> startTriggerXs,
+        List<int> endTriggerXs)
+    {
+        // Channel 1 (Beginning torch -> CopperBulb 1 -> Comparator 1) toggles on cycles 1, 3, 5...
+        // Channel 2 (End torch -> CopperBulb 2 -> Comparator 2) toggles on cycles 2, 4, 6...
+        // Cross-connecting each machine's start and end triggers onto separate channels alternates machines.
+        int m1TrackX = centerX - 3;
+        int m1JunctionZ = clockStartZ - 1;
+        CircuitLayout.SetCopperBulb(builder, new BlockPosition(centerX, 1, m1JunctionZ), lit: false, powered: false);
+        builder.SetBlock(centerX - 1, 0, m1JunctionZ, Minecraft.Blocks.SmoothStone);
+        CircuitLayout.SetComparator(builder, new BlockPosition(centerX - 1, 1, m1JunctionZ), Direction.West);
+        builder.SetBlock(centerX - 2, 0, m1JunctionZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(centerX - 2, 1, m1JunctionZ, CircuitLayout.CreateWire(Direction.East, north: false, east: true, south: false, west: true, power: 0));
+        builder.SetBlock(m1TrackX, 0, m1JunctionZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(m1TrackX, 1, m1JunctionZ, CircuitLayout.CreateWire(Direction.North, north: true, east: true, south: true, west: false, power: 0));
+
+        int m2TrackX = centerX + 2;
+        int m2JunctionZ = clockEndZ + 1;
+        CircuitLayout.SetCopperBulb(builder, new BlockPosition(centerX, 1, m2JunctionZ), lit: false, powered: true);
+        builder.SetBlock(centerX + 1, 0, m2JunctionZ, Minecraft.Blocks.SmoothStone);
+        CircuitLayout.SetComparator(builder, new BlockPosition(centerX + 1, 1, m2JunctionZ), Direction.East);
+        builder.SetBlock(m2TrackX, 0, m2JunctionZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(m2TrackX, 1, m2JunctionZ, CircuitLayout.CreateWire(Direction.North, north: true, east: false, south: true, west: true, power: 0));
+
+        var leftStartXs = startTriggerXs.Where((_, index) => index % 2 == 0).ToList();
+        var leftEndXs = endTriggerXs.Where((_, index) => index % 2 == 0).ToList();
+        var rightStartXs = startTriggerXs.Where((_, index) => index % 2 != 0).ToList();
+        var rightEndXs = endTriggerXs.Where((_, index) => index % 2 != 0).ToList();
+
+        PlaceTriggerBus(builder, m1TrackX, busY, m1JunctionZ - 1, Direction.North, clockDustOffset: 2, startBusZ, startTowerZ, Direction.South, leftStartXs);
+        PlaceTriggerBus(builder, m1TrackX, busY, m1JunctionZ + 1, Direction.South, clockDustOffset: 2, endBusZ, endTowerZ, Direction.North, leftEndXs);
+        PlaceTriggerBus(builder, m2TrackX, busY, m2JunctionZ + 1, Direction.South, clockDustOffset: 1, endBusZ, endTowerZ, Direction.North, rightEndXs);
+        PlaceTriggerBus(builder, m2TrackX, busY, m2JunctionZ - 1, Direction.North, clockDustOffset: 1, startBusZ, startTowerZ, Direction.South, rightStartXs);
     }
 
     private static void PlaceTriggerBus(
         SchematicBuilder builder,
-        int centerX,
+        int liftX,
         int busY,
         int clockWireStartZ,
         Direction clockWireDirection,
+        int clockDustOffset,
         int busZ,
         int towerZ,
         Direction towerToBusDirection,
@@ -215,22 +293,23 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         if (wireLength > 0)
         {
             builder.SetWireLine(
-                centerX,
+                liftX,
                 1,
                 clockWireStartZ,
                 clockWireDirection,
                 wireLength,
+                dustOffset: clockDustOffset,
                 supportBlock: Minecraft.Blocks.SmoothStone);
         }
 
         // Vertical torch tower lifting signal from y = 1 up to busY.
-        builder.SetBlock(centerX, 1, towerZ, Minecraft.Blocks.SmoothStone);
-        builder.SetBlock(centerX, 2, towerZ, Minecraft.Blocks.RedstoneTorch.WithLit(true));
-        builder.SetBlock(centerX, 3, towerZ, Minecraft.Blocks.SmoothStone);
-        builder.SetBlock(centerX, 4, towerZ, Minecraft.Blocks.RedstoneTorch.WithLit(false));
-        builder.SetBlock(centerX, 5, towerZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(liftX, 1, towerZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(liftX, 2, towerZ, Minecraft.Blocks.RedstoneTorch.WithLit(true));
+        builder.SetBlock(liftX, 3, towerZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(liftX, 4, towerZ, Minecraft.Blocks.RedstoneTorch.WithLit(false));
+        builder.SetBlock(liftX, 5, towerZ, Minecraft.Blocks.SmoothStone);
         builder.SetBlock(
-            centerX,
+            liftX,
             busY,
             towerZ,
             CircuitLayout.CreateWire(
@@ -240,41 +319,41 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
                 south: towerToBusDirection == Direction.South,
                 west: false));
 
-        int minX = Math.Min(centerX, triggerXs.Min());
-        int maxX = Math.Max(centerX, triggerXs.Max());
+        int minX = Math.Min(liftX, triggerXs.Min());
+        int maxX = Math.Max(liftX, triggerXs.Max());
 
-        builder.SetBlock(centerX, busY - 1, busZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(liftX, busY - 1, busZ, Minecraft.Blocks.SmoothStone);
         builder.SetBlock(
-            centerX,
+            liftX,
             busY,
             busZ,
             CircuitLayout.CreateWire(
                 Direction.North,
                 north: towerToBusDirection == Direction.South,
-                east: maxX > centerX,
+                east: maxX > liftX,
                 south: towerToBusDirection == Direction.North,
-                west: minX < centerX));
+                west: minX < liftX));
 
-        if (minX < centerX)
+        if (minX < liftX)
         {
             builder.SetWireLine(
-                centerX - 1,
+                liftX - 1,
                 busY,
                 busZ,
                 Direction.West,
-                length: centerX - minX,
+                length: liftX - minX,
                 dustOffset: 1,
                 supportBlock: Minecraft.Blocks.SmoothStone);
         }
 
-        if (maxX > centerX)
+        if (maxX > liftX)
         {
             builder.SetWireLine(
-                centerX + 1,
+                liftX + 1,
                 busY,
                 busZ,
                 Direction.East,
-                length: maxX - centerX,
+                length: maxX - liftX,
                 dustOffset: 1,
                 supportBlock: Minecraft.Blocks.SmoothStone);
         }
