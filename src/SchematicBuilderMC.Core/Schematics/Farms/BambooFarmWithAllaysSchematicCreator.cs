@@ -1,8 +1,11 @@
 using SchematicBuilderMC.Builder;
+using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.Extensions;
 using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 using SchematicBuilderMC.Schematics.Contraptions;
+using SchematicBuilderMC.Schematics.Redstone.Clocks;
+using SchematicBuilderMC.Schematics.Redstone.Internal;
 
 namespace SchematicBuilderMC.Schematics.Farms;
 
@@ -71,16 +74,46 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         builder.SetBlock(centerX, SoilLevel + 4, centerZ, Minecraft.Blocks.NoteBlock);
 
         // add trapdoors above the noteblock to prevent the allay to drop the bamboo on top of the noteblock
-        builder.SetBlock(centerX, SoilLevel + 5, centerZ + 1, Minecraft.Blocks.BambooTrapdoor.FacingSouth().WithHalf("top").WithOpen(true));
-        builder.SetBlock(centerX, SoilLevel + 5, centerZ - 1, Minecraft.Blocks.BambooTrapdoor.FacingNorth().WithHalf("top").WithOpen(true));
-        builder.SetBlock(centerX + 1, SoilLevel + 5, centerZ, Minecraft.Blocks.BambooTrapdoor.FacingEast().WithHalf("top").WithOpen(true));
-        builder.SetBlock(centerX - 1, SoilLevel + 5, centerZ, Minecraft.Blocks.BambooTrapdoor.FacingWest().WithHalf("top").WithOpen(true)); //
+        builder.SurroundWithTrapdoors(centerX, SoilLevel + 5, centerZ, Minecraft.Blocks.BambooTrapdoor);
+
+        // add hoppers to collect the bamboo from the noteblock area
+        builder.Fill(centerX, SoilLevel + 3, 0, centerX, SoilLevel + 3, centerZ - 1, Minecraft.Blocks.Hopper.FacingNorth());
+        builder.SetBlock(centerX + 1, SoilLevel + 3, centerZ - 1, Minecraft.Blocks.Hopper.FacingWest());
+        builder.SetBlock(centerX + 1, SoilLevel + 3, centerZ, Minecraft.Blocks.Hopper.FacingNorth());
+        builder.SetBlock(centerX + 1, SoilLevel + 3, centerZ + 1, Minecraft.Blocks.Hopper.FacingWest());
+        builder.Fill(centerX, SoilLevel + 3, centerZ + 1, centerX, SoilLevel + 3, Length - 1, Minecraft.Blocks.Hopper.FacingSouth());
+        builder.SetBlock(centerX - 1, SoilLevel + 3, centerZ + 1, Minecraft.Blocks.Hopper.FacingEast());
+        builder.SetBlock(centerX - 1, SoilLevel + 3, centerZ, Minecraft.Blocks.Hopper.FacingSouth());
+        builder.SetBlock(centerX - 1, SoilLevel + 3, centerZ - 1, Minecraft.Blocks.Hopper.FacingEast());
+
+        // add hopper clock to activate noteblock every 16 seconds
+        int ticks = CircuitLayout.ResolveGameTicks(TimeSpan.FromSeconds(16), null, defaultGameTicks: 160, minGameTicks: 16, stepGameTicks: 16);
+        var itemCount = Math.Clamp((int)Math.Round(ticks / 16.0), 1, 320);
+        var stacks = CircuitLayout.CreateItemStacks(Minecraft.Blocks.Cobblestone, itemCount, maxSlots: 5);
+        builder.SetBlock(centerX, SoilLevel + 4, centerZ - 2, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(centerX, SoilLevel + 5, centerZ - 2, Minecraft.Blocks.RedstoneWire);
+        builder.SetComparator(centerX, SoilLevel + 4, centerZ - 3, Direction.North);
+        builder.SetBlock(centerX, SoilLevel + 5, centerZ - 3, Minecraft.Blocks.StickyPiston.FacingNorth());
+        builder.SetBlock(centerX, SoilLevel + 4, centerZ - 4, Minecraft.Blocks.Hopper.FacingNorth());
+        builder.SetContainer(Minecraft.Blocks.Hopper, Minecraft.BlockEntities.Hopper, centerX, SoilLevel + 4, centerZ - 4, stacks);
+        builder.SetBlock(centerX, SoilLevel + 5, centerZ - 4, Minecraft.Blocks.RedstoneBlock);
+        builder.SetBlock(centerX, SoilLevel + 4, centerZ - 5, Minecraft.Blocks.Hopper.FacingSouth());
+        builder.SetComparator(centerX, SoilLevel + 4, centerZ - 6, Direction.South);
+        builder.SetBlock(centerX, SoilLevel + 5, centerZ - 6, Minecraft.Blocks.StickyPiston.FacingSouth());
+        builder.SetBlock(centerX, SoilLevel + 4, centerZ - 7, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(centerX, SoilLevel + 5, centerZ - 7, Minecraft.Blocks.RedstoneWire);
 
         // add allays to the schematic, each with a bamboo in their main hand
         builder.AddEntity(1, SoilLevel + 4, 1, new Entity(Minecraft.Entities.Allay)
                 .WithNoGravity()
                 .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
+        builder.AddEntity(Width - 2, SoilLevel + 4, 1, new Entity(Minecraft.Entities.Allay)
+                .WithNoGravity()
+                .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
         builder.AddEntity(Width - 2, SoilLevel + 4, Length - 2, new Entity(Minecraft.Entities.Allay)
+                .WithNoGravity()
+                .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
+        builder.AddEntity(1, SoilLevel + 4, Length - 2, new Entity(Minecraft.Entities.Allay)
                 .WithNoGravity()
                 .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
 
