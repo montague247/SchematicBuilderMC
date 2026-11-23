@@ -299,15 +299,20 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
             TorchPlacement = HopperClockTorchPlacement.End
         }.Place(builder, centerX, noteBlockY - 1, clockStartZ);
 
-        // Repeater at wallEndZ + 1 boosts signal into the south wire trunk (solid blocks prevent locking hoppers).
+        // Repeater at wallEndZ + 1 strongly powers the solid end wall block at wallEndZ so no gap is cut in the wall.
         builder.SetBlock(centerX, noteBlockY - 1, layout.WallEndZ + 1, Minecraft.Blocks.SmoothStone);
         CircuitLayout.SetRepeater(builder, new BlockPosition(centerX, noteBlockY, layout.WallEndZ + 1), Direction.North);
+        if (string.Equals(WallBlock, Minecraft.Blocks.Glass, StringComparison.OrdinalIgnoreCase))
+        {
+            builder.SetBlock(centerX, noteBlockY, layout.WallEndZ, Minecraft.Blocks.SmoothStone);
+        }
+
         builder.SetWireLine(
             centerX,
             noteBlockY,
-            layout.WallEndZ,
+            layout.WallEndZ - 1,
             Direction.North,
-            length: layout.WallEndZ - centerZ,
+            length: layout.WallEndZ - centerZ - 1,
             supportBlock: Minecraft.Blocks.SmoothStone);
     }
 

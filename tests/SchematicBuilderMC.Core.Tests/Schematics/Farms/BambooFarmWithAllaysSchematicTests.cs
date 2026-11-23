@@ -39,6 +39,12 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.Chest, schematic[17, 7, 1].Identifier);
         Assert.Equal(Minecraft.Blocks.NoteBlock, schematic[17, 8, 19].Identifier);
 
+        // End wall remains solid (no gap for allays to escape) while the repeater powers internal dust.
+        Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[17, 8, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.Repeater, schematic[17, 8, 36].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 8, 34].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 8, 20].Identifier);
+
         // Glass roof covers the interior dirt area (x=1..33, z=3..34) and excludes the walls.
         Assert.Equal(Minecraft.Blocks.Air, schematic[0, 10, 2].Identifier);
         Assert.Equal(Minecraft.Blocks.Air, schematic[34, 10, 35].Identifier);
