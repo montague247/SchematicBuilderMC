@@ -1,6 +1,7 @@
 using SchematicBuilderMC.Builder;
 using SchematicBuilderMC.Enums;
 using SchematicBuilderMC.Extensions;
+using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Schematics.Contraptions;
@@ -8,6 +9,20 @@ namespace SchematicBuilderMC.Schematics.Contraptions;
 public static class FlyingMachineExtensions
 {
     public static SchematicBuilder Create(this SchematicBuilder builder, FlyingMachine flyingMachine, int startX, int startY, int startZ, int width, string? fillBlockId = null, int? endZ = null)
+    {
+        return Create(builder, flyingMachine, startX, startY, startZ, width, out _, fillBlockId, endZ);
+    }
+
+    public static SchematicBuilder Create(this SchematicBuilder builder, FlyingMachine flyingMachine, int startX, int startY, int startZ, int width, out List<BlockPosition> triggerPositions, string? fillBlockId = null, int? endZ = null)
+    {
+        triggerPositions = new(width > flyingMachine.Width ? (int)Math.Ceiling((double)width / flyingMachine.Width) * 2 : 2);
+
+        Create(builder, flyingMachine, startX, startY, startZ, width, fillBlockId, endZ, ref triggerPositions);
+
+        return builder;
+    }
+
+    private static void Create(SchematicBuilder builder, FlyingMachine flyingMachine, int startX, int startY, int startZ, int width, string? fillBlockId, int? endZ, ref List<BlockPosition> triggerPositions)
     {
         if (width > flyingMachine.Width)
         {
@@ -19,18 +34,20 @@ public static class FlyingMachineExtensions
             do
             {
                 var currentWidth = Math.Min(remainingWidth, (int)Math.Ceiling(machineWidth));
-                builder.Create(flyingMachine, startX, startY, startZ, currentWidth, fillBlockId, endZ);
+
+                Create(builder, flyingMachine, startX, startY, startZ, currentWidth, fillBlockId, endZ, ref triggerPositions);
 
                 remainingWidth -= currentWidth;
                 startX += currentWidth;
             }
             while (remainingWidth > 0);
 
-            return builder;
+            return;
         }
 
         int requiredHeight = checked(startY + (endZ.HasValue ? 3 : 2));
         int requiredLength = Math.Max(checked(startZ + 2), endZ.HasValue && fillBlockId != null ? checked(endZ.Value + 2) : checked(startZ + 2));
+
         builder.EnsureDimensions(checked(startX + width), requiredHeight, requiredLength);
 
         var leftWidth = width / 2;
@@ -63,6 +80,9 @@ public static class FlyingMachineExtensions
         {
             // set trapdoor to start the machine
             builder.SetBlock(startX + leftWidth, startY + 2, startZ, Minecraft.Blocks.BambooTrapdoor.FacingSouth());
+
+            // add trigger position
+            triggerPositions.Add(new(startX + leftWidth, startY + 2, startZ - 1));
         }
 
         if (fillBlockId != null)
@@ -80,9 +100,10 @@ public static class FlyingMachineExtensions
 
                 // set trapdoor to start the machine
                 builder.SetBlock(startX + leftWidth - 1, startY + 2, endZ.Value, Minecraft.Blocks.BambooTrapdoor);
+
+                // add trigger position
+                triggerPositions.Add(new(startX + leftWidth - 1, startY + 2, endZ.Value + 1));
             }
         }
-
-        return builder;
     }
 }

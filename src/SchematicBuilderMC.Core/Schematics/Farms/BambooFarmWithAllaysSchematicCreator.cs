@@ -5,7 +5,6 @@ using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 using SchematicBuilderMC.Schematics.Contraptions;
 using SchematicBuilderMC.Schematics.Redstone.Clocks;
-using SchematicBuilderMC.Schematics.Redstone.Internal;
 
 namespace SchematicBuilderMC.Schematics.Farms;
 
@@ -37,7 +36,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         Width = Math.Min(Width, 35); // Ensure a maximum width of 35 to ensure allays can reach the noteblocks (16 blocks range, so 16 * 2 + 1 + 2 for walls)
         MaxBambooHeight = Math.Max(MaxBambooHeight, 2); // Ensure a minimum height of 2 for bamboo growth
 
-        const int SoilLevel = 5;
+        const int SoilLevel = 2;
 
         var wallHeight = Math.Max(MaxBambooHeight, 5);
         var flyingMachine = new FlatFlyingMachine();
@@ -48,8 +47,16 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
                 .WithAuthor("Dirk Helbig")
                 .WithDescription("A bamboo farm schematic with allays");
 
-        // layer for bamboo to grow on
-        builder.Fill(1, SoilLevel, 1, Width - 2, SoilLevel, Length - 2, SoilBlock);
+        // set the center coordinates
+        var centerX = Width / 2;
+        var centerZ = Length / 2 + 2;
+
+        // set the global clock to start the flying machines
+        new HopperClockSchematicCreator()
+        {
+            Period = TimeSpan.FromSeconds(30), // automatically configures Etho hopper item count
+            TorchPlacement = HopperClockTorchPlacement.Both
+        }.WithRotation(Rotation.Clockwise90).Place(builder, centerX - 1, SoilLevel - 2, centerZ - 3);
 
         // surrounding walls
         builder.Fill(0, SoilLevel, 0, Width - 1, SoilLevel + wallHeight, 0, WallBlock); // x1
@@ -57,15 +64,17 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         builder.Fill(0, SoilLevel, Length - 1, Width - 1, SoilLevel + wallHeight, Length - 1, WallBlock); // x2
         builder.Fill(Width - 1, SoilLevel, 0, Width - 1, SoilLevel + wallHeight, Length - 1, WallBlock); // z2
 
+        // layer for bamboo to grow on
+        builder.Fill(1, SoilLevel, 1, Width - 2, SoilLevel, Length - 2, SoilBlock);
+
         // layer with bamboo
         builder.Fill(1, SoilLevel + 1, 2, Width - 2, SoilLevel + 1, Length - 3, Minecraft.Blocks.Bamboo);
 
         // create the flying machine(s)
-        builder.Create(flyingMachine, 1, SoilLevel + 2, 1, Width - 2, Minecraft.Blocks.Bamboo, Length - 2);
+        builder.Create(flyingMachine, 1, SoilLevel + 2, 1, Width - 2, out List<BlockPosition> triggerPositions, Minecraft.Blocks.Bamboo, Length - 2);
 
-        // create the center collection area
-        var centerX = Width / 2;
-        var centerZ = Length / 2;
+        // connect trigger with clock
+        ConnectTriggerWithClock(builder, triggerPositions);
 
         // set the center block
         builder.SetBlock(centerX, SoilLevel + 3, centerZ, WallBlock);
@@ -86,7 +95,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         builder.SetBlock(centerX - 1, SoilLevel + 3, centerZ, Minecraft.Blocks.Hopper.FacingSouth());
         builder.SetBlock(centerX - 1, SoilLevel + 3, centerZ - 1, Minecraft.Blocks.Hopper.FacingEast());
 
-        // add hopper clock to activate noteblock every 16 seconds
+        // add clock to activate noteblock every 16 seconds
         new HopperClockSchematicCreator()
         {
             Period = TimeSpan.FromSeconds(13), // automatically configures Etho hopper item count
@@ -133,6 +142,26 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         }
 
         return builder;
+    }
+
+    private static void ConnectTriggerWithClock(SchematicBuilder builder, List<BlockPosition> triggerPositions)
+    {
+        for (int i = 0; i < triggerPositions.Count; i++)
+        {
+            ConnectTriggerWithClock(builder, triggerPositions[i], true);
+
+            i++;
+
+            ConnectTriggerWithClock(builder, triggerPositions[i], false);
+        }
+    }
+
+    private static void ConnectTriggerWithClock(SchematicBuilder builder, BlockPosition triggerPosition, bool start)
+    {
+        // set observer
+        builder.SetBlock(triggerPosition, Minecraft.Blocks.Observer.WithFacing(start ? Direction.North : Direction.South));
+
+        builder.SetBlock(triggerPosition.X, triggerPosition.Y, triggerPosition.Z + (start ? -1 : 1), Minecraft.Blocks.SmoothStone);
     }
 
     private int GetMaxHeight(int soilLevel, int wallHeight)
