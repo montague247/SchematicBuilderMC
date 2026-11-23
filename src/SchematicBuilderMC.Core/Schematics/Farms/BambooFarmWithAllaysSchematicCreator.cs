@@ -42,8 +42,8 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         var wallHeight = Math.Max(MaxBambooHeight, 5);
         var flyingMachine = new FlatFlyingMachine();
 
-        var builder = SchematicBuilder.Create(Width, GetMaxHeight(SoilLevel, wallHeight), Length, Rotation)
-                .WithOffset(-Width, -SoilLevel, 0)
+        var builder = SchematicBuilder.Create(Width, GetMaxHeight(SoilLevel, wallHeight), Length + 2, Rotation)
+                .WithOffset(0, 0, 0)
                 .WithName("Bamboo Farm with Allays")
                 .WithAuthor("Dirk Helbig")
                 .WithDescription("A bamboo farm schematic with allays");
@@ -89,12 +89,11 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         // add hopper clock to activate noteblock every 16 seconds
         new HopperClockSchematicCreator()
         {
-            Period = TimeSpan.FromSeconds(16), // automatically configures Etho hopper item count
-            OneWide = true
-        }.Place(builder, centerX + 1, SoilLevel + 3, centerZ - 2);
+            Period = TimeSpan.FromSeconds(13), // automatically configures Etho hopper item count
+            TorchPlacement = HopperClockTorchPlacement.End
+        }.WithRotation(Rotation.Clockwise180).Place(builder, centerX, SoilLevel + 3, Length);
         // connect the clock with the noteblock
-        builder.SetBlock(centerX, SoilLevel + 4, centerZ - 1, Minecraft.Blocks.RedstoneWire);
-        builder.SetBlock(centerX, SoilLevel + 4, centerZ - 2, Minecraft.Blocks.RedstoneWire);
+        builder.SetRepeater(centerX, SoilLevel + 4, Length, Direction.South);
 
         // add allays to the schematic, each with a bamboo in their main hand
         builder.AddEntity(1, SoilLevel + 4, 1, new Entity(Minecraft.Entities.Allay)
