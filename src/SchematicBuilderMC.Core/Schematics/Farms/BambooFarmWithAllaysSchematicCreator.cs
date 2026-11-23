@@ -20,7 +20,9 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
     private const int MaxDirtWidth = 33; // 16 * 2 + 1: max 16-block allay reach to the centered note block
     private const int MinDirtLength = 5;
     private const int MinFrontPadding = 2; // space required before the start wall for the trigger bus and clock lift
-    private const int BackPadding = 8; // wallEndZ + 1 (bus/repeater) + 7 (north-facing hopper clock)
+    private const int RotatedNoteBlockClockBackPadding = 8; // wallEndZ + 1 (repeater) + 7 (north-facing clock)
+    private const int FlushNoteBlockClockBackPadding = 3; // wallEndZ + 1 (repeater) + 2 (east-facing clock depth)
+    private const int FlushNoteBlockClockWidth = 7;
 
     /// <summary>
     /// Exact width (X) of the dirt bed in blocks (clamped to <c>4..33</c>).
@@ -42,6 +44,12 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
     /// Increasing this value shifts the entire farm cleanly along <c>+Z</c>.
     /// </summary>
     public int FrontPadding { get; set; } = MinFrontPadding;
+
+    /// <summary>
+    /// When <c>true</c> (default), places the note block hopper clock rotated perpendicular to the end wall along <c>+Z</c>.
+    /// When <c>false</c>, places the hopper clock unrotated parallel to the end wall along <c>+X</c>.
+    /// </summary>
+    public bool RotateNoteBlockClock { get; set; } = true;
 
     public string SoilBlock { get; set; } = Minecraft.Blocks.Dirt;
 
@@ -99,8 +107,14 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         int maxBambooHeight = Math.Max(MaxBambooHeight, 2);
         int wallHeight = Math.Max(maxBambooHeight, 7);
         int frontPadding = Math.Max(FrontPadding, MinFrontPadding);
+        int sidePadding = RotateNoteBlockClock
+            ? 0
+            : Math.Max(0, FlushNoteBlockClockWidth - (1 + (dirtWidth / 2)));
+        int backPadding = RotateNoteBlockClock
+            ? RotatedNoteBlockClockBackPadding
+            : FlushNoteBlockClockBackPadding;
 
-        return new FarmLayout(dirtWidth, dirtLength, wallHeight, frontPadding, RoofBlock != null || LightBlock != null);
+        return new FarmLayout(dirtWidth, dirtLength, wallHeight, sidePadding, frontPadding, backPadding, RoofBlock != null || LightBlock != null);
     }
 
     private void PlaceWallsAndCropBed(SchematicBuilder builder, FarmLayout layout)
@@ -136,7 +150,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         }.WithRotation(Rotation.Clockwise90).Place(builder, layout.CenterX - 1, 0, clockStartZ);
     }
 
-    private static void ConnectTriggerWithClock(SchematicBuilder builder, List<BlockPosition> triggerPositions)
+    private void ConnectTriggerWithClock(SchematicBuilder builder, List<BlockPosition> triggerPositions)
     {
         if (triggerPositions.Count < 2)
         {
@@ -169,7 +183,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         int triggerY = triggerPositions[0].Y;
         int dirtStartZ = wallStartZ + 1;
         int dirtLength = wallEndZ - dirtStartZ;
-        int centerX = 1 + ((builder.Width - 2) / 2);
+        int centerX = CreateLayout().CenterX;
         int centerZ = dirtStartZ + (dirtLength / 2);
         int clockStartZ = centerZ - 4;
         int clockEndZ = clockStartZ + 7;
@@ -290,14 +304,33 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         builder.SetBlock(centerX, hopperY, layout.WallStartZ - 1, Minecraft.Blocks.Chest.FacingNorth());
         builder.SetChest(centerX, hopperY, layout.WallStartZ - 1);
 
-        // Place the note block timer behind the end wall facing north so its end torch pulses north.
+        // Place the note block timer behind the end wall (rotated perpendicular to the wall or flush along X).
         int clockStartZ = layout.WallEndZ + 2;
-        new HopperClockSchematicCreator
+        if (RotateNoteBlockClock)
         {
-            Period = TimeSpan.FromSeconds(13),
-            Facing = Direction.North,
-            TorchPlacement = HopperClockTorchPlacement.End
-        }.Place(builder, centerX, noteBlockY - 1, clockStartZ);
+            new HopperClockSchematicCreator
+            {
+                Period = TimeSpan.FromSeconds(13),
+                Facing = Direction.North,
+                TorchPlacement = HopperClockTorchPlacement.End
+            }.Place(builder, centerX, noteBlockY - 1, clockStartZ);
+        }
+        else
+        {
+            new HopperClockSchematicCreator
+            {
+                Period = TimeSpan.FromSeconds(13),
+                Facing = Direction.East,
+                TorchPlacement = HopperClockTorchPlacement.End
+            }.Place(builder, centerX - FlushNoteBlockClockWidth, noteBlockY - 1, clockStartZ);
+
+            builder.SetBlock(centerX, noteBlockY - 1, clockStartZ, Minecraft.Blocks.SmoothStone);
+            builder.SetBlock(
+                centerX,
+                noteBlockY,
+                clockStartZ,
+                CircuitLayout.CreateWire(Direction.North, north: true, east: false, south: false, west: true));
+        }
 
         // Repeater at wallEndZ + 1 strongly powers the solid end wall block at wallEndZ so no gap is cut in the wall.
         builder.SetBlock(centerX, noteBlockY - 1, layout.WallEndZ + 1, Minecraft.Blocks.SmoothStone);
@@ -352,9 +385,16 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         }
     }
 
-    private readonly record struct FarmLayout(int DirtWidth, int DirtLength, int WallHeight, int FrontPadding, bool HasRoofLayer)
+    private readonly record struct FarmLayout(
+        int DirtWidth,
+        int DirtLength,
+        int WallHeight,
+        int SidePadding,
+        int FrontPadding,
+        int BackPadding,
+        bool HasRoofLayer)
     {
-        public int WallStartX => 0;
+        public int WallStartX => SidePadding;
         public int DirtStartX => WallStartX + 1;
         public int DirtEndX => DirtStartX + DirtWidth - 1;
         public int WallEndX => DirtEndX + 1;

@@ -157,4 +157,36 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.SmoothStone, schematic[centerX, 0, centerZ].Identifier);
         Assert.Equal(Minecraft.Blocks.Hopper, schematic[centerX, 1, centerZ - 1].Identifier);
     }
+
+    [Theory]
+    [InlineData(33, 32, 35, 39)]
+    [InlineData(10, 12, 13, 19)]
+    public void Build_UnrotatedNoteBlockClock_PlacesClockFlushBehindEndWall(
+        int dirtWidth,
+        int dirtLength,
+        int expectedWidth,
+        int expectedLength)
+    {
+        var farm = new BambooFarmWithAllaysSchematicCreator
+        {
+            Width = dirtWidth,
+            Length = dirtLength,
+            RotateNoteBlockClock = false
+        };
+
+        var schematic = farm.Build();
+
+        Assert.Equal(expectedWidth, schematic.Width);
+        Assert.Equal(expectedLength, schematic.Length);
+
+        int endWallZ = 2 + 1 + dirtLength + 1 - 1; // wallEndZ = frontPadding(2) + 1 + dirtLength
+        int centerX = (dirtWidth < 12 ? 7 - (1 + (dirtWidth / 2)) : 0) + 1 + (dirtWidth / 2);
+
+        // Flush clock sits along X (width 7) behind endWallZ + 1 (endWallZ + 2..endWallZ + 3) and turns into repeater.
+        Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[centerX - 1, 8, endWallZ + 2].Identifier);
+        Assert.Equal("east", schematic[centerX - 1, 8, endWallZ + 2].Properties["facing"]);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[centerX, 8, endWallZ + 2].Identifier);
+        Assert.Equal(Minecraft.Blocks.Repeater, schematic[centerX, 8, endWallZ + 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[centerX, 8, endWallZ].Identifier);
+    }
 }
