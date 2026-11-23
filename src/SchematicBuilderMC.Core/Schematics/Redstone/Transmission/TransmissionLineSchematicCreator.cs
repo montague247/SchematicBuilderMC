@@ -42,6 +42,12 @@ public class TransmissionLineSchematicCreator : SchematicCreator
     public bool PureRepeaterLine { get; set; }
 
     /// <summary>
+    /// Starting redstone dust counter offset (<c>0..15</c>) before the first repeater is placed.
+    /// Defaults to <c>0</c>.
+    /// </summary>
+    public int DustOffset { get; set; }
+
+    /// <summary>
     /// Solid support block placed beneath the wire and repeaters.
     /// </summary>
     public string CircuitBlock { get; set; } = Minecraft.Blocks.SmoothStone;
@@ -149,6 +155,14 @@ public class TransmissionLineSchematicCreator : SchematicCreator
         CircuitLayout.ValidateHorizontalFacing(Facing);
         CircuitLayout.ValidatePositive(Length, nameof(Length), 1);
         CircuitLayout.ValidateBlockId(CircuitBlock, nameof(CircuitBlock));
+        if (DustOffset is < 0 or > 15)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(DustOffset),
+                DustOffset,
+                "DustOffset must be between 0 and 15.");
+        }
+
         if (Delay.HasValue || DelayTicks.HasValue)
         {
             CircuitLayout.ResolveGameTicks(Delay, DelayTicks, defaultGameTicks: 2, minGameTicks: 2, stepGameTicks: 2);
@@ -188,7 +202,7 @@ public class TransmissionLineSchematicCreator : SchematicCreator
 
         // First place mandatory boost repeaters so no wire run exceeds 15 blocks.
         int boostCount = 0;
-        int wireRun = 0;
+        int wireRun = DustOffset;
         for (int i = 0; i < effectiveLength; i++)
         {
             if (wireRun >= MaxWireSpanWithoutRepeater)

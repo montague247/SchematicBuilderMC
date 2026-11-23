@@ -76,10 +76,10 @@ public sealed class ClockCircuitsTests
     }
 
     [Theory]
-    [InlineData(HopperClockTorchPlacement.None, 1, false, 6, 3, 1)]
-    [InlineData(HopperClockTorchPlacement.Beginning, 1, true, 8, 5, 1)]
-    [InlineData(HopperClockTorchPlacement.End, 2, false, 11, 3, 1)]
-    [InlineData(HopperClockTorchPlacement.Both, 2, true, 15, 5, 1)]
+    [InlineData(HopperClockTorchPlacement.None, 1, false, 12, 8, 1)]
+    [InlineData(HopperClockTorchPlacement.Beginning, 1, true, 15, 8, 1)]
+    [InlineData(HopperClockTorchPlacement.End, 2, false, 17, 8, 1)]
+    [InlineData(HopperClockTorchPlacement.Both, 2, true, 22, 8, 1)]
     public void HopperClock_OneWideAndOptionalTorches_ProducesExpectedLayoutAndWidth(
         HopperClockTorchPlacement torchPlacement,
         int torchCount,
@@ -105,34 +105,71 @@ public sealed class ClockCircuitsTests
         Assert.Equal(expectedHeight, schematic.Height);
         Assert.Equal(expectedLength, schematic.Length);
 
+        // Ensure the 1-wide design never places pistons or redstone blocks.
+        for (int x = 0; x < schematic.Width; x++)
+        {
+            for (int y = 0; y < schematic.Height; y++)
+            {
+                for (int z = 0; z < schematic.Length; z++)
+                {
+                    string id = schematic[x, y, z].Identifier;
+                    Assert.NotEqual(Minecraft.Blocks.Piston, id);
+                    Assert.NotEqual(Minecraft.Blocks.StickyPiston, id);
+                    Assert.NotEqual(Minecraft.Blocks.RedstoneBlock, id);
+                }
+            }
+        }
+
         int lead = torchPlacement is HopperClockTorchPlacement.Beginning or HopperClockTorchPlacement.Both
-            ? (torchCount == 1 ? 1 : 4)
+            ? (torchCount == 1 ? 2 : 5)
             : 0;
-        Assert.Equal(Minecraft.Blocks.StickyPiston, schematic[lead + 1, 2, 0].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneBlock, schematic[lead + 3, 2, 0].Identifier);
-        Assert.Equal(Minecraft.Blocks.StickyPiston, schematic[lead + 4, 2, 0].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[lead, 2, 0].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[lead + 5, 2, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[lead + 5, 4, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.Hopper, schematic[lead + 6, 4, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.Hopper, schematic[lead + 7, 4, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[lead + 8, 4, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.Repeater, schematic[lead + 4, 5, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.Repeater, schematic[lead + 6, 1, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.Repeater, schematic[lead + 10, 2, 0].Identifier);
+
+        if (includeToggleLever)
+        {
+            Assert.Equal(Minecraft.Blocks.Lever, schematic[lead + 6, 3, 0].Identifier);
+        }
 
         if (torchPlacement is HopperClockTorchPlacement.Beginning or HopperClockTorchPlacement.Both)
         {
-            Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[lead - 1, 1, 0].Identifier);
-            Assert.Equal("west", schematic[lead - 1, 1, 0].Properties["facing"]);
+            Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[lead - 2, 5, 0].Identifier);
+            Assert.Equal("west", schematic[lead - 2, 5, 0].Properties["facing"]);
             if (torchCount == 2)
             {
-                Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[0, 1, 0].Identifier);
+                Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[lead - 3, 5, 0].Identifier);
+                Assert.Equal(Minecraft.Blocks.SmoothStone, schematic[lead - 3, 4, 0].Identifier);
+                Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[0, 5, 0].Identifier);
+                Assert.Equal("west", schematic[0, 5, 0].Properties["facing"]);
             }
         }
 
         if (torchPlacement is HopperClockTorchPlacement.End or HopperClockTorchPlacement.Both)
         {
-            Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[lead + 6, 1, 0].Identifier);
-            Assert.Equal("east", schematic[lead + 6, 1, 0].Properties["facing"]);
+            Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[lead + 12, 6, 0].Identifier);
+            Assert.Equal("east", schematic[lead + 12, 6, 0].Properties["facing"]);
             if (torchCount == 2)
             {
-                Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[lead + 9, 1, 0].Identifier);
+                Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[lead + 13, 6, 0].Identifier);
+                Assert.Equal(Minecraft.Blocks.SmoothStone, schematic[lead + 13, 5, 0].Identifier);
+                Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[lead + 15, 6, 0].Identifier);
+                Assert.Equal("east", schematic[lead + 15, 6, 0].Properties["facing"]);
             }
         }
+
+        string serializedPath = Path.Combine(
+            SchematicCreatorTests.TestOutputDirectory,
+            $"HopperClock_1Wide_{torchPlacement}_{torchCount}.schem");
+        SchematicFile.Write(schematic, serializedPath, SchematicFormat.SpongeV2);
+        var readBack = SchematicFile.Read(serializedPath, SchematicFormat.SpongeV2);
+        Assert.Equal(schematic.Width, readBack.Width);
+        Assert.Equal(schematic.Height, readBack.Height);
+        Assert.Equal(schematic.Length, readBack.Length);
     }
 
     [Fact]

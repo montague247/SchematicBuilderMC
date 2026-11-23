@@ -802,6 +802,140 @@ public sealed class Schematic
         SetRedstoneWire(position.X, position.Y, position.Z, power);
 
     /// <summary>
+    /// Places a straight Redstone wireline starting at (startX, startY, startZ) flowing along <paramref name="direction"/>
+    /// for <paramref name="length"/> blocks, maximizing consecutive redstone dust up to 15 blocks (accounting for <paramref name="dustOffset"/>)
+    /// and inserting a repeater whenever signal strength would reach zero.
+    /// </summary>
+    public void SetWireLine(
+        int startX,
+        int startY,
+        int startZ,
+        Direction direction,
+        int length,
+        int dustOffset = 0,
+        int repeaterDelay = 1,
+        string? supportBlock = null,
+        bool powered = false)
+    {
+        BlockState? supportState = string.IsNullOrWhiteSpace(supportBlock) ? null : BlockState.Parse(supportBlock);
+        SetWireLine(startX, startY, startZ, direction, length, dustOffset, repeaterDelay, supportState, powered);
+    }
+
+    /// <summary>
+    /// Places a straight Redstone wireline starting at <paramref name="start"/> flowing along <paramref name="direction"/>.
+    /// </summary>
+    public void SetWireLine(
+        BlockPosition start,
+        Direction direction,
+        int length,
+        int dustOffset = 0,
+        int repeaterDelay = 1,
+        string? supportBlock = null,
+        bool powered = false) =>
+        SetWireLine(start.X, start.Y, start.Z, direction, length, dustOffset, repeaterDelay, supportBlock, powered);
+
+    /// <summary>
+    /// Places a straight Redstone wireline starting at (startX, startY, startZ) flowing along <paramref name="direction"/>
+    /// with optional <paramref name="supportBlockState"/> directly beneath each wireline block.
+    /// </summary>
+    public void SetWireLine(
+        int startX,
+        int startY,
+        int startZ,
+        Direction direction,
+        int length,
+        int dustOffset,
+        int repeaterDelay,
+        BlockState? supportBlockState,
+        bool powered = false)
+    {
+        if (!Enum.IsDefined(direction) ||
+            direction is not (Direction.North or Direction.South or Direction.East or Direction.West))
+        {
+            throw new ArgumentOutOfRangeException(nameof(direction), direction, "Wireline direction must be North, South, East, or West.");
+        }
+
+        if (length <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Wireline length must be greater than zero.");
+        }
+
+        if (dustOffset is < 0 or > 15)
+        {
+            throw new ArgumentOutOfRangeException(nameof(dustOffset), dustOffset, "Dust offset must be between 0 and 15.");
+        }
+
+        if (repeaterDelay is < 1 or > 4)
+        {
+            throw new ArgumentOutOfRangeException(nameof(repeaterDelay), repeaterDelay, "Repeater delay must be between 1 and 4.");
+        }
+
+        (int dx, int dz, Direction repeaterFacing, bool eastWest) = direction switch
+        {
+            Direction.East => (1, 0, Direction.West, true),
+            Direction.West => (-1, 0, Direction.East, true),
+            Direction.South => (0, 1, Direction.North, false),
+            Direction.North => (0, -1, Direction.South, false),
+            _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, "Wireline direction must be horizontal.")
+        };
+
+        for (int i = 0; i < length; i++)
+        {
+            int x = startX + (i * dx);
+            int z = startZ + (i * dz);
+            EnsureInBounds(x, startY, z);
+            if (supportBlockState != null)
+            {
+                EnsureInBounds(x, startY - 1, z);
+            }
+        }
+
+        int dustCount = dustOffset;
+        for (int i = 0; i < length; i++)
+        {
+            int x = startX + (i * dx);
+            int z = startZ + (i * dz);
+
+            if (supportBlockState != null)
+            {
+                SetBlock(x, startY - 1, z, supportBlockState);
+            }
+
+            if (dustCount >= 15)
+            {
+                SetRepeater(x, startY, z, repeaterFacing, delay: repeaterDelay, locked: false, powered: powered);
+                dustCount = 0;
+            }
+            else
+            {
+                int power = powered ? 15 - dustCount : 0;
+                var wireState = Minecraft.Blocks.RedstoneWire
+                    .WithProperty("north", eastWest ? "none" : "side")
+                    .WithProperty("south", eastWest ? "none" : "side")
+                    .WithProperty("east", eastWest ? "side" : "none")
+                    .WithProperty("west", eastWest ? "side" : "none")
+                    .WithPower(power);
+                SetBlock(x, startY, z, wireState);
+                dustCount++;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Places a straight Redstone wireline starting at <paramref name="start"/> flowing along <paramref name="direction"/>
+    /// with optional <paramref name="supportBlockState"/> directly beneath each wireline block.
+    /// </summary>
+    public void SetWireLine(
+        BlockPosition start,
+        Direction direction,
+        int length,
+        int dustOffset,
+        int repeaterDelay,
+        BlockState? supportBlockState,
+        bool powered = false) =>
+        SetWireLine(start.X, start.Y, start.Z, direction, length, dustOffset, repeaterDelay, supportBlockState, powered);
+
+    /// <summary>
     /// Sets a piston block at (x, y, z) with specified facing, sticky, and extended states.
     /// </summary>
     public BlockState SetPiston(int x, int y, int z, string facing = "up", bool sticky = false, bool extended = false)

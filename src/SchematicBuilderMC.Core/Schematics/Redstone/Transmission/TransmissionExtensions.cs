@@ -18,7 +18,8 @@ public static class TransmissionExtensions
         TimeSpan? delay = null,
         bool includeInputLever = false,
         bool includeOutputLamp = false,
-        Rotation rotation = Rotation.None)
+        Rotation rotation = Rotation.None,
+        int dustOffset = 0)
     {
         return new TransmissionLineSchematicCreator
         {
@@ -26,7 +27,8 @@ public static class TransmissionExtensions
             Facing = facing,
             Delay = delay,
             IncludeInputLever = includeInputLever,
-            IncludeOutputLamp = includeOutputLamp
+            IncludeOutputLamp = includeOutputLamp,
+            DustOffset = dustOffset
         }.WithRotation(rotation).Place(builder, x, y, z);
     }
 

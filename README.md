@@ -332,6 +332,7 @@ var hopperClock = new HopperClockSchematicCreator
 }.Build();
 
 var combinedBoard = SchematicBuilder.Create(32, 8, 32)
+    .SetWireLine(0, 1, 14, Direction.East, length: 24, dustOffset: 10, supportBlock: Minecraft.Blocks.SmoothStone)
     .AddTransmissionLine(0, 0, 0, length: 16, delay: TimeSpan.FromSeconds(1))
     .AddXorGate(0, 0, 3, includeInputLevers: true, includeOutputLamp: true)
     .AddPulseExtender(0, 0, 8, PulseExtenderMode.HopperTimer, duration: TimeSpan.FromSeconds(5))

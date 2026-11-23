@@ -1466,6 +1466,76 @@ public sealed class SchematicBuilder
     }
 
     /// <summary>
+    /// Places a straight Redstone wireline starting at (startX, startY, startZ) flowing along <paramref name="direction"/>
+    /// for <paramref name="length"/> blocks, maximizing consecutive redstone dust up to 15 blocks (accounting for <paramref name="dustOffset"/>)
+    /// and inserting repeaters when needed.
+    /// </summary>
+    public SchematicBuilder SetWireLine(
+        int startX,
+        int startY,
+        int startZ,
+        Direction direction,
+        int length,
+        int dustOffset = 0,
+        int repeaterDelay = 1,
+        string? supportBlock = null,
+        bool powered = false)
+    {
+        _schematic.SetWireLine(startX, startY, startZ, direction, length, dustOffset, repeaterDelay, supportBlock, powered);
+        return this;
+    }
+
+    /// <summary>
+    /// Places a straight Redstone wireline starting at <paramref name="start"/> flowing along <paramref name="direction"/>.
+    /// </summary>
+    public SchematicBuilder SetWireLine(
+        BlockPosition start,
+        Direction direction,
+        int length,
+        int dustOffset = 0,
+        int repeaterDelay = 1,
+        string? supportBlock = null,
+        bool powered = false)
+    {
+        _schematic.SetWireLine(start, direction, length, dustOffset, repeaterDelay, supportBlock, powered);
+        return this;
+    }
+
+    /// <summary>
+    /// Places a straight Redstone wireline starting at (startX, startY, startZ) with explicit <paramref name="supportBlockState"/>.
+    /// </summary>
+    public SchematicBuilder SetWireLine(
+        int startX,
+        int startY,
+        int startZ,
+        Direction direction,
+        int length,
+        int dustOffset,
+        int repeaterDelay,
+        BlockState? supportBlockState,
+        bool powered = false)
+    {
+        _schematic.SetWireLine(startX, startY, startZ, direction, length, dustOffset, repeaterDelay, supportBlockState, powered);
+        return this;
+    }
+
+    /// <summary>
+    /// Places a straight Redstone wireline starting at <paramref name="start"/> with explicit <paramref name="supportBlockState"/>.
+    /// </summary>
+    public SchematicBuilder SetWireLine(
+        BlockPosition start,
+        Direction direction,
+        int length,
+        int dustOffset,
+        int repeaterDelay,
+        BlockState? supportBlockState,
+        bool powered = false)
+    {
+        _schematic.SetWireLine(start, direction, length, dustOffset, repeaterDelay, supportBlockState, powered);
+        return this;
+    }
+
+    /// <summary>
     /// Sets a piston block at (x, y, z) with specified facing, sticky, and extended states.
     /// </summary>
     public SchematicBuilder SetPiston(int x, int y, int z, string facing = "up", bool sticky = false, bool extended = false)
