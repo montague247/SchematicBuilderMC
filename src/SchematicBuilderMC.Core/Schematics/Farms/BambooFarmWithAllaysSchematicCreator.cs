@@ -94,6 +94,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         }.WithRotation(Rotation.Clockwise180).Place(builder, centerX, SoilLevel + 3, Length);
         // connect the clock with the noteblock
         builder.SetRepeater(centerX, SoilLevel + 4, Length, Direction.South);
+        builder.SetWireLine(centerX, SoilLevel + 4, Length - 2, Direction.North, length: Length - centerZ - 2);
 
         // add allays to the schematic, each with a bamboo in their main hand
         builder.AddEntity(1, SoilLevel + 4, 1, new Entity(Minecraft.Entities.Allay)
