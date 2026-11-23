@@ -39,6 +39,12 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.Chest, schematic[17, 7, 1].Identifier);
         Assert.Equal(Minecraft.Blocks.NoteBlock, schematic[17, 8, 19].Identifier);
 
+        // Glass roof covers the interior dirt area (x=1..33, z=3..34) and excludes the walls.
+        Assert.Equal(Minecraft.Blocks.Air, schematic[0, 10, 2].Identifier);
+        Assert.Equal(Minecraft.Blocks.Air, schematic[34, 10, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.Glass, schematic[1, 10, 3].Identifier);
+        Assert.Equal(Minecraft.Blocks.Glass, schematic[33, 10, 34].Identifier);
+
         // Both multi-machine start triggers (x=9, 26 at z=2) and end triggers (x=8, 25 at z=35)
         // are observers wired via horizontal buses and vertical torch towers to the global 30s clock.
         Assert.Equal(Minecraft.Blocks.Observer, schematic[9, 6, 2].Identifier);

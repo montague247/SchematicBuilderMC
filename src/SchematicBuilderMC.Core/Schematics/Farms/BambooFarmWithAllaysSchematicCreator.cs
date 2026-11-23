@@ -331,7 +331,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
 
         if (RoofBlock != null)
         {
-            builder.Fill(layout.WallStartX, roofY, layout.WallStartZ, layout.WallEndX, roofY, layout.WallEndZ, RoofBlock);
+            builder.Fill(layout.DirtStartX, roofY, layout.DirtStartZ, layout.DirtEndX, roofY, layout.DirtEndZ, RoofBlock);
         }
 
         if (LightBlock != null)
