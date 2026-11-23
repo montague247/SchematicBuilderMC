@@ -5,16 +5,43 @@ using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 using SchematicBuilderMC.Schematics.Contraptions;
 using SchematicBuilderMC.Schematics.Redstone.Clocks;
+using SchematicBuilderMC.Schematics.Redstone.Internal;
 
 namespace SchematicBuilderMC.Schematics.Farms;
 
+/// <summary>
+/// Builds a self-contained flying-machine bamboo farm collected by Allays.
+/// <see cref="Width"/> and <see cref="Length"/> specify the exact dimensions of the dirt bed.
+/// </summary>
 public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
 {
-    public int Width { get; set; } = 35; // best (max): 35, chunk: 16
+    private const int SoilLevel = 2;
+    private const int MinDirtWidth = 4;
+    private const int MaxDirtWidth = 33; // 16 * 2 + 1: max 16-block allay reach to the centered note block
+    private const int MinDirtLength = 5;
+    private const int MinFrontPadding = 2; // space required before the start wall for the trigger bus and clock lift
+    private const int BackPadding = 8; // wallEndZ + 1 (bus/repeater) + 7 (north-facing hopper clock)
 
+    /// <summary>
+    /// Exact width (X) of the dirt bed in blocks (clamped to <c>4..33</c>).
+    /// </summary>
+    public int Width { get; set; } = MaxDirtWidth;
+
+    /// <summary>
+    /// Exact length (Z) of the dirt bed in blocks (minimum <c>5</c>).
+    /// </summary>
     public int Length { get; set; } = 32;
 
+    /// <summary>
+    /// Minimum clear bamboo growth height inside the farm.
+    /// </summary>
     public int MaxBambooHeight { get; set; } = 4;
+
+    /// <summary>
+    /// Blocks reserved before the start wall along <c>-Z</c> (minimum <c>2</c>).
+    /// Increasing this value shifts the entire farm cleanly along <c>+Z</c>.
+    /// </summary>
+    public int FrontPadding { get; set; } = MinFrontPadding;
 
     public string SoilBlock { get; set; } = Minecraft.Blocks.Dirt;
 
@@ -26,153 +53,321 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
 
     public void SetBestWidth()
     {
-        // max range of allay to noteblock is 16 blocks, so we need to make sure the width is at least 16 * 2 + 1 + 2 (for walls)
-        Width = 16 * 2 + 1 + 2;
+        // Max range of an allay to the centered note block is 16 blocks on each side.
+        Width = MaxDirtWidth;
     }
 
     public override SchematicBuilder Create()
     {
-        Width = Math.Max(Width, 4); // Ensure a minimum width of 4 for the farm (2 for walls and 2 for flying machine)
-        Width = Math.Min(Width, 35); // Ensure a maximum width of 35 to ensure allays can reach the noteblocks (16 blocks range, so 16 * 2 + 1 + 2 for walls)
-        MaxBambooHeight = Math.Max(MaxBambooHeight, 2); // Ensure a minimum height of 2 for bamboo growth
+        var layout = CreateLayout();
 
-        const int SoilLevel = 2;
+        var builder = SchematicBuilder.Create(layout.TotalWidth, layout.TotalHeight, layout.TotalLength, Rotation)
+            .WithOffset(0, 0, 0)
+            .WithName("Bamboo Farm with Allays")
+            .WithAuthor("Dirk Helbig")
+            .WithDescription("A bamboo farm schematic with allays");
 
-        var wallHeight = Math.Max(MaxBambooHeight, 5);
-        var flyingMachine = new FlatFlyingMachine();
-
-        var builder = SchematicBuilder.Create(Width, GetMaxHeight(SoilLevel, wallHeight), Length + 2, Rotation)
-                .WithOffset(0, 0, 0)
-                .WithName("Bamboo Farm with Allays")
-                .WithAuthor("Dirk Helbig")
-                .WithDescription("A bamboo farm schematic with allays");
-
-        // set the center coordinates
-        var centerX = Width / 2;
-        var centerZ = Length / 2 + 2;
-
-        // set the global clock to start the flying machines
-        new HopperClockSchematicCreator()
-        {
-            Period = TimeSpan.FromSeconds(30), // automatically configures Etho hopper item count
-            TorchPlacement = HopperClockTorchPlacement.Both
-        }.WithRotation(Rotation.Clockwise90).Place(builder, centerX - 1, SoilLevel - 2, centerZ - 3);
-
-        // surrounding walls
-        builder.Fill(0, SoilLevel, 0, Width - 1, SoilLevel + wallHeight, 0, WallBlock); // x1
-        builder.Fill(0, SoilLevel, 0, 0, SoilLevel + wallHeight, Length - 1, WallBlock); // z1
-        builder.Fill(0, SoilLevel, Length - 1, Width - 1, SoilLevel + wallHeight, Length - 1, WallBlock); // x2
-        builder.Fill(Width - 1, SoilLevel, 0, Width - 1, SoilLevel + wallHeight, Length - 1, WallBlock); // z2
-
-        // layer for bamboo to grow on
-        builder.Fill(1, SoilLevel, 1, Width - 2, SoilLevel, Length - 2, SoilBlock);
-
-        // layer with bamboo
-        builder.Fill(1, SoilLevel + 1, 2, Width - 2, SoilLevel + 1, Length - 3, Minecraft.Blocks.Bamboo);
+        PlaceWallsAndCropBed(builder, layout);
+        PlaceHarvestClock(builder, layout);
 
         // create the flying machine(s)
-        builder.Create(flyingMachine, 1, SoilLevel + 2, 1, Width - 2, out List<BlockPosition> triggerPositions, Minecraft.Blocks.Bamboo, Length - 2);
+        var flyingMachine = new FlatFlyingMachine();
+        builder.Create(
+            flyingMachine,
+            layout.DirtStartX,
+            SoilLevel + 2,
+            layout.DirtStartZ,
+            layout.DirtWidth,
+            out List<BlockPosition> triggerPositions,
+            Minecraft.Blocks.Bamboo,
+            layout.DirtEndZ);
 
         // connect trigger with clock
         ConnectTriggerWithClock(builder, triggerPositions);
 
-        // set the center block
-        builder.SetBlock(centerX, SoilLevel + 3, centerZ, WallBlock);
-
-        // set the noteblock for the allay to collect the bamboo
-        builder.SetBlock(centerX, SoilLevel + 4, centerZ, Minecraft.Blocks.NoteBlock);
-
-        // add trapdoors above the noteblock to prevent the allay to drop the bamboo on top of the noteblock
-        builder.SurroundWithTrapdoors(centerX, SoilLevel + 5, centerZ, Minecraft.Blocks.BambooTrapdoor);
-
-        // add hoppers to collect the bamboo from the noteblock area
-        builder.Fill(centerX, SoilLevel + 3, 0, centerX, SoilLevel + 3, centerZ - 1, Minecraft.Blocks.Hopper.FacingNorth());
-        builder.SetBlock(centerX + 1, SoilLevel + 3, centerZ - 1, Minecraft.Blocks.Hopper.FacingWest());
-        builder.SetBlock(centerX + 1, SoilLevel + 3, centerZ, Minecraft.Blocks.Hopper.FacingNorth());
-        builder.SetBlock(centerX + 1, SoilLevel + 3, centerZ + 1, Minecraft.Blocks.Hopper.FacingWest());
-        builder.Fill(centerX, SoilLevel + 3, centerZ + 1, centerX, SoilLevel + 3, Length - 1, Minecraft.Blocks.Hopper.FacingSouth());
-        builder.SetBlock(centerX - 1, SoilLevel + 3, centerZ + 1, Minecraft.Blocks.Hopper.FacingEast());
-        builder.SetBlock(centerX - 1, SoilLevel + 3, centerZ, Minecraft.Blocks.Hopper.FacingSouth());
-        builder.SetBlock(centerX - 1, SoilLevel + 3, centerZ - 1, Minecraft.Blocks.Hopper.FacingEast());
-
-        // add clock to activate noteblock every 16 seconds
-        new HopperClockSchematicCreator()
-        {
-            Period = TimeSpan.FromSeconds(13), // automatically configures Etho hopper item count
-            TorchPlacement = HopperClockTorchPlacement.End
-        }.WithRotation(Rotation.Clockwise180).Place(builder, centerX, SoilLevel + 3, Length);
-        // connect the clock with the noteblock
-        builder.SetRepeater(centerX, SoilLevel + 4, Length, Direction.South);
-        builder.SetWireLine(centerX, SoilLevel + 4, Length - 2, Direction.North, length: Length - centerZ - 2);
-
-        // add allays to the schematic, each with a bamboo in their main hand
-        builder.AddEntity(1, SoilLevel + 4, 1, new Entity(Minecraft.Entities.Allay)
-                .WithNoGravity()
-                .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
-        builder.AddEntity(Width - 2, SoilLevel + 4, 1, new Entity(Minecraft.Entities.Allay)
-                .WithNoGravity()
-                .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
-        builder.AddEntity(Width - 2, SoilLevel + 4, Length - 2, new Entity(Minecraft.Entities.Allay)
-                .WithNoGravity()
-                .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
-        builder.AddEntity(1, SoilLevel + 4, Length - 2, new Entity(Minecraft.Entities.Allay)
-                .WithNoGravity()
-                .WithMainHand(new ItemStack(Minecraft.Items.Bamboo)));
-
-        var roofHeight = SoilLevel + wallHeight + 1;
-
-        // set the roof if specified
-        if (RoofBlock != null)
-        {
-            builder.Fill(1, roofHeight, 1, Width - 2, roofHeight, Length - 2, RoofBlock);
-        }
-
-        // set the light in a square pattern if specified
-        if (LightBlock != null)
-        {
-            const int LightSpacing = 3; // spacing between lights
-
-            for (int x = 2; x < Width - 1; x += LightSpacing)
-            {
-                for (int z = 2; z < Length - 1; z += LightSpacing)
-                {
-                    builder.SetBlock(x, roofHeight, z, LightBlock);
-                }
-            }
-        }
+        PlaceCollectionSystem(builder, layout);
+        PlaceAllays(builder, layout);
+        PlaceRoofAndLights(builder, layout);
 
         return builder;
     }
 
+    private FarmLayout CreateLayout()
+    {
+        int dirtWidth = Math.Clamp(Width, MinDirtWidth, MaxDirtWidth);
+        int dirtLength = Math.Max(Length, MinDirtLength);
+        int maxBambooHeight = Math.Max(MaxBambooHeight, 2);
+        int wallHeight = Math.Max(maxBambooHeight, 7);
+        int frontPadding = Math.Max(FrontPadding, MinFrontPadding);
+
+        return new FarmLayout(dirtWidth, dirtLength, wallHeight, frontPadding, RoofBlock != null || LightBlock != null);
+    }
+
+    private void PlaceWallsAndCropBed(SchematicBuilder builder, FarmLayout layout)
+    {
+        int wallTopY = SoilLevel + layout.WallHeight;
+
+        builder.Fill(layout.WallStartX, SoilLevel, layout.WallStartZ, layout.WallEndX, wallTopY, layout.WallStartZ, WallBlock);
+        builder.Fill(layout.WallStartX, SoilLevel, layout.WallEndZ, layout.WallEndX, wallTopY, layout.WallEndZ, WallBlock);
+        builder.Fill(layout.WallStartX, SoilLevel, layout.WallStartZ, layout.WallStartX, wallTopY, layout.WallEndZ, WallBlock);
+        builder.Fill(layout.WallEndX, SoilLevel, layout.WallStartZ, layout.WallEndX, wallTopY, layout.WallEndZ, WallBlock);
+
+        // Dirt bed matches exact Width x Length dimensions inside the walls.
+        builder.Fill(layout.DirtStartX, SoilLevel, layout.DirtStartZ, layout.DirtEndX, SoilLevel, layout.DirtEndZ, SoilBlock);
+
+        // Leave the first and last dirt rows open for the flying machine stations.
+        builder.Fill(
+            layout.DirtStartX,
+            SoilLevel + 1,
+            layout.DirtStartZ + 1,
+            layout.DirtEndX,
+            SoilLevel + 1,
+            layout.DirtEndZ - 1,
+            Minecraft.Blocks.Bamboo);
+    }
+
+    private static void PlaceHarvestClock(SchematicBuilder builder, FarmLayout layout)
+    {
+        int clockStartZ = layout.CenterZ - 4;
+        new HopperClockSchematicCreator
+        {
+            Period = TimeSpan.FromSeconds(30),
+            TorchPlacement = HopperClockTorchPlacement.Both
+        }.WithRotation(Rotation.Clockwise90).Place(builder, layout.CenterX - 1, 0, clockStartZ);
+    }
+
     private static void ConnectTriggerWithClock(SchematicBuilder builder, List<BlockPosition> triggerPositions)
     {
+        if (triggerPositions.Count < 2)
+        {
+            return;
+        }
+
+        var startTriggerXs = new List<int>();
+        var endTriggerXs = new List<int>();
+
         for (int i = 0; i < triggerPositions.Count; i++)
         {
-            ConnectTriggerWithClock(builder, triggerPositions[i], true);
+            BlockPosition triggerPos = triggerPositions[i];
+            bool isStart = i % 2 == 0;
+            builder.SetBlock(
+                triggerPos,
+                Minecraft.Blocks.Observer.WithFacing(isStart ? Direction.North : Direction.South));
 
-            i++;
+            if (isStart)
+            {
+                startTriggerXs.Add(triggerPos.X);
+            }
+            else
+            {
+                endTriggerXs.Add(triggerPos.X);
+            }
+        }
 
-            ConnectTriggerWithClock(builder, triggerPositions[i], false);
+        int wallStartZ = triggerPositions[0].Z;
+        int wallEndZ = triggerPositions[1].Z;
+        int triggerY = triggerPositions[0].Y;
+        int dirtStartZ = wallStartZ + 1;
+        int dirtLength = wallEndZ - dirtStartZ;
+        int centerX = 1 + ((builder.Width - 2) / 2);
+        int centerZ = dirtStartZ + (dirtLength / 2);
+        int clockStartZ = centerZ - 4;
+        int clockEndZ = clockStartZ + 7;
+
+        // Connect north and south clock torches to their respective trigger buses and torch lifts.
+        PlaceTriggerBus(builder, centerX, triggerY, clockStartZ - 1, Direction.North, wallStartZ - 1, wallStartZ - 2, Direction.South, startTriggerXs);
+        PlaceTriggerBus(builder, centerX, triggerY, clockEndZ + 1, Direction.South, wallEndZ + 1, wallEndZ + 2, Direction.North, endTriggerXs);
+    }
+
+    private static void PlaceTriggerBus(
+        SchematicBuilder builder,
+        int centerX,
+        int busY,
+        int clockWireStartZ,
+        Direction clockWireDirection,
+        int busZ,
+        int towerZ,
+        Direction towerToBusDirection,
+        List<int> triggerXs)
+    {
+        if (triggerXs.Count == 0)
+        {
+            return;
+        }
+
+        int wireLength = (clockWireDirection == Direction.North
+            ? clockWireStartZ - busZ
+            : busZ - clockWireStartZ) + 1;
+        if (wireLength > 0)
+        {
+            builder.SetWireLine(
+                centerX,
+                1,
+                clockWireStartZ,
+                clockWireDirection,
+                wireLength,
+                supportBlock: Minecraft.Blocks.SmoothStone);
+        }
+
+        // Vertical torch tower lifting signal from y = 1 up to busY.
+        builder.SetBlock(centerX, 1, towerZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(centerX, 2, towerZ, Minecraft.Blocks.RedstoneTorch.WithLit(true));
+        builder.SetBlock(centerX, 3, towerZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(centerX, 4, towerZ, Minecraft.Blocks.RedstoneTorch.WithLit(false));
+        builder.SetBlock(centerX, 5, towerZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(
+            centerX,
+            busY,
+            towerZ,
+            CircuitLayout.CreateWire(
+                Direction.North,
+                north: towerToBusDirection == Direction.North,
+                east: false,
+                south: towerToBusDirection == Direction.South,
+                west: false));
+
+        int minX = Math.Min(centerX, triggerXs.Min());
+        int maxX = Math.Max(centerX, triggerXs.Max());
+
+        builder.SetBlock(centerX, busY - 1, busZ, Minecraft.Blocks.SmoothStone);
+        builder.SetBlock(
+            centerX,
+            busY,
+            busZ,
+            CircuitLayout.CreateWire(
+                Direction.North,
+                north: towerToBusDirection == Direction.South,
+                east: maxX > centerX,
+                south: towerToBusDirection == Direction.North,
+                west: minX < centerX));
+
+        if (minX < centerX)
+        {
+            builder.SetWireLine(
+                centerX - 1,
+                busY,
+                busZ,
+                Direction.West,
+                length: centerX - minX,
+                dustOffset: 1,
+                supportBlock: Minecraft.Blocks.SmoothStone);
+        }
+
+        if (maxX > centerX)
+        {
+            builder.SetWireLine(
+                centerX + 1,
+                busY,
+                busZ,
+                Direction.East,
+                length: maxX - centerX,
+                dustOffset: 1,
+                supportBlock: Minecraft.Blocks.SmoothStone);
         }
     }
 
-    private static void ConnectTriggerWithClock(SchematicBuilder builder, BlockPosition triggerPosition, bool start)
+    private void PlaceCollectionSystem(SchematicBuilder builder, FarmLayout layout)
     {
-        // set observer
-        builder.SetBlock(triggerPosition, Minecraft.Blocks.Observer.WithFacing(start ? Direction.North : Direction.South));
+        int centerX = layout.CenterX;
+        int centerZ = layout.CenterZ;
+        int hopperY = layout.HopperY;
+        int noteBlockY = layout.NoteBlockY;
 
-        builder.SetBlock(triggerPosition.X, triggerPosition.Y, triggerPosition.Z + (start ? -1 : 1), Minecraft.Blocks.SmoothStone);
+        // Solid block below the note block so air directly above the note block stays clear.
+        builder.SetBlock(centerX, hopperY, centerZ, WallBlock);
+        builder.SetBlock(centerX, noteBlockY, centerZ, Minecraft.Blocks.NoteBlock);
+        builder.SurroundWithTrapdoors(centerX, noteBlockY + 1, centerZ, Minecraft.Blocks.BambooTrapdoor);
+
+        // Route all surrounding hoppers into one north trunk exiting before the start wall.
+        builder.Fill(centerX, hopperY, layout.WallStartZ, centerX, hopperY, centerZ - 1, Minecraft.Blocks.Hopper.FacingNorth());
+        builder.SetBlock(centerX - 1, hopperY, centerZ - 1, Minecraft.Blocks.Hopper.FacingEast());
+        builder.SetBlock(centerX - 1, hopperY, centerZ, Minecraft.Blocks.Hopper.FacingNorth());
+        builder.SetBlock(centerX - 1, hopperY, centerZ + 1, Minecraft.Blocks.Hopper.FacingNorth());
+        builder.SetBlock(centerX + 1, hopperY, centerZ - 1, Minecraft.Blocks.Hopper.FacingWest());
+        builder.SetBlock(centerX + 1, hopperY, centerZ, Minecraft.Blocks.Hopper.FacingNorth());
+        builder.SetBlock(centerX + 1, hopperY, centerZ + 1, Minecraft.Blocks.Hopper.FacingNorth());
+
+        builder.SetBlock(centerX, hopperY, layout.WallStartZ - 1, Minecraft.Blocks.Chest.FacingNorth());
+        builder.SetChest(centerX, hopperY, layout.WallStartZ - 1);
+
+        // Place the note block timer behind the end wall facing north so its end torch pulses north.
+        int clockStartZ = layout.WallEndZ + 2;
+        new HopperClockSchematicCreator
+        {
+            Period = TimeSpan.FromSeconds(13),
+            Facing = Direction.North,
+            TorchPlacement = HopperClockTorchPlacement.End
+        }.Place(builder, centerX, noteBlockY - 1, clockStartZ);
+
+        // Repeater at wallEndZ + 1 boosts signal into the south wire trunk (solid blocks prevent locking hoppers).
+        builder.SetBlock(centerX, noteBlockY - 1, layout.WallEndZ + 1, Minecraft.Blocks.SmoothStone);
+        CircuitLayout.SetRepeater(builder, new BlockPosition(centerX, noteBlockY, layout.WallEndZ + 1), Direction.North);
+        builder.SetWireLine(
+            centerX,
+            noteBlockY,
+            layout.WallEndZ,
+            Direction.North,
+            length: layout.WallEndZ - centerZ,
+            supportBlock: Minecraft.Blocks.SmoothStone);
     }
 
-    private int GetMaxHeight(int soilLevel, int wallHeight)
+    private static void PlaceAllays(SchematicBuilder builder, FarmLayout layout)
     {
-        var height = soilLevel + wallHeight + 1;
+        int allayY = SoilLevel + 4;
+        builder.AddEntity(layout.DirtStartX, allayY, layout.DirtStartZ, CreateAllay());
+        builder.AddEntity(layout.DirtEndX, allayY, layout.DirtStartZ, CreateAllay());
+        builder.AddEntity(layout.DirtEndX, allayY, layout.DirtEndZ, CreateAllay());
+        builder.AddEntity(layout.DirtStartX, allayY, layout.DirtEndZ, CreateAllay());
+    }
+
+    private static Entity CreateAllay() =>
+        new Entity(Minecraft.Entities.Allay)
+            .WithNoGravity()
+            .WithMainHand(new ItemStack(Minecraft.Items.Bamboo));
+
+    private void PlaceRoofAndLights(SchematicBuilder builder, FarmLayout layout)
+    {
+        int roofY = layout.RoofY;
 
         if (RoofBlock != null)
         {
-            height += 1; // add one more block for the roof
+            builder.Fill(layout.WallStartX, roofY, layout.WallStartZ, layout.WallEndX, roofY, layout.WallEndZ, RoofBlock);
         }
 
-        return height;
+        if (LightBlock != null)
+        {
+            const int LightSpacing = 3;
+            for (int x = layout.DirtStartX + 1; x <= layout.DirtEndX - 1; x += LightSpacing)
+            {
+                for (int z = layout.DirtStartZ + 1; z <= layout.DirtEndZ - 1; z += LightSpacing)
+                {
+                    builder.SetBlock(x, roofY, z, LightBlock);
+                }
+            }
+        }
+    }
+
+    private readonly record struct FarmLayout(int DirtWidth, int DirtLength, int WallHeight, int FrontPadding, bool HasRoofLayer)
+    {
+        public int WallStartX => 0;
+        public int DirtStartX => WallStartX + 1;
+        public int DirtEndX => DirtStartX + DirtWidth - 1;
+        public int WallEndX => DirtEndX + 1;
+        public int TotalWidth => WallEndX + 1;
+
+        public int WallStartZ => FrontPadding;
+        public int DirtStartZ => WallStartZ + 1;
+        public int DirtEndZ => DirtStartZ + DirtLength - 1;
+        public int WallEndZ => DirtEndZ + 1;
+        public int TotalLength => WallEndZ + 1 + BackPadding;
+
+        public int CenterX => DirtStartX + (DirtWidth / 2);
+        public int CenterZ => DirtStartZ + (DirtLength / 2);
+
+        public int TriggerY => SoilLevel + 4;
+        public int HopperY => SoilLevel + 5;
+        public int NoteBlockY => SoilLevel + 6;
+        public int RoofY => SoilLevel + WallHeight + 1;
+        public int TotalHeight => SoilLevel + WallHeight + 1 + (HasRoofLayer ? 1 : 0);
     }
 }

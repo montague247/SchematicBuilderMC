@@ -194,14 +194,14 @@ public class SchematicRotationTests
             .WithRotation(Rotation.Clockwise90);
 
         var bambooRotated = bambooCreator.Build();
-        Assert.Equal(34, bambooRotated.Width);
-        Assert.Equal(12, bambooRotated.Height);
+        Assert.Equal(44, bambooRotated.Width);
+        Assert.Equal(11, bambooRotated.Height);
         Assert.Equal(35, bambooRotated.Length);
         Assert.Equal(BlockPosition.Zero, bambooRotated.Offset);
-        Assert.Equal(Minecraft.Blocks.NoteBlock, bambooRotated[17, 9, 17].Identifier);
+        Assert.Equal(Minecraft.Blocks.NoteBlock, bambooRotated[24, 8, 17].Identifier);
         Assert.Equal(4, bambooRotated.Entities.Count);
-        Assert.Equal(32.5, bambooRotated.Entities[0].X, precision: 5);
-        Assert.Equal(9.0, bambooRotated.Entities[0].Y, precision: 5);
+        Assert.Equal(40.5, bambooRotated.Entities[0].X, precision: 5);
+        Assert.Equal(6.0, bambooRotated.Entities[0].Y, precision: 5);
         Assert.Equal(1.5, bambooRotated.Entities[0].Z, precision: 5);
 
         var flyingCreator = new FlatFylingMachineSchematicCreator
