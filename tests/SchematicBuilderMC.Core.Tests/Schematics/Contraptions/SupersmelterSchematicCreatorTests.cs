@@ -12,7 +12,10 @@ public sealed class SupersmelterSchematicCreatorTests
     [Fact]
     public void Build_Default_ProducesNamedSupersmelterWith32FurnacesAndDecoration()
     {
-        var creator = new SupersmelterSchematicCreator();
+        var creator = new SupersmelterSchematicCreator()
+        {
+            MachineType = SmelterType.Smoker
+        };
         var schematic = creator.Build();
 
         Assert.Equal("Supersmelter", schematic.Metadata.Name);
@@ -51,7 +54,7 @@ public sealed class SupersmelterSchematicCreatorTests
         Assert.Equal("left", schematic[3, 3, 17].Properties["type"]);
         Assert.Equal(32 + 6, schematic.BlockEntities.Count);
 
-        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, "Supersmelter.schem");
+        string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"Supersmelter_{creator.MachineType}.schem");
         SchematicFile.Write(schematic, spongePath, SchematicFormat.SpongeV2);
         var loaded = SchematicFile.Read(spongePath, SchematicFormat.SpongeV2);
         Assert.Equal("Supersmelter", loaded.Metadata.Name);
@@ -100,6 +103,47 @@ public sealed class SupersmelterSchematicCreatorTests
 
         Assert.Equal(expectedBlockId, schematic[0, 3, 0].Identifier);
         Assert.Equal(expectedBlockId, schematic[4, 3, 15].Identifier);
+    }
+
+    [Theory]
+    [InlineData(SmelterType.Smoker, Minecraft.Blocks.Smoker)]
+    [InlineData(SmelterType.BlastFurnace, Minecraft.Blocks.BlastFurnace)]
+    public void Build_FastSmelterTypes_UseAdjustedFastClock(SmelterType machineType, string expectedMachineBlock)
+    {
+        var schematic = new SupersmelterSchematicCreator
+        {
+            MachineType = machineType
+        }.Build();
+
+        Assert.Equal(expectedMachineBlock, schematic[0, 3, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[2, 9, 11].Identifier);
+        Assert.Equal("subtract", schematic[2, 9, 11].Properties["mode"]);
+        Assert.Equal(Minecraft.Blocks.Repeater, schematic[3, 9, 12].Identifier);
+        Assert.Equal("3", schematic[3, 9, 12].Properties["delay"]);
+        Assert.Equal(Minecraft.Blocks.Repeater, schematic[2, 8, 14].Identifier);
+        Assert.Equal(Minecraft.Blocks.Repeater, schematic[2, 8, 15].Identifier);
+        Assert.Equal(Minecraft.Blocks.Air, schematic[3, 8, 14].Identifier);
+    }
+
+    [Fact]
+    public void Build_UseFastClockOverride_SelectsExplicitClockCircuit()
+    {
+        var furnaceWithFastClock = new SupersmelterSchematicCreator
+        {
+            MachineType = SmelterType.Furnace,
+            UseFastClock = true
+        }.Build();
+        Assert.Equal(Minecraft.Blocks.Comparator, furnaceWithFastClock[2, 9, 11].Identifier);
+        Assert.Equal("subtract", furnaceWithFastClock[2, 9, 11].Properties["mode"]);
+
+        var smokerWithStandardClock = new SupersmelterSchematicCreator
+        {
+            MachineType = SmelterType.Smoker,
+            UseFastClock = false
+        }.Build();
+        Assert.Equal(Minecraft.Blocks.Repeater, smokerWithStandardClock[2, 9, 11].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, smokerWithStandardClock[3, 8, 14].Identifier);
+        Assert.Equal("compare", smokerWithStandardClock[3, 8, 14].Properties["mode"]);
     }
 
     [Theory]

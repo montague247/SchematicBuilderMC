@@ -47,6 +47,15 @@ public sealed class SupersmelterSchematicCreator : SchematicCreator
     public string GlassBlock { get; set; } = Minecraft.Blocks.GrayStainedGlass;
 
     /// <summary>
+    /// Optional override for the distribution clock mode.
+    /// When <c>null</c> (default), automatically selects the fast 4-tick subtract clock for 2x-speed smelters
+    /// (<see cref="SmelterType.Smoker"/> and <see cref="SmelterType.BlastFurnace"/>) and the standard fader clock for <see cref="SmelterType.Furnace"/>.
+    /// </summary>
+    public bool? UseFastClock { get; set; }
+
+    private bool ResolvedFastClock => UseFastClock ?? (MachineType is SmelterType.Smoker or SmelterType.BlastFurnace);
+
+    /// <summary>
     /// Optional initial items placed in the top input double chest (slots 0..53, counts 1..64).
     /// </summary>
     public IReadOnlyList<ItemStack>? InputItems { get; set; }
@@ -267,14 +276,39 @@ public sealed class SupersmelterSchematicCreator : SchematicCreator
         builder.Fill(2, 8, 11, 3, 8, 11, GlassBlock);
         builder.SetBlock(5, 8, 11, wireNorthSouth);
         builder.Fill(2, 8, 12, 3, 8, 12, CircuitBlock);
+        builder.SetBlock(1, 8, 16, wireNorthSouth);
+        builder.SetBlock(2, 8, 16, CircuitBlock);
+
+        PlaceDistributionClock(builder, wireNorthSouth);
+    }
+
+    private void PlaceDistributionClock(SchematicBuilder builder, BlockState wireNorthSouth)
+    {
+        builder.SetBlock(2, 9, 10, Minecraft.Blocks.RedstoneTorch.WithLit(false));
+
+        if (ResolvedFastClock)
+        {
+            // Fast 4-redstone-tick subtract clock matching 2x Smoker/BlastFurnace speed (8 gt per trigger) with zero torch burnout.
+            builder.Fill(1, 8, 13, 1, 8, 15, wireNorthSouth);
+            builder.SetBlock(2, 8, 13, CircuitBlock);
+            builder.SetBlock(3, 8, 13, GlassBlock);
+            builder.Fill(2, 8, 14, 2, 8, 15, Minecraft.Blocks.Repeater.WithDelay(1).WithFacing("north").WithLocked(false).WithPowered(false));
+
+            builder.SetBlock(2, 9, 11, Minecraft.Blocks.Comparator.WithFacing("north").WithMode("subtract").WithPowered(false));
+            builder.SetBlock(3, 9, 11, CreateWire(north: "none", east: "none", south: "side", west: "side"));
+            builder.SetBlock(2, 9, 12, wireNorthSouth);
+            builder.SetBlock(3, 9, 12, Minecraft.Blocks.Repeater.WithDelay(3).WithFacing("south").WithLocked(false).WithPowered(false));
+            builder.SetBlock(2, 9, 13, CreateWire(north: "side", east: "side", south: "none", west: "none"));
+            builder.SetBlock(3, 9, 13, CreateWire(north: "side", east: "none", south: "none", west: "side"));
+            return;
+        }
+
+        // Standard 10s-tuned 6-comparator fader loop matching regular Furnace smelting speed.
         builder.Fill(1, 8, 13, 1, 8, 15, CreateWire(north: "side", east: "side", south: "side", west: "none"));
         builder.Fill(2, 8, 13, 2, 8, 15, Minecraft.Blocks.Comparator.WithFacing("north").WithMode("compare").WithPowered(false));
         builder.Fill(3, 8, 13, 3, 8, 15, Minecraft.Blocks.Comparator.WithFacing("south").WithMode("compare").WithPowered(false));
-        builder.SetBlock(1, 8, 16, wireNorthSouth);
-        builder.SetBlock(2, 8, 16, CircuitBlock);
         builder.SetBlock(3, 8, 16, wireNorthSouth);
 
-        builder.SetBlock(2, 9, 10, Minecraft.Blocks.RedstoneTorch.WithLit(false));
         builder.SetBlock(3, 9, 10, CircuitBlock);
         builder.SetBlock(2, 9, 11, Minecraft.Blocks.Repeater.WithDelay(1).WithFacing("north").WithLocked(false).WithPowered(false));
         builder.SetBlock(3, 9, 11, Minecraft.Blocks.Repeater.WithDelay(3).WithFacing("south").WithLocked(false).WithPowered(false));
