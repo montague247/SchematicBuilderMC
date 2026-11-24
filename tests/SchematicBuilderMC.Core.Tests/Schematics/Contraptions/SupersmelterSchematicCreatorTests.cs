@@ -116,13 +116,17 @@ public sealed class SupersmelterSchematicCreatorTests
         }.Build();
 
         Assert.Equal(expectedMachineBlock, schematic[0, 3, 0].Identifier);
-        Assert.Equal(Minecraft.Blocks.Comparator, schematic[2, 9, 11].Identifier);
-        Assert.Equal("subtract", schematic[2, 9, 11].Properties["mode"]);
-        Assert.Equal(Minecraft.Blocks.Repeater, schematic[3, 9, 12].Identifier);
-        Assert.Equal("3", schematic[3, 9, 12].Properties["delay"]);
-        Assert.Equal(Minecraft.Blocks.Repeater, schematic[2, 8, 14].Identifier);
-        Assert.Equal(Minecraft.Blocks.Repeater, schematic[2, 8, 15].Identifier);
-        Assert.Equal(Minecraft.Blocks.Air, schematic[3, 8, 14].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[2, 9, 13].Identifier);
+        Assert.Equal("compare", schematic[2, 9, 13].Properties["mode"]);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[2, 9, 14].Identifier);
+        Assert.Equal(Minecraft.Blocks.Repeater, schematic[3, 9, 11].Identifier);
+        Assert.Equal("2", schematic[3, 9, 11].Properties["delay"]);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[2, 8, 15].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[3, 8, 13].Identifier);
+        Assert.Equal(Minecraft.Blocks.GrayWool, schematic[3, 8, 14].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[3, 8, 15].Identifier);
+        Assert.Equal(Minecraft.Blocks.GrayWool, schematic[2, 8, 14].Identifier);
+        Assert.Equal(Minecraft.Blocks.GrayStainedGlass, schematic[2, 8, 13].Identifier);
     }
 
     [Fact]
@@ -133,15 +137,18 @@ public sealed class SupersmelterSchematicCreatorTests
             MachineType = SmelterType.Furnace,
             UseFastClock = true
         }.Build();
-        Assert.Equal(Minecraft.Blocks.Comparator, furnaceWithFastClock[2, 9, 11].Identifier);
-        Assert.Equal("subtract", furnaceWithFastClock[2, 9, 11].Properties["mode"]);
+        Assert.Equal(Minecraft.Blocks.Comparator, furnaceWithFastClock[2, 9, 13].Identifier);
+        Assert.Equal("compare", furnaceWithFastClock[2, 9, 13].Properties["mode"]);
+        Assert.Equal("2", furnaceWithFastClock[3, 9, 11].Properties["delay"]);
 
         var smokerWithStandardClock = new SupersmelterSchematicCreator
         {
             MachineType = SmelterType.Smoker,
             UseFastClock = false
         }.Build();
-        Assert.Equal(Minecraft.Blocks.Repeater, smokerWithStandardClock[2, 9, 11].Identifier);
+        Assert.Equal(Minecraft.Blocks.Air, smokerWithStandardClock[2, 9, 13].Identifier);
+        Assert.Equal("3", smokerWithStandardClock[3, 9, 11].Properties["delay"]);
+        Assert.Equal(Minecraft.Blocks.Comparator, smokerWithStandardClock[2, 8, 14].Identifier);
         Assert.Equal(Minecraft.Blocks.Comparator, smokerWithStandardClock[3, 8, 14].Identifier);
         Assert.Equal("compare", smokerWithStandardClock[3, 8, 14].Properties["mode"]);
     }
