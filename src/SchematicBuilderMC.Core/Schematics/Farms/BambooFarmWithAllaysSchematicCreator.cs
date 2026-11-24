@@ -21,8 +21,8 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
     private const int MinDirtLength = 5;
     private const int MinFrontPadding = 2; // space required before the start wall for the trigger bus and clock lift
     private const int RotatedNoteBlockClockBackPadding = 8; // wallEndZ + 1 (repeater) + 7 (north-facing clock)
-    private const int FlushNoteBlockClockBackPadding = 3; // wallEndZ + 1 (repeater) + 2 (east-facing clock depth)
-    private const int FlushNoteBlockClockWidth = 7;
+    private const int FlushNoteBlockClockBackPadding = 2; // wallEndZ + 1..wallEndZ + 2 (west-facing clock + wall repeater)
+    private const int FlushNoteBlockClockRightSpan = 6; // u = 0..6 extends 6 blocks along +X from centerX
 
     /// <summary>
     /// Exact width (X) of the dirt bed in blocks (clamped to <c>4..33</c>).
@@ -114,14 +114,14 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         int maxBambooHeight = Math.Max(MaxBambooHeight, 2);
         int wallHeight = Math.Max(maxBambooHeight, 7);
         int frontPadding = Math.Max(FrontPadding, MinFrontPadding);
-        int sidePadding = RotateNoteBlockClock
+        int rightPadding = RotateNoteBlockClock
             ? 0
-            : Math.Max(0, FlushNoteBlockClockWidth - (1 + (dirtWidth / 2)));
+            : Math.Max(0, FlushNoteBlockClockRightSpan - (dirtWidth - (dirtWidth / 2)));
         int backPadding = RotateNoteBlockClock
             ? RotatedNoteBlockClockBackPadding
             : FlushNoteBlockClockBackPadding;
 
-        return new FarmLayout(dirtWidth, dirtLength, wallHeight, sidePadding, frontPadding, backPadding, RoofBlock != null);
+        return new FarmLayout(dirtWidth, dirtLength, wallHeight, rightPadding, frontPadding, backPadding, RoofBlock != null);
     }
 
     private void PlaceWallsAndCropBed(SchematicBuilder builder, FarmLayout layout)
@@ -383,8 +383,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         builder.SetBlock(centerX, hopperY, layout.WallStartZ - 1, Minecraft.Blocks.Chest.FacingNorth());
         builder.SetChest(centerX, hopperY, layout.WallStartZ - 1);
 
-        // Place the note block timer behind the end wall (rotated perpendicular to the wall or flush along X).
-        int clockStartZ = layout.WallEndZ + 2;
+        // Place the note block timer behind the end wall (rotated perpendicular to the wall or flush along +X).
         if (RotateNoteBlockClock)
         {
             new HopperClockSchematicCreator
@@ -392,23 +391,17 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
                 Period = TimeSpan.FromSeconds(13),
                 Facing = Direction.North,
                 TorchPlacement = HopperClockTorchPlacement.End
-            }.Place(builder, centerX, noteBlockY - 1, clockStartZ);
+            }.Place(builder, centerX, noteBlockY - 1, layout.WallEndZ + 2);
         }
         else
         {
+            // Rotate the flush clock 180 degrees along +X at wallEndZ + 1 so its end torch sits directly behind the wall repeater.
             new HopperClockSchematicCreator
             {
                 Period = TimeSpan.FromSeconds(13),
-                Facing = Direction.East,
+                Facing = Direction.West,
                 TorchPlacement = HopperClockTorchPlacement.End
-            }.Place(builder, centerX - FlushNoteBlockClockWidth, noteBlockY - 1, clockStartZ);
-
-            builder.SetBlock(centerX, noteBlockY - 1, clockStartZ, Minecraft.Blocks.SmoothStone);
-            builder.SetBlock(
-                centerX,
-                noteBlockY,
-                clockStartZ,
-                CircuitLayout.CreateWire(Direction.North, north: true, east: false, south: false, west: true));
+            }.Place(builder, centerX, noteBlockY - 1, layout.WallEndZ + 1);
         }
 
         // Repeater at wallEndZ + 1 strongly powers the solid end wall block at wallEndZ so no gap is cut in the wall.
@@ -551,16 +544,16 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
         int DirtWidth,
         int DirtLength,
         int WallHeight,
-        int SidePadding,
+        int RightPadding,
         int FrontPadding,
         int BackPadding,
         bool HasRoofLayer)
     {
-        public int WallStartX => SidePadding;
+        public int WallStartX => 0;
         public int DirtStartX => WallStartX + 1;
         public int DirtEndX => DirtStartX + DirtWidth - 1;
         public int WallEndX => DirtEndX + 1;
-        public int TotalWidth => WallEndX + 1;
+        public int TotalWidth => WallEndX + 1 + RightPadding;
 
         public int WallStartZ => FrontPadding;
         public int DirtStartZ => WallStartZ + 1;

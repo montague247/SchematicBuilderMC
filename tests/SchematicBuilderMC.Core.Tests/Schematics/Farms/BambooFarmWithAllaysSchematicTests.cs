@@ -18,11 +18,11 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
 
         // Assert
         // Default Width = 33 (dirt) + 2 (walls) = 35
-        // Default Length = 2 (front padding) + 1 (start wall) + 32 (dirt) + 1 (end wall) + 3 (back clock) = 44
+        // Default Length = 2 (front padding) + 1 (start wall) + 32 (dirt) + 1 (end wall) + 2 (back clock) = 38
         // Default Height = 2 (soilY) + 7 (wallHeight) + 1 + 1 (roof) = 11
         Assert.Equal(35, schematic.Width);
         Assert.Equal(11, schematic.Height);
-        Assert.Equal(39, schematic.Length);
+        Assert.Equal(38, schematic.Length);
 
         // Verify exact dirt bed size matches Width (33) x Length (32) at SoilLevel (y = 2)
         for (int x = 1; x <= 33; x++)
@@ -168,8 +168,9 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
     }
 
     [Theory]
-    [InlineData(33, 32, 35, 39)]
-    [InlineData(10, 12, 13, 19)]
+    [InlineData(33, 32, 35, 38)]
+    [InlineData(10, 12, 13, 18)]
+    [InlineData(4, 5, 10, 11)]
     public void Build_UnrotatedNoteBlockClock_PlacesClockFlushBehindEndWall(
         int dirtWidth,
         int dirtLength,
@@ -189,14 +190,15 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(expectedLength, schematic.Length);
 
         int endWallZ = 2 + 1 + dirtLength + 1 - 1; // wallEndZ = frontPadding(2) + 1 + dirtLength
-        int centerX = (dirtWidth < 12 ? 7 - (1 + (dirtWidth / 2)) : 0) + 1 + (dirtWidth / 2);
+        int centerX = 1 + (dirtWidth / 2);
 
-        // Flush clock sits along X (width 7) behind endWallZ + 1 (endWallZ + 2..endWallZ + 3) and turns into repeater.
-        Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[centerX - 1, 8, endWallZ + 2].Identifier);
-        Assert.Equal("east", schematic[centerX - 1, 8, endWallZ + 2].Properties["facing"]);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[centerX, 8, endWallZ + 2].Identifier);
+        // Flush clock sits along +X at endWallZ + 1..endWallZ + 2 with its end torch directly behind the wall repeater.
+        Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[centerX, 8, endWallZ + 2].Identifier);
+        Assert.Equal("west", schematic[centerX, 8, endWallZ + 2].Properties["facing"]);
         Assert.Equal(Minecraft.Blocks.Repeater, schematic[centerX, 8, endWallZ + 1].Identifier);
+        Assert.Equal("south", schematic[centerX, 8, endWallZ + 1].Properties["facing"]);
         Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[centerX, 8, endWallZ].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[centerX + 6, 8, endWallZ + 1].Identifier);
     }
 
     [Theory]
@@ -213,8 +215,7 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
 
         var schematic = farm.Build();
 
-        int sidePadding = farm.RotateNoteBlockClock ? 0 : Math.Max(0, 7 - (1 + (dirtWidth / 2)));
-        int centerX = sidePadding + 1 + (dirtWidth / 2);
+        int centerX = 1 + (dirtWidth / 2);
         int centerZ = 3 + (dirtLength / 2);
 
         Assert.Equal(Minecraft.Blocks.Hopper, schematic[centerX, 7, centerZ + 1].Identifier);
