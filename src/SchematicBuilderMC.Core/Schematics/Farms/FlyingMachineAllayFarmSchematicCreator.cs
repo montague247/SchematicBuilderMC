@@ -64,7 +64,7 @@ public abstract class FlyingMachineAllayFarmSchematicCreator : SchematicCreator
     /// <summary>
     /// Maximum interior crop clearance height configured for the farm.
     /// </summary>
-    protected abstract int MaxCropHeight { get; }
+    protected virtual int MaxCropHeight => 4;
 
     /// <summary>
     /// Crop block identifier planted on the bed and beneath flying machine stations.

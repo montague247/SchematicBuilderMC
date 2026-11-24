@@ -11,21 +11,13 @@ namespace SchematicBuilderMC.Schematics.Farms;
 /// </summary>
 public sealed class KelpFarmWithAllaysSchematicCreator : FlyingMachineAllayFarmSchematicCreator
 {
-    private const int MaxSubmergedHeight = 4; // Keeps water strictly below HopperY (SoilLevel + 5) and NoteBlockY (SoilLevel + 6).
+    private const int WaterDepth = 2; // Fixed 2-block water column (y = SoilLevel + 1..2) covering kelp and flying-machine sweep layer.
 
     public KelpFarmWithAllaysSchematicCreator()
     {
         SoilBlock = Minecraft.Blocks.Sand;
         LightBlock = null;
     }
-
-    /// <summary>
-    /// Water depth and kelp growth height above the sand bed (clamped to 1..4 blocks for water placement so overhead
-    /// hoppers and note block wiring remain dry).
-    /// </summary>
-    public int MaxKelpHeight { get; set; } = MaxSubmergedHeight;
-
-    protected override int MaxCropHeight => MaxKelpHeight;
 
     protected override string CropBlockId => Minecraft.Blocks.Kelp;
 
@@ -35,20 +27,19 @@ public sealed class KelpFarmWithAllaysSchematicCreator : FlyingMachineAllayFarmS
 
     protected override string AllayCustomName => "Kelp Collector";
 
-    protected override int GetAllaySpawnY(FarmLayout layout) => GetWaterTopY() + 1;
+    protected override int GetAllaySpawnY(FarmLayout layout) => WaterTopY + 1;
 
     protected override void PlaceGrowthMedium(SchematicBuilder builder, FarmLayout layout)
     {
-        int waterTopY = GetWaterTopY();
         builder.Fill(
             layout.DirtStartX,
             SoilLevel + 1,
             layout.DirtStartZ,
             layout.DirtEndX,
-            waterTopY,
+            WaterTopY,
             layout.DirtEndZ,
             Minecraft.Blocks.Water.WithLevel(0));
     }
 
-    private int GetWaterTopY() => SoilLevel + Math.Clamp(MaxKelpHeight, 1, MaxSubmergedHeight);
+    private static int WaterTopY => SoilLevel + WaterDepth;
 }
