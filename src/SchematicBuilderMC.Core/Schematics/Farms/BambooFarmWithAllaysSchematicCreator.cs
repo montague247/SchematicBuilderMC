@@ -426,6 +426,9 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
             Direction.North,
             length: layout.WallEndZ - centerZ - 1,
             supportBlock: Minecraft.Blocks.SmoothStone);
+
+        // Complete the 3x3 collection ring behind the note block so items dropped over the wire tip are not lost on stone.
+        builder.SetBlock(centerX, hopperY, centerZ + 1, Minecraft.Blocks.Hopper.FacingWest());
     }
 
     private static void PlaceAllays(SchematicBuilder builder, FarmLayout layout)

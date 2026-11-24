@@ -18,11 +18,11 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
 
         // Assert
         // Default Width = 33 (dirt) + 2 (walls) = 35
-        // Default Length = 2 (front padding) + 1 (start wall) + 32 (dirt) + 1 (end wall) + 8 (back clock) = 44
+        // Default Length = 2 (front padding) + 1 (start wall) + 32 (dirt) + 1 (end wall) + 3 (back clock) = 44
         // Default Height = 2 (soilY) + 7 (wallHeight) + 1 + 1 (roof) = 11
         Assert.Equal(35, schematic.Width);
         Assert.Equal(11, schematic.Height);
-        Assert.Equal(44, schematic.Length);
+        Assert.Equal(39, schematic.Length);
 
         // Verify exact dirt bed size matches Width (33) x Length (32) at SoilLevel (y = 2)
         for (int x = 1; x <= 33; x++)
@@ -197,6 +197,30 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[centerX, 8, endWallZ + 2].Identifier);
         Assert.Equal(Minecraft.Blocks.Repeater, schematic[centerX, 8, endWallZ + 1].Identifier);
         Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[centerX, 8, endWallZ].Identifier);
+    }
+
+    [Theory]
+    [InlineData(33, 32)]
+    [InlineData(10, 12)]
+    [InlineData(4, 5)]
+    public void Build_CollectionArea_PlacesHopperAtLastWireSupportPosition(int dirtWidth, int dirtLength)
+    {
+        var farm = new BambooFarmWithAllaysSchematicCreator
+        {
+            Width = dirtWidth,
+            Length = dirtLength
+        };
+
+        var schematic = farm.Build();
+
+        int sidePadding = farm.RotateNoteBlockClock ? 0 : Math.Max(0, 7 - (1 + (dirtWidth / 2)));
+        int centerX = sidePadding + 1 + (dirtWidth / 2);
+        int centerZ = 3 + (dirtLength / 2);
+
+        Assert.Equal(Minecraft.Blocks.Hopper, schematic[centerX, 7, centerZ + 1].Identifier);
+        Assert.Equal("west", schematic[centerX, 7, centerZ + 1].Properties["facing"]);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[centerX, 8, centerZ + 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.SmoothStone, schematic[centerX, 7, centerZ + 2].Identifier);
     }
 
     [Fact]
