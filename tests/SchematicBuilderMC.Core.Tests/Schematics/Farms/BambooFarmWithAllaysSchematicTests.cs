@@ -219,4 +219,103 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[8, 6, 36].Identifier);
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[25, 6, 36].Identifier);
     }
+
+    [Theory]
+    [InlineData(4, 5)]
+    [InlineData(7, 7)]
+    [InlineData(10, 12)]
+    [InlineData(20, 20)]
+    [InlineData(33, 32)]
+    public void Build_AllBambooPositions_ReceiveAtLeastLightLevel9(int dirtWidth, int dirtLength)
+    {
+        var farm = new BambooFarmWithAllaysSchematicCreator
+        {
+            Width = dirtWidth,
+            Length = dirtLength
+        };
+
+        var schematic = farm.Build();
+
+        // Compute 3D Manhattan block-light BFS (emission 15 from LightBlock, treating opaque farm blocks & hoppers as blockers).
+        var light = new int[schematic.Width, schematic.Height, schematic.Length];
+        var queue = new Queue<(int X, int Y, int Z)>();
+
+        for (int x = 0; x < schematic.Width; x++)
+        {
+            for (int y = 0; y < schematic.Height; y++)
+            {
+                for (int z = 0; z < schematic.Length; z++)
+                {
+                    if (schematic[x, y, z].Identifier == Minecraft.Blocks.VerdantFroglight)
+                    {
+                        light[x, y, z] = 15;
+                        queue.Enqueue((x, y, z));
+                    }
+                }
+            }
+        }
+
+        ReadOnlySpan<(int Dx, int Dy, int Dz)> dirs =
+        [
+            (1, 0, 0), (-1, 0, 0),
+            (0, 1, 0), (0, -1, 0),
+            (0, 0, 1), (0, 0, -1)
+        ];
+
+        while (queue.Count > 0)
+        {
+            var (x, y, z) = queue.Dequeue();
+            int nextLevel = light[x, y, z] - 1;
+            if (nextLevel <= 0)
+            {
+                continue;
+            }
+
+            foreach (var (dx, dy, dz) in dirs)
+            {
+                int nx = x + dx;
+                int ny = y + dy;
+                int nz = z + dz;
+                if (nx < 0 || nx >= schematic.Width || ny < 0 || ny >= schematic.Height || nz < 0 || nz >= schematic.Length)
+                {
+                    continue;
+                }
+
+                string id = schematic[nx, ny, nz].Identifier;
+                bool isOpaque = id is Minecraft.Blocks.Dirt
+                    or Minecraft.Blocks.WaxedCopperBlock
+                    or Minecraft.Blocks.SmoothStone
+                    or Minecraft.Blocks.NoteBlock
+                    or Minecraft.Blocks.Furnace
+                    or Minecraft.Blocks.Hopper
+                    or Minecraft.Blocks.Observer;
+
+                if (isOpaque || light[nx, ny, nz] >= nextLevel)
+                {
+                    continue;
+                }
+
+                light[nx, ny, nz] = nextLevel;
+                queue.Enqueue((nx, ny, nz));
+            }
+        }
+
+        const int dirtStartX = 1;
+        int dirtEndX = dirtStartX + dirtWidth - 1;
+        const int dirtStartZ = 3; // frontPadding(2) + wall(1)
+        int dirtEndZ = dirtStartZ + dirtLength - 1;
+
+        for (int x = dirtStartX; x <= dirtEndX; x++)
+        {
+            for (int z = dirtStartZ + 1; z <= dirtEndZ - 1; z++)
+            {
+                Assert.True(
+                    light[x, 3, z] >= 9,
+                    $"Expected bamboo at ({x}, 3, {z}) for {dirtWidth}x{dirtLength} to have light >= 9, but was {light[x, 3, z]}.");
+                Assert.True(
+                    light[x, 4, z] >= 9,
+                    $"Expected growth space above bamboo at ({x}, 4, {z}) for {dirtWidth}x{dirtLength} to have light >= 9, but was {light[x, 4, z]}.");
+            }
+        }
+    }
 }

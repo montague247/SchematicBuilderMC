@@ -121,7 +121,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
             ? RotatedNoteBlockClockBackPadding
             : FlushNoteBlockClockBackPadding;
 
-        return new FarmLayout(dirtWidth, dirtLength, wallHeight, sidePadding, frontPadding, backPadding, RoofBlock != null || LightBlock != null);
+        return new FarmLayout(dirtWidth, dirtLength, wallHeight, sidePadding, frontPadding, backPadding, RoofBlock != null);
     }
 
     private void PlaceWallsAndCropBed(SchematicBuilder builder, FarmLayout layout)
@@ -444,24 +444,104 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
 
     private void PlaceRoofAndLights(SchematicBuilder builder, FarmLayout layout)
     {
-        int roofY = layout.RoofY;
-
         if (RoofBlock != null)
         {
+            int roofY = layout.RoofY;
             builder.Fill(layout.DirtStartX, roofY, layout.DirtStartZ, layout.DirtEndX, roofY, layout.DirtEndZ, RoofBlock);
         }
 
-        if (LightBlock != null)
+        if (LightBlock == null)
         {
-            const int LightSpacing = 3;
-            for (int x = layout.DirtStartX + 1; x <= layout.DirtEndX - 1; x += LightSpacing)
+            return;
+        }
+
+        // Bamboo requires block/sky light >= 9 above its shoot (y = SoilLevel + 2) and base (y = SoilLevel + 1).
+        // Placing LightBlock (emission 15) at HopperY (SoilLevel + 5 = 7, dy = 4 to bamboo, 3 to growth space)
+        // stays clear of the flying machine and triggers while guaranteeing light >= 9 everywhere on the dirt bed.
+        int lightY = layout.HopperY;
+        const int LightSpacing = 3;
+        List<int> xs = GetLightAxisCoordinates(layout.DirtStartX, layout.DirtEndX, LightSpacing);
+        List<int> zs = GetLightAxisCoordinates(layout.DirtStartZ, layout.DirtEndZ, LightSpacing);
+
+        foreach (int x in xs)
+        {
+            foreach (int z in zs)
             {
-                for (int z = layout.DirtStartZ + 1; z <= layout.DirtEndZ - 1; z += LightSpacing)
-                {
-                    builder.SetBlock(x, roofY, z, LightBlock);
-                }
+                PlaceLightWithCollectionClearance(builder, layout, x, lightY, z);
             }
         }
+
+        // Ensure extra lights flank the 3x3 central collection ring so (CenterX, CenterZ) receives light >= 9 for all sizes.
+        TryPlaceLightIfClear(builder, layout, layout.CenterX - 2, lightY, layout.CenterZ);
+        TryPlaceLightIfClear(builder, layout, layout.CenterX + 2, lightY, layout.CenterZ);
+        TryPlaceLightIfClear(builder, layout, layout.CenterX - 1, lightY, layout.CenterZ - 2);
+        TryPlaceLightIfClear(builder, layout, layout.CenterX + 1, lightY, layout.CenterZ - 2);
+        TryPlaceLightIfClear(builder, layout, layout.CenterX - 1, lightY, layout.CenterZ + 2);
+        TryPlaceLightIfClear(builder, layout, layout.CenterX + 1, lightY, layout.CenterZ + 2);
+    }
+
+    private void PlaceLightWithCollectionClearance(
+        SchematicBuilder builder,
+        FarmLayout layout,
+        int x,
+        int y,
+        int z)
+    {
+        if (!IsOccupiedAtHopperLevel(x, z, layout))
+        {
+            builder.SetBlock(x, y, z, LightBlock!);
+            return;
+        }
+
+        // Bypass central hopper/wire trunk with symmetric flanking lights so blocks beneath still receive light >= 9.
+        int offset = Math.Abs(z - layout.CenterZ) <= 1 ? 2 : 1;
+        TryPlaceLightIfClear(builder, layout, layout.CenterX - offset, y, z);
+        TryPlaceLightIfClear(builder, layout, layout.CenterX + offset, y, z);
+    }
+
+    private void TryPlaceLightIfClear(SchematicBuilder builder, FarmLayout layout, int x, int y, int z)
+    {
+        if (x < layout.DirtStartX || x > layout.DirtEndX || z < layout.DirtStartZ || z > layout.DirtEndZ)
+        {
+            return;
+        }
+
+        if (!IsOccupiedAtHopperLevel(x, z, layout))
+        {
+            builder.SetBlock(x, y, z, LightBlock!);
+        }
+    }
+
+    private static bool IsOccupiedAtHopperLevel(int x, int z, FarmLayout layout) =>
+        x == layout.CenterX ||
+        (Math.Abs(x - layout.CenterX) <= 1 && Math.Abs(z - layout.CenterZ) <= 1);
+
+    private static List<int> GetLightAxisCoordinates(int start, int end, int spacing)
+    {
+        var coords = new List<int>();
+        if (end < start)
+        {
+            return coords;
+        }
+
+        if (end == start)
+        {
+            coords.Add(start);
+            return coords;
+        }
+
+        int first = Math.Min(start + 1, end);
+        for (int pos = first; pos <= end - 1; pos += spacing)
+        {
+            coords.Add(pos);
+        }
+
+        if (coords.Count == 0 || coords[^1] < end - 1)
+        {
+            coords.Add(end - 1);
+        }
+
+        return coords;
     }
 
     private readonly record struct FarmLayout(
