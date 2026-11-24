@@ -457,6 +457,7 @@ public abstract class FlyingMachineAllayFarmSchematicCreator : SchematicCreator
     private Entity CreateAllay() =>
         new Entity(Minecraft.Entities.Allay, 0, 0, 0)
             .WithCustomName(AllayCustomName)
+            .WithMainHand(CropBlockId)
             .WithPersistenceRequired();
 
     private void PlaceRoofAndLights(SchematicBuilder builder, FarmLayout layout)

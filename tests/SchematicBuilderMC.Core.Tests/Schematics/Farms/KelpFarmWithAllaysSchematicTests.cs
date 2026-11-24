@@ -74,6 +74,9 @@ public sealed class KelpFarmWithAllaysSchematicCreatorTests
         {
             Assert.Equal(Minecraft.Entities.Allay, allay.Id);
             Assert.Equal(5.0, allay.Y);
+            var equipment = Assert.IsType<fNbt.NbtCompound>(allay.Data["equipment"]);
+            var mainhand = Assert.IsType<fNbt.NbtCompound>(equipment["mainhand"]);
+            Assert.Equal(Minecraft.Items.Kelp, mainhand["id"]?.StringValue);
         });
 
         string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
@@ -84,6 +87,12 @@ public sealed class KelpFarmWithAllaysSchematicCreatorTests
         Assert.Equal(Minecraft.Blocks.Water, roundTripped[10, 4, 10].Identifier);
         Assert.Equal(Minecraft.Blocks.Air, roundTripped[10, 5, 10].Identifier);
         Assert.Equal(4, roundTripped.Entities.Count);
+        Assert.All(roundTripped.Entities, allay =>
+        {
+            var equipment = Assert.IsType<fNbt.NbtCompound>(allay.Data["equipment"]);
+            var mainhand = Assert.IsType<fNbt.NbtCompound>(equipment["mainhand"]);
+            Assert.Equal(Minecraft.Items.Kelp, mainhand["id"]?.StringValue);
+        });
     }
 
     [Fact]

@@ -87,6 +87,12 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(1.5, firstAllay.X);
         Assert.Equal(6.0, firstAllay.Y);
         Assert.Equal(2.5, firstAllay.Z);
+        Assert.All(schematic.Entities, allay =>
+        {
+            var equipment = Assert.IsType<fNbt.NbtCompound>(allay.Data["equipment"]);
+            var mainhand = Assert.IsType<fNbt.NbtCompound>(equipment["mainhand"]);
+            Assert.Equal(Minecraft.Items.Bamboo, mainhand["id"]?.StringValue);
+        });
 
         var secondAllay = schematic.Entities[1];
         Assert.Equal(Minecraft.Entities.Allay, secondAllay.Id);
