@@ -32,7 +32,7 @@ public sealed class SupersmelterSchematicCreatorTests
                 for (int z = 0; z < schematic.Length; z++)
                 {
                     string id = schematic[x, y, z].Identifier;
-                    if (id == Minecraft.Blocks.Furnace)
+                    if (id == Minecraft.Blocks.Smoker)
                     {
                         furnaceCount++;
                     }
