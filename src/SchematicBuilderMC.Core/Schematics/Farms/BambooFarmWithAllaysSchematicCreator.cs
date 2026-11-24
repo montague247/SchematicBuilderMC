@@ -49,7 +49,7 @@ public sealed class BambooFarmWithAllaysSchematicCreator : SchematicCreator
     /// When <c>true</c> (default), places the note block hopper clock rotated perpendicular to the end wall along <c>+Z</c>.
     /// When <c>false</c>, places the hopper clock unrotated parallel to the end wall along <c>+X</c>.
     /// </summary>
-    public bool RotateNoteBlockClock { get; set; } = true;
+    public bool RotateNoteBlockClock { get; set; }
 
     /// <summary>
     /// When <c>true</c> (default) and multiple flying machines exist, cross-connects each machine's start and end triggers
