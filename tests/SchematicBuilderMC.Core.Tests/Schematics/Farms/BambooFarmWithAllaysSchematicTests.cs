@@ -18,88 +18,93 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
 
         // Assert
         // Default Width = 33 (dirt) + 2 (walls) = 35
-        // Default Length = 2 (front padding) + 1 (start wall) + 32 (dirt) + 1 (end wall) + 2 (back clock) = 38
+        // Default Length = 1 (front padding) + 1 (start wall) + 32 (dirt) + 1 (end wall) + 2 (back clock) = 37
         // Default Height = 2 (soilY) + 7 (wallHeight) + 1 + 1 (roof) = 11
         Assert.Equal(35, schematic.Width);
         Assert.Equal(11, schematic.Height);
-        Assert.Equal(38, schematic.Length);
+        Assert.Equal(37, schematic.Length);
 
         // Verify exact dirt bed size matches Width (33) x Length (32) at SoilLevel (y = 2)
         for (int x = 1; x <= 33; x++)
         {
-            for (int z = 3; z <= 34; z++)
+            for (int z = 2; z <= 33; z++)
             {
                 Assert.Equal(Minecraft.Blocks.Dirt, schematic[x, 2, z].Identifier);
             }
         }
 
-        // Walls surround dirt cleanly on x=0/34 and z=2/35
-        Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[0, 2, 2].Identifier);
-        Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[34, 2, 35].Identifier);
-        Assert.Equal(Minecraft.Blocks.Chest, schematic[17, 7, 1].Identifier);
-        Assert.Equal(Minecraft.Blocks.NoteBlock, schematic[17, 8, 19].Identifier);
+        // Walls surround dirt cleanly on x=0/34 and z=1/34
+        Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[0, 2, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[34, 2, 34].Identifier);
+        Assert.Equal(Minecraft.Blocks.Chest, schematic[17, 7, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.NoteBlock, schematic[17, 8, 18].Identifier);
 
         // End wall remains solid (no gap for allays to escape) while the repeater powers internal dust.
-        Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[17, 8, 35].Identifier);
-        Assert.Equal(Minecraft.Blocks.Repeater, schematic[17, 8, 36].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 8, 34].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 8, 20].Identifier);
+        Assert.Equal(Minecraft.Blocks.WaxedCopperBlock, schematic[17, 8, 34].Identifier);
+        Assert.Equal(Minecraft.Blocks.Repeater, schematic[17, 8, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWallTorch, schematic[17, 8, 36].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 8, 33].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 8, 19].Identifier);
 
-        // Glass roof covers the interior dirt area (x=1..33, z=3..34) and excludes the walls.
-        Assert.Equal(Minecraft.Blocks.Air, schematic[0, 10, 2].Identifier);
-        Assert.Equal(Minecraft.Blocks.Air, schematic[34, 10, 35].Identifier);
-        Assert.Equal(Minecraft.Blocks.Glass, schematic[1, 10, 3].Identifier);
-        Assert.Equal(Minecraft.Blocks.Glass, schematic[33, 10, 34].Identifier);
+        // Glass roof covers the interior dirt area (x=1..33, z=2..33) and excludes the walls.
+        Assert.Equal(Minecraft.Blocks.Air, schematic[0, 10, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.Air, schematic[34, 10, 34].Identifier);
+        Assert.Equal(Minecraft.Blocks.Glass, schematic[1, 10, 2].Identifier);
+        Assert.Equal(Minecraft.Blocks.Glass, schematic[33, 10, 33].Identifier);
 
         // Cross-connected default alternates left (x=14) and right (x=19) flying machines via CopperBulbs
-        // and keeps both start/end trigger buses separated (air at centerX=17 on trigger lift towers).
-        Assert.Equal(Minecraft.Blocks.WaxedCopperBulb, schematic[17, 1, 14].Identifier);
-        Assert.Equal(Minecraft.Blocks.Comparator, schematic[16, 1, 14].Identifier);
-        Assert.Equal(Minecraft.Blocks.WaxedCopperBulb, schematic[17, 1, 23].Identifier);
-        Assert.Equal(Minecraft.Blocks.Comparator, schematic[18, 1, 23].Identifier);
+        // and keeps both start/end trigger wiring 1-wide at z=0 (start) and z=35 (end).
+        Assert.Equal(Minecraft.Blocks.WaxedCopperBulb, schematic[17, 1, 13].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[16, 1, 13].Identifier);
+        Assert.Equal(Minecraft.Blocks.WaxedCopperBulb, schematic[17, 1, 22].Identifier);
+        Assert.Equal(Minecraft.Blocks.Comparator, schematic[18, 1, 22].Identifier);
 
-        Assert.Equal(Minecraft.Blocks.Observer, schematic[9, 6, 2].Identifier);
-        Assert.Equal("north", schematic[9, 6, 2].Properties["facing"]);
-        Assert.Equal(Minecraft.Blocks.Observer, schematic[26, 6, 2].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[9, 6, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.Observer, schematic[9, 6, 1].Identifier);
+        Assert.Equal("north", schematic[9, 6, 1].Properties["facing"]);
+        Assert.Equal(Minecraft.Blocks.Observer, schematic[26, 6, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[9, 6, 0].Identifier);
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[14, 6, 0].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[26, 6, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneTorch, schematic[14, 4, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[26, 6, 0].Identifier);
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[19, 6, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneTorch, schematic[19, 4, 0].Identifier);
         Assert.Equal(Minecraft.Blocks.Air, schematic[17, 6, 0].Identifier);
 
-        Assert.Equal(Minecraft.Blocks.Observer, schematic[8, 6, 35].Identifier);
-        Assert.Equal("south", schematic[8, 6, 35].Properties["facing"]);
-        Assert.Equal(Minecraft.Blocks.Observer, schematic[25, 6, 35].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[8, 6, 36].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[14, 6, 37].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[25, 6, 36].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[19, 6, 37].Identifier);
-        Assert.Equal(Minecraft.Blocks.Air, schematic[17, 6, 37].Identifier);
+        Assert.Equal(Minecraft.Blocks.Observer, schematic[8, 6, 34].Identifier);
+        Assert.Equal("south", schematic[8, 6, 34].Properties["facing"]);
+        Assert.Equal(Minecraft.Blocks.Observer, schematic[25, 6, 34].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[8, 6, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[14, 6, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneTorch, schematic[14, 4, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[25, 6, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[19, 6, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneTorch, schematic[19, 4, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.Air, schematic[17, 6, 35].Identifier);
 
         Assert.Equal(4, schematic.Entities.Count);
         var firstAllay = schematic.Entities[0];
         Assert.Equal(Minecraft.Entities.Allay, firstAllay.Id);
         Assert.Equal(1.5, firstAllay.X);
         Assert.Equal(6.0, firstAllay.Y);
-        Assert.Equal(3.5, firstAllay.Z);
+        Assert.Equal(2.5, firstAllay.Z);
 
         var secondAllay = schematic.Entities[1];
         Assert.Equal(Minecraft.Entities.Allay, secondAllay.Id);
         Assert.Equal(33.5, secondAllay.X);
         Assert.Equal(6.0, secondAllay.Y);
-        Assert.Equal(3.5, secondAllay.Z);
+        Assert.Equal(2.5, secondAllay.Z);
 
         var thirdAllay = schematic.Entities[2];
         Assert.Equal(Minecraft.Entities.Allay, thirdAllay.Id);
         Assert.Equal(33.5, thirdAllay.X);
         Assert.Equal(6.0, thirdAllay.Y);
-        Assert.Equal(34.5, thirdAllay.Z);
+        Assert.Equal(33.5, thirdAllay.Z);
 
         var fourthAllay = schematic.Entities[3];
         Assert.Equal(Minecraft.Entities.Allay, fourthAllay.Id);
         Assert.Equal(1.5, fourthAllay.X);
         Assert.Equal(6.0, fourthAllay.Y);
-        Assert.Equal(34.5, fourthAllay.Z);
+        Assert.Equal(33.5, fourthAllay.Z);
 
         // Write to file
         string spongePath = Path.Combine(SchematicCreatorTests.TestOutputDirectory, $"{schematic.Metadata.Name}.schem");
@@ -107,7 +112,7 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
     }
 
     [Theory]
-    [InlineData(10, 12, 2)]
+    [InlineData(10, 12, 1)]
     [InlineData(10, 12, 6)]
     [InlineData(4, 5, 4)]
     public void Build_CustomDirtSizeAndFrontPadding_PlacesExactDirtAndShiftsStartWall(
@@ -125,8 +130,9 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
 
         var schematic = farm.Build();
 
-        Assert.Equal(dirtWidth + 2, schematic.Width);
-        Assert.Equal(frontPadding + dirtLength + 10, schematic.Length);
+        int expectedRightPadding = Math.Max(0, 6 - (dirtWidth - (dirtWidth / 2)));
+        Assert.Equal(dirtWidth + 2 + expectedRightPadding, schematic.Width);
+        Assert.Equal(frontPadding + dirtLength + 4, schematic.Length);
 
         int dirtStartX = 1;
         int dirtEndX = dirtWidth;
@@ -168,9 +174,9 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
     }
 
     [Theory]
-    [InlineData(33, 32, 35, 38)]
-    [InlineData(10, 12, 13, 18)]
-    [InlineData(4, 5, 10, 11)]
+    [InlineData(33, 32, 35, 37)]
+    [InlineData(10, 12, 13, 17)]
+    [InlineData(4, 5, 10, 10)]
     public void Build_UnrotatedNoteBlockClock_PlacesClockFlushBehindEndWall(
         int dirtWidth,
         int dirtLength,
@@ -189,7 +195,7 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         Assert.Equal(expectedWidth, schematic.Width);
         Assert.Equal(expectedLength, schematic.Length);
 
-        int endWallZ = 2 + 1 + dirtLength + 1 - 1; // wallEndZ = frontPadding(2) + 1 + dirtLength
+        int endWallZ = 1 + 1 + dirtLength + 1 - 1; // wallEndZ = frontPadding(1) + 1 + dirtLength
         int centerX = 1 + (dirtWidth / 2);
 
         // Flush clock sits along +X at endWallZ + 1..endWallZ + 2 with its end torch directly behind the wall repeater.
@@ -216,7 +222,7 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
         var schematic = farm.Build();
 
         int centerX = 1 + (dirtWidth / 2);
-        int centerZ = 3 + (dirtLength / 2);
+        int centerZ = 2 + (dirtLength / 2);
 
         Assert.Equal(Minecraft.Blocks.Hopper, schematic[centerX, 7, centerZ + 1].Identifier);
         Assert.Equal("west", schematic[centerX, 7, centerZ + 1].Properties["facing"]);
@@ -234,15 +240,17 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
 
         var schematic = farm.Build();
 
-        // Direct mode uses a single centerX=17 lift tower and shared horizontal buses for all start/end triggers.
+        // Direct mode uses a single centerX=17 inline 1-wide lift tower and horizontal bus at z=0 (start) and z=35 (end).
         Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 0].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 1].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[9, 6, 1].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[26, 6, 1].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 37].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 36].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[8, 6, 36].Identifier);
-        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[25, 6, 36].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneTorch, schematic[17, 4, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 1, 1].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[9, 6, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[26, 6, 0].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 6, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneTorch, schematic[17, 4, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[17, 1, 34].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[8, 6, 35].Identifier);
+        Assert.Equal(Minecraft.Blocks.RedstoneWire, schematic[25, 6, 35].Identifier);
     }
 
     [Theory]
@@ -327,7 +335,7 @@ public sealed class BambooFarmWithAllaysSchematicCreatorTests
 
         const int dirtStartX = 1;
         int dirtEndX = dirtStartX + dirtWidth - 1;
-        const int dirtStartZ = 3; // frontPadding(2) + wall(1)
+        const int dirtStartZ = 2; // frontPadding(1) + wall(1)
         int dirtEndZ = dirtStartZ + dirtLength - 1;
 
         for (int x = dirtStartX; x <= dirtEndX; x++)
