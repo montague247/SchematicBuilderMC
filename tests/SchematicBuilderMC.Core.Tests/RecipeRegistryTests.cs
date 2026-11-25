@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using SchematicBuilderMC.Extensions;
+using SchematicBuilderMC.Models;
 using SchematicBuilderMC.Registries;
 
 namespace SchematicBuilderMC.Core.Tests;
@@ -128,5 +131,138 @@ public sealed class RecipeRegistryTests
         Assert.Equal("minecraft:charcoal", matches[0].Id);
         Assert.Equal(200, matches[0].CookingTime);
         Assert.Equal(0.15f, matches[0].Experience);
+    }
+
+    [Fact]
+    public void RequiredForRecipes_FromBlockConstantStateAndItemStack_ReturnsMatchingRecipes()
+    {
+        var redstoneBlockUsages = Minecraft.Blocks.RedstoneBlock.RequiredForRecipes();
+        Assert.Contains(redstoneBlockUsages, r => r.Id == "minecraft:redstone" && r.ResultItemId == Minecraft.Items.Redstone && r.ResultCount == 9);
+
+        var planksWithTags = Minecraft.Blocks.OakPlanks.RequiredForRecipes();
+        var planksExactOnly = Minecraft.Blocks.OakPlanks.RequiredForRecipes(expandTags: false);
+        Assert.Contains(planksWithTags, r => r.Id == "minecraft:chest");
+        Assert.DoesNotContain(planksExactOnly, r => r.Id == "minecraft:chest");
+        Assert.Contains(planksExactOnly, r => r.Id == "minecraft:oak_boat");
+
+        var filtered = Minecraft.Blocks.RedstoneBlock.RequiredForRecipes(type: RecipeType.CraftingShapeless);
+        Assert.Contains(filtered, r => r.Id == "minecraft:redstone");
+        Assert.All(filtered, r => Assert.Equal(RecipeType.CraftingShapeless, r.Type));
+
+        var fromBlockState = Minecraft.Blocks.Chest.WithFacing("north").RequiredForRecipes();
+        Assert.Contains(fromBlockState, r => r.Id == "minecraft:hopper");
+
+        var fromStateString = "minecraft:chest[facing=south]".RequiredForRecipes();
+        Assert.Contains(fromStateString, r => r.Id == "minecraft:hopper");
+
+        var fromStack = new ItemStack(Minecraft.Items.Chest, 1).RequiredForRecipes();
+        Assert.Contains(fromStack, r => r.Id == "minecraft:hopper");
+
+        Assert.Empty(((string?)null).RequiredForRecipes());
+        Assert.Empty("   ".RequiredForRecipes());
+    }
+
+    [Fact]
+    public void GetFactoryRecipes()
+    {
+        var blocks = new List<string>();
+
+        FillFactoryRecipes(blocks, Minecraft.Blocks.RedstoneBlock);
+
+        Assert.Equal(29, blocks.Count);
+    }
+
+    [Fact]
+    public void GetFactoryIncredients()
+    {
+        var requiredBlocks = new string[]
+        {
+            Minecraft.Blocks.Dispenser,
+            Minecraft.Blocks.Dropper,
+            Minecraft.Blocks.Piston,
+            Minecraft.Blocks.StickyPiston,
+            Minecraft.Blocks.Repeater,
+            Minecraft.Blocks.Comparator,
+            Minecraft.Blocks.RedstoneTorch,
+            Minecraft.Blocks.Chest,
+            Minecraft.Blocks.Hopper,
+            Minecraft.Blocks.Observer,
+            Minecraft.Blocks.Lever,
+            Minecraft.Blocks.BambooTrapdoor,
+            Minecraft.Blocks.BambooButton
+        };
+
+        var blocks = new List<string>(requiredBlocks);
+
+        foreach (var blockId in requiredBlocks)
+        {
+            FillFactoryIncredients(blocks, blockId, 0);
+        }
+
+        Assert.Equal(29, blocks.Count);
+    }
+
+    [Fact]
+    public void GetRecipes_FromBlockConstantStateAndItemStack_ReturnsProducingRecipes()
+    {
+        var redstoneBlockRecipes = Minecraft.Blocks.RedstoneBlock.GetRecipes();
+        Assert.Contains(redstoneBlockRecipes, r => r.Id == "minecraft:redstone_block" && r.ResultItemId == Minecraft.Items.RedstoneBlock);
+
+        var smokerCookingRecipes = Minecraft.Blocks.DriedKelpBlock.GetRecipes(type: RecipeType.CraftingShaped);
+        Assert.Contains(smokerCookingRecipes, r => r.Id == "minecraft:dried_kelp_block");
+
+        var fromState = Minecraft.Blocks.Hopper.WithFacing("east").GetRecipes();
+        Assert.Contains(fromState, r => r.Id == "minecraft:hopper");
+
+        var fromStack = new ItemStack(Minecraft.Items.Smoker, 1).GetRecipes();
+        Assert.Contains(fromStack, r => r.Id == "minecraft:smoker");
+
+        Assert.Empty(((string?)null).GetRecipes());
+        Assert.Throws<ArgumentNullException>(() => ((BlockState)null!).RequiredForRecipes());
+        Assert.Throws<ArgumentNullException>(() => ((ItemStack)null!).GetRecipes());
+    }
+
+    private static void FillFactoryRecipes(List<string> blocks, string blockId)
+    {
+        blocks.Add(blockId);
+
+        var recipes = blockId.RequiredForRecipes();
+
+        foreach (var recipe in recipes)
+        {
+            if (recipe.ResultItemId == null ||
+                recipe.Type == RecipeType.Brewing ||
+                blocks.Contains(recipe.ResultItemId))
+                continue;
+
+            FillFactoryRecipes(blocks, recipe.ResultItemId);
+        }
+    }
+
+    private static void FillFactoryIncredients(List<string> blocks, string blockId, int depth)
+    {
+        if (blockId.Contains("nugget"))
+            return;
+
+        if (!blocks.Contains(blockId))
+            blocks.Add(blockId);
+        else if (depth != 0)
+            return;
+
+        var recipes = blockId.GetRecipes();
+
+        foreach (var recipe in recipes)
+        {
+            if (recipe.Ingredients == null ||
+                recipe.Type == RecipeType.Stonecutting ||
+                recipe.Type == RecipeType.Blasting ||
+                recipe.Type == RecipeType.Smelting)
+                continue;
+
+            foreach (var ingredient in recipe.Ingredients)
+            {
+                FillFactoryIncredients(blocks, ingredient.Primary, depth + 1);
+            }
+        }
     }
 }
