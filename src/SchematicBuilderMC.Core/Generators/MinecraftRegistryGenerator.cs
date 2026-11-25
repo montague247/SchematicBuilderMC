@@ -334,17 +334,8 @@ public static class MinecraftRegistryGenerator
     /// <summary>
     /// Generates registry source files and writes them directly to the specified target directory.
     /// </summary>
-    public static void GenerateToDirectory(string jsonContent, string targetDirectory, GeneratorOptions? options = null)
-    {
-        Directory.CreateDirectory(targetDirectory);
-        var files = GenerateSourceFiles(jsonContent, options);
-        var utf8WithoutBom = new UTF8Encoding(false);
-        foreach (var (fileName, content) in files)
-        {
-            string fullPath = Path.Combine(targetDirectory, fileName);
-            File.WriteAllText(fullPath, content, utf8WithoutBom);
-        }
-    }
+    public static void GenerateToDirectory(string jsonContent, string targetDirectory, GeneratorOptions? options = null) =>
+        WriteGeneratedFiles(GenerateSourceFiles(jsonContent, options), targetDirectory);
 
     /// <summary>
     /// Generates a single combined registry source file at the specified output path.
@@ -367,6 +358,36 @@ public static class MinecraftRegistryGenerator
         string comment,
         List<string> entries,
         GeneratorOptions options,
+        string indent) =>
+        AppendIdentifierConstantsClass(
+            sb,
+            className,
+            comment,
+            entries,
+            options.GenerateCollections,
+            options.GenerateValidationHelpers,
+            isTagRegistry: false,
+            indent);
+
+    internal static void WriteGeneratedFiles(Dictionary<string, string> files, string targetDirectory)
+    {
+        Directory.CreateDirectory(targetDirectory);
+        var utf8WithoutBom = new UTF8Encoding(false);
+        foreach (var (fileName, content) in files)
+        {
+            string fullPath = Path.Combine(targetDirectory, fileName);
+            File.WriteAllText(fullPath, content, utf8WithoutBom);
+        }
+    }
+
+    internal static void AppendIdentifierConstantsClass(
+        StringBuilder sb,
+        string className,
+        string comment,
+        IReadOnlyList<string> entries,
+        bool generateCollections,
+        bool generateValidationHelpers,
+        bool isTagRegistry,
         string indent)
     {
         sb.AppendLine($"{indent}/// <summary>");
@@ -377,9 +398,9 @@ public static class MinecraftRegistryGenerator
 
         var constantNames = new List<string>(entries.Count);
 
-        foreach (var entry in entries)
+        foreach (string entry in entries)
         {
-            string propertyName = ToPascalCase(entry);
+            string propertyName = ToPascalCase(entry.TrimStart('#'));
             constantNames.Add(propertyName);
 
             string memberModifier = ReservedObjectMembers.Contains(propertyName)
@@ -391,31 +412,42 @@ public static class MinecraftRegistryGenerator
             sb.AppendLine();
         }
 
-        if (options.GenerateCollections)
+        if (generateCollections)
         {
             sb.AppendLine($"{indent}    /// <summary>All registered identifiers in <see cref=\"{className}\"/>.</summary>");
             sb.AppendLine($"{indent}    public static readonly System.Collections.Generic.IReadOnlyList<string> All = new string[]");
             sb.AppendLine($"{indent}    {{");
-            foreach (var constName in constantNames)
+            foreach (string constName in constantNames)
             {
                 sb.AppendLine($"{indent}        {constName},");
             }
+
             sb.AppendLine($"{indent}    }};");
             sb.AppendLine();
             sb.AppendLine($"{indent}    private static readonly System.Collections.Generic.HashSet<string> AllSet = new(All, System.StringComparer.OrdinalIgnoreCase);");
             sb.AppendLine();
         }
 
-        if (options.GenerateValidationHelpers)
+        if (generateValidationHelpers)
         {
             sb.AppendLine($"{indent}    /// <summary>Determines whether the specified identifier is a registered member of <see cref=\"{className}\"/>.</summary>");
             sb.AppendLine($"{indent}    public static bool IsValid(string? identifier)");
             sb.AppendLine($"{indent}    {{");
             sb.AppendLine($"{indent}        if (string.IsNullOrWhiteSpace(identifier)) return false;");
-            sb.AppendLine($"{indent}        int bracket = identifier.IndexOf('[');");
-            sb.AppendLine($"{indent}        if (bracket >= 0) identifier = identifier[..bracket].Trim();");
-            sb.AppendLine($"{indent}        if (!identifier.Contains(':')) identifier = \"minecraft:\" + identifier;");
-            sb.AppendLine($"{indent}        return AllSet.Contains(identifier);");
+            if (isTagRegistry)
+            {
+                sb.AppendLine($"{indent}        identifier = identifier.Trim().TrimStart('#');");
+                sb.AppendLine($"{indent}        if (!identifier.Contains(':')) identifier = \"minecraft:\" + identifier;");
+                sb.AppendLine($"{indent}        return AllSet.Contains(\"#\" + identifier);");
+            }
+            else
+            {
+                sb.AppendLine($"{indent}        int bracket = identifier.IndexOf('[');");
+                sb.AppendLine($"{indent}        if (bracket >= 0) identifier = identifier[..bracket].Trim();");
+                sb.AppendLine($"{indent}        if (!identifier.Contains(':')) identifier = \"minecraft:\" + identifier;");
+                sb.AppendLine($"{indent}        return AllSet.Contains(identifier);");
+            }
+
             sb.AppendLine($"{indent}    }}");
         }
 

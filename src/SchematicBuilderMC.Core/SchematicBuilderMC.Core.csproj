@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\registries_26_3.json" />
+    <EmbeddedResource Include="Resources\recipes_26_3.json" />
   </ItemGroup>
 
   <ItemGroup>

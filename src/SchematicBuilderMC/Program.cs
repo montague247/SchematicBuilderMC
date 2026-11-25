@@ -29,6 +29,29 @@ if (args.Length > 0)
         return 0;
     }
 
+    if (firstArg is "generate-recipes" or "--generate-recipes")
+    {
+        string? jarPath = null;
+        for (int i = 1; i < args.Length - 1; i++)
+        {
+            if (args[i] is "--jar" or "-j")
+            {
+                jarPath = args[i + 1];
+                break;
+            }
+        }
+
+        Console.WriteLine($"Generating Minecraft {Minecraft.Version} recipe files...");
+        string json = jarPath != null
+            ? MinecraftRecipesGenerator.ExtractRecipeJsonFromJar(jarPath, Minecraft.Version)
+            : MinecraftRecipesGenerator.GetBundledRecipeJson();
+        string targetDir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "SchematicBuilderMC.Core", "Registries");
+        targetDir = Path.GetFullPath(targetDir);
+        MinecraftRecipesGenerator.GenerateToDirectory(json, targetDir);
+        Console.WriteLine($"Recipe files generated at: {targetDir}");
+        return 0;
+    }
+
     if (firstArg is "cylinder-base" or "--cylinder-base")
     {
         return RunCylinderBaseExample(args);
@@ -402,6 +425,7 @@ static void PrintHelp()
           cylinder-water [output.schem]      Generate an example hollow cylinder with inward-flowing water to its center.
           tnt-duper [x z] [output.schem]     Generate a single-pulse TNT duper aligned to drop at (X, Z).
           generate-registries                Generate Minecraft registry constants from embedded/online registries.json.
+          generate-recipes [--jar <path>]    Generate Minecraft recipe and item-tag constants from bundled data or jar.
           demo                               Run the build and read/write demo (default when no args provided).
 
         Options for generate-code:
